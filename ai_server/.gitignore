@@ -1,37 +1,21 @@
-# Virtual Environment
-venv/
-env/
-ENV/
-.venv/
-
-# Python cache
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
-
-# Distribution / packaging
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
+venv/
+env/
+ENV/
 
-# Environment variables
+# Environment
 .env
 .env.local
-.env.*.local
+.env.production
+
+# Logs
+logs/
+*.log
 
 # IDE
 .vscode/
@@ -39,31 +23,17 @@ wheels/
 *.swp
 *.swo
 *~
-.spyderproject
-.spyproject
 
-# Jupyter Notebook
-.ipynb_checkpoints
+# OS
+.DS_Store
+Thumbs.db
 
-# pytest
+# Testing
 .pytest_cache/
 .coverage
 htmlcov/
 
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# OS files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Logs
-*.log
-
+# Build
+dist/
+build/
+*.egg-info/

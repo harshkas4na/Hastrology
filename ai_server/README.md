@@ -1,70 +1,194 @@
-# AI Horoscope Server (Python / FastAPI)
+# Hastrology AI Server
 
-This server is a simple microservice that does one job: it receives a user's birth details and returns a unique, AI-generated horoscope using Google Gemini and LangChain.
+AI-powered horoscope generation service using FastAPI, LangChain, and Google Gemini.
 
-## 🚀 Prerequisites
+## 🏗️ Architecture
 
-Before you begin, you will need:
-* [Python 3.10+](https://www.python.org/downloads/)
-* A **Google Gemini API Key**. You can get one from [Google AI Studio](https://aistudio.google.com/app/apikey).
+Modular Python architecture for scalability and maintainability:
 
-## 🛠️ Setup Instructions
-
-1.  **Clone the Repository**
-    ```bash
-    git clone <your-repo-url>
-    cd ai_server
-    ```
-
-2.  **Create and Activate Virtual Environment**
-    * On macOS/Linux:
-        ```bash
-        python3 -m venv venv
-        source venv/bin/activate
-        ```
-    * On Windows:
-        ```bash
-        python -m venv venv
-        .\venv\Scripts\activate
-        ```
-
-3.  **Install Dependencies**
-    ```bash
-    pip3 install fastapi "uvicorn[standard]" langchain langchain-google-genai python-dotenv
-    ```
-
-## ⚙️ Configuration
-
-This server is configured using a `.env` file.
-
-1.  Create a new file named `.env` in the `ai_server` root folder.
-2.  Add your Google Gemini API key to it:
-
-    ```.env
-    GOOGLE_API_KEY="your-gemini-api-key-goes-here"
-    ```
-
-## ▶️ Running the Server
-
-With your virtual environment active, run the following command:
-
-```bash
-uvicorn main:app --reload
+```
+src/
+├── config/          Settings & logging configuration
+├── services/        Business logic (AI, caching)
+├── models/          Pydantic request/response models
+├── routes/          FastAPI route handlers
+└── middleware/      Error handling & rate limiting
 ```
 
-The server will start on http://127.0.0.1:8000. The --reload flag means it will automatically restart if you make any code changes.
+## 🚀 Getting Started
 
-🧪 Testing
+### Prerequisites
 
-You can test if the server is working by sending a curl request from a new terminal:
+- Python 3.11+
+- Google Gemini API key
 
-Bash
+### Installation
 
-curl -X POST "[http://127.0.0.1:8000/generate_horoscope](http://127.0.0.1:8000/generate_horoscope)" \
--H "Content-Type: application/json" \
--d '{
-    "dob": "April 20, 1995",
-    "birth_time": "4:30 PM",
-    "birth_place": "New Delhi, India"
-}'
-You should receive a JSON response with your horoscope text.
+```bash
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Copy environment template
+cp .env.example .env
+
+# Edit .env with your API key
+```
+
+### Required Environment Variables
+
+```bash
+# Google AI (get from https://aistudio.google.com/app/apikey)
+GOOGLE_API_KEY=your-api-key-here
+
+# Server Configuration
+HOST=127.0.0.1
+PORT=8000
+ENVIRONMENT=development
+
+# Logging
+LOG_LEVEL=INFO
+
+# Cache Configuration
+CACHE_ENABLED=true
+CACHE_TTL_SECONDS=86400  # 24 hours
+
+# Rate Limiting
+RATE_LIMIT_ENABLED=true
+RATE_LIMIT_TIMES=10
+RATE_LIMIT_SECONDS=60
+```
+
+### Running
+
+```bash
+# Development (with hot reload)
+uvicorn main:app --reload
+
+# Production
+uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+Server will start on `http://localhost:8000`
+
+## 📡 API Endpoints
+
+### Interactive Documentation
+```
+http://localhost:8000/docs       Swagger UI
+http://localhost:8000/redoc      ReDoc
+```
+
+### Horoscope Generation
+```
+POST /generate_horoscope
+Content-Type: application/json
+
+{
+  "dob": "April 20, 1995",
+  "birth_time": "4:30 PM",
+  "birth_place": "New Delhi, India"
+}
+```
+
+### Health Check
+```
+GET /
+```
+
+### Cache Management
+```
+GET  /cache/stats    Get cache statistics
+POST /cache/clear    Clear all cache
+```
+
+## ⚡ Features
+
+### Smart Caching
+- In-memory cache with TTL
+- Reduces API costs significantly
+- Configurable expiration (default 24h)
+- MD5-based cache keys
+
+### Rate Limiting
+- SlowAPI integration
+- Configurable limits per endpoint
+- IP-based tracking
+- Prevents API abuse
+
+### Error Handling
+- Comprehensive exception handling
+- Detailed validation errors
+- Production-safe error messages
+- Full request/response logging
+
+### Request Validation
+- Pydantic models for type safety
+- Automatic validation
+- Clear error messages
+- API documentation generation
+
+## 🏃 Development
+
+### Project Structure
+
+- **config/**: Settings (Pydantic) and logging setup
+- **services/**: AI generation and caching logic
+- **models/**: Request/response Pydantic models
+- **routes/**: FastAPI endpoints
+- **middleware/**: Error handlers and rate limiting
+
+### Adding New Features
+
+1. Define models in `src/models/`
+2. Create service in `src/services/`
+3. Add routes in `src/routes/`
+4. Update `main.py` to include router
+
+## 📦 Dependencies
+
+**Core:**
+- `fastapi` - Modern web framework
+- `uvicorn` - ASGI server
+- `pydantic` - Data validation
+- `pydantic-settings` - Settings management
+
+**AI:**
+- `langchain` - LLM orchestration
+- `langchain-google-genai` - Gemini integration
+
+**Utilities:**
+- `slowapi` - Rate limiting
+- `python-dotenv` - Environment management
+
+## 🐳 Docker
+
+```bash
+# Build image
+docker build -t hastrology-ai .
+
+# Run container
+docker run -p 8000:8000 --env-file .env hastrology-ai
+```
+
+## 🔍 Monitoring
+
+### Cache Performance
+Check cache hit rates and optimize TTL:
+```bash
+curl http://localhost:8000/cache/stats
+```
+
+### Logs
+Logs include:
+- Request/response details
+- Cache hits/misses
+- AI generation metrics
+- Error stack traces
+
+## 📝 License
+
+ISC

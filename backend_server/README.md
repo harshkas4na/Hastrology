@@ -1,80 +1,163 @@
-# Horoscope App Backend Server (Node.js / Express)
+# Hastrology Backend Server
 
-This is the main backend "hub" for the Horoscope app. It connects to a MongoDB database, handles all user logic, and communicates with the Python AI server to get horoscopes.
+Modern, scalable backend server for the Hastrology horoscope platform using Node.js, Express, and Supabase.
 
-## 🚀 Prerequisites
+## 🏗️ Architecture
 
-Before you begin, you will need:
-* [Node.js (LTS version)](https://nodejs.org/en)
-* A **MongoDB Atlas** account. You need a (free) cluster for this.
-* The **AI Server** (from the `ai_server` project) must be **running** at `http://127.0.0.1:8000`.
+This server follows a modular, scalable architecture:
 
-## 🛠️ Setup Instructions
-
-1.  **Clone the Repository**
-    ```bash
-    git clone <your-repo-url>
-    cd backend_server
-    ```
-
-2.  **Install Dependencies**
-    ```bash
-    npm install
-    ```
-
-## ⚙️ Configuration
-
-This server is configured using a `.env` file. This setup is **critical**.
-
-1.  **Set up MongoDB Atlas:**
-    * Create a new free "M0" cluster on MongoDB Atlas.
-    * In `Database Access`, create a new database user (e.g., `horoscopeUser` / `a-strong-password`).
-    * In `Network Access`, add your computer's IP address (or click `Allow Access From Anywhere` for development).
-    * Click `Database` -> `Connect` -> `Drivers` and copy the **Connection String**.
-
-2.  **Create `.env` File:**
-    * Create a file named `.env` in the `backend_server` root folder.
-    * Add the following variables:
-
-    ```.env
-    # 1. Paste your MongoDB connection string.
-    # 2. Replace <username> and <password> with your DB user's credentials.
-    # 3. Name the database (e.g., "horoscopeDB") before the "?".
-    MONGO_URI="mongodb+srv://<username>:<password>@your-cluster.mongodb.net/horoscopeDB?retryWrites=true&w=majority"
-
-    # URL of the running Python AI server
-    AI_SERVER_URL="[http://127.0.0.1:8000](http://127.0.0.1:8000)"
-
-    # Port for this Node.js server to run on
-    PORT=5001
-    ```
-
-## ▶️ Running the Server
-
-Once your `.env` file is saved, you can start the server:
-
-```bash
-npm run dev
+```
+src/
+├── config/          Configuration & initialization
+├── services/        Business logic layer
+├── controllers/     HTTP request handlers
+├── routes/          API route definitions
+├── middleware/      Express middleware
+├── database/        SQL schemas & migrations
+└── utils/           Helper functions
 ```
 
-You should see two messages:
+## 🚀 Getting Started
 
-MongoDB Connected...
+### Prerequisites
 
-Server running on port 5001
+- Node.js 20+
+- Supabase account
+- Google Gemini API key (for AI server)
 
-🧪 API Endpoints
-You can test the server with curl or Postman:
+### Installation
 
-Register a new user:
+```bash
+# Install dependencies
+npm install
 
-curl -X POST "http://localhost:5001/api/user/register" -H "Content-Type: application/json" -d '{"walletAddress": "MyTestWallet123", "dob": "Jan 1, 1990", "birthTime": "12:00 PM", "birthPlace": "London, UK"}'
-Check a user's status:
+# Copy environment template
+cp .env.example .env
 
+# Edit .env with your credentials
+```
 
-curl "http://localhost:5001/api/horoscope/status?walletAddress=MyTestWallet123"
-Returns {"status":"new_user"} or {"status":"clear_to_pay"} or {"status":"exists", ...}
+### Required Environment Variables
 
-Confirm a (mock) payment:
+```bash
+# Supabase (get from Project Settings → API)
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_KEY=your-service-key
 
-curl -X POST "http://localhost:5001/api/horoscope/confirm" -H "Content-Type: application/json" -d '{"walletAddress": "MyTestWallet123", "signature": "fake_sig"}'
+# AI Server
+AI_SERVER_URL=http://127.0.0.1:8000
+
+# Server
+PORT=5001
+NODE_ENV=development
+
+# Security (generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
+JWT_SECRET=your-random-secret-here
+
+# Rate Limiting
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=100
+
+# CORS
+ALLOWED_ORIGINS=*
+```
+
+### Database Setup
+
+1. Create a Supabase project
+2. Run the SQL schema from `src/database/schema.sql` in Supabase SQL Editor
+3. This creates:
+   - `users` table with user information
+   - `horoscopes` table for generated horoscopes
+   - Row-Level Security (RLS) policies
+   - Indexes for performance
+   - Triggers for automatic timestamps
+
+### Running
+
+```bash
+# Development (with hot reload)
+npm run dev
+
+# Production
+npm start
+```
+
+Server will start on `http://localhost:5001`
+
+## 📡 API Endpoints
+
+### Health Check
+```
+GET /api/health
+```
+
+### User Routes
+```
+POST /api/user/register          Register/update user
+GET  /api/user/profile/:wallet   Get user profile
+```
+
+### Horoscope Routes
+```
+GET  /api/horoscope/status       Check horoscope status
+POST /api/horoscope/confirm      Confirm payment & generate
+GET  /api/horoscope/history/:wallet  Get past horoscopes
+```
+
+## 🔒 Security Features
+
+- **Helmet.js**: Security headers
+- **Rate Limiting**: Configurable per endpoint
+- **Input Validation**: Joi schemas
+- **JWT Authentication**: Token-based auth
+- **CORS**: Configurable origins
+- **Row-Level Security**: Supabase RLS
+
+## 🏃 Development
+
+### Project Structure
+
+- **config/**: Environment validation, Supabase client, logger
+- **services/**: Business logic (user, horoscope, AI, auth, Solana)
+- **controllers/**: Request handlers
+- **routes/**: API endpoint definitions
+- **middleware/**: Error handling, validation, rate limiting, logging
+- **utils/**: Response helpers and utilities
+
+### Adding New Features
+
+1. Create service in `src/services/`
+2. Create controller in `src/controllers/`
+3. Define routes in `src/routes/`
+4. Add validation in `src/middleware/validation.js`
+
+## 📦 Dependencies
+
+**Production:**
+- `express` - Web framework
+- `@supabase/supabase-js` - Supabase client
+- `helmet` - Security middleware
+- `joi` - Schema validation
+- `jsonwebtoken` - JWT auth
+- `winston` - Logging
+- `express-rate-limit` - Rate limiting
+- `@solana/web3.js` - Solana integration
+
+**Development:**
+- `nodemon` - Hot reload
+
+## 🐳 Docker
+
+```bash
+# Build image
+docker build -t hastrology-backend .
+
+# Run container
+docker run -p 5001:5001 --env-file .env hastrology-backend
+```
+
+## 📝 License
+
+ISC

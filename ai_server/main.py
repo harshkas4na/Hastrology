@@ -1,74 +1,120 @@
 """
-FastAPI + LangChain Horoscope Generator
-This application generates personalized horoscopes using Google's Gemini AI model.
+FastAPI + LangChain Horoscope Generator (Modular Architecture)
+Main application entry point
 """
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from slowapi.errors import RateLimitExceeded
 
-# Load environment variables from .env file
-from dotenv import load_dotenv
-load_dotenv()
+from src.config.settings import settings
+from src.config.logger import logger
+from src.models.response_models import HealthResponse
+from src.routes.horoscope_routes import router as horoscope_router
+from src.middleware.error_handler import (
+    validation_exception_handler,
+    general_exception_handler
+)
+from src.middleware.rate_limiter import limiter, _rate_limit_exceeded_handler
+from src.services.cache_service import cache_service
 
-import os
-from fastapi import FastAPI
-from pydantic import BaseModel
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Lifespan events for startup and shutdown
+    """
+    # Startup
+    logger.info("🚀 Starting Hastrology AI Server")
+    logger.info(f"Environment: {settings.environment}")
+    logger.info(f"Cache enabled: {settings.cache_enabled}")
+    logger.info(f"Rate limiting enabled: {settings.rate_limit_enabled}")
+    
+    yield
+    
+    # Shutdown
+    logger.info("Shutting down gracefully...")
+    cache_service.clear()
+    logger.info("✓ Cache cleared")
+
 
 # Initialize FastAPI application
-app = FastAPI(title="Horoscope Generator API")
+app = FastAPI(
+    title="Hastrology AI Server",
+    description="AI-powered horoscope generation using Google Gemini",
+    version="2.0.0",
+    lifespan=lifespan
+)
 
-# Define request model using Pydantic
-class HoroscopeRequest(BaseModel):
-    """
-    Request model for horoscope generation.
-    Accepts date of birth, birth time, and birth place.
-    """
-    dob: str
-    birth_time: str
-    birth_place: str
+# Add rate limiting
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# Define the POST endpoint
-@app.post("/generate_horoscope")
-async def generate_horoscope(request: HoroscopeRequest):
-    """
-    Generate a personalized horoscope based on birth details.
-    
-    Args:
-        request: HoroscopeRequest containing dob, birth_time, and birth_place
-        
-    Returns:
-        JSON response with generated horoscope text
-    """
-    
-    # Initialize the Gemini model
-    llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash",google_api_key=os.getenv("GOOGLE_API_KEY"))
-    
-    # Create the prompt template with astrologer persona
-    prompt = ChatPromptTemplate.from_template(
-        "You are a professional astrologer with a witty, modern, and optimistic tone. "
-        "Generate a 4-sentence horoscope for a user with the following details:\n"
-        "   * Date of Birth: {dob}\n"
-        "   * Time of Birth: {birth_time}\n"
-        "   * Place of Birth: {birth_place}\n"
-        "Focus the horoscope on themes of luck, opportunity, and self-reflection. "
-        "Do not sound generic."
-    )
-    
-    # Create a chain: prompt -> LLM -> string output parser
-    chain = prompt | llm | StrOutputParser()
-    
-    # Invoke the chain with user's birth details
-    horoscope_text = chain.invoke({
-        "dob": request.dob,
-        "birth_time": request.birth_time,
-        "birth_place": request.birth_place
-    })
-    
-    # Return the generated horoscope as JSON
-    return {"horoscope_text": horoscope_text}
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, specify exact origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-# Optional: Add a health check endpoint
-@app.get("/")
+# Add custom exception handlers
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(Exception, general_exception_handler)
+
+# Include routers
+app.include_router(horoscope_router, tags=["Horoscope"])
+
+
+@app.get(
+    "/",
+    response_model=HealthResponse,
+    summary="Health check",
+    description="Check if the API is running"
+)
 async def root():
     """Health check endpoint"""
-    return {"message": "Horoscope Generator API is running"}
+    return HealthResponse(
+        status="ok",
+        message="Hastrology AI Server is running"
+    )
+
+
+@app.get(
+    "/cache/stats",
+    summary="Cache statistics",
+    description="Get current cache statistics"
+)
+async def cache_stats():
+    """Get cache statistics"""
+    return {
+        "enabled": cache_service.enabled,
+        "entries": len(cache_service.cache),
+        "ttl_seconds": cache_service.ttl
+    }
+
+
+@app.post(
+    "/cache/clear",
+    summary="Clear cache",
+    description="Clear all cache entries"
+)
+async def clear_cache():
+    """Clear cache endpoint"""
+    cache_service.clear()
+    logger.info("Cache cleared via API endpoint")
+    return {"message": "Cache cleared successfully"}
+
+
+if __name__ == "__main__":
+    import uvicorn
+    
+    uvicorn.run(
+        "main:app",
+        host=settings.host,
+        port=settings.port,
+        reload=settings.environment == "development",
+        log_level=settings.log_level.lower()
+    )

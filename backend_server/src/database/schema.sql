@@ -1,0 +1,109 @@
+-- Hastrology Database Schema for Supabase
+-- Run this in Supabase SQL Editor after creating your project
+
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Create users table
+CREATE TABLE IF NOT EXISTS users (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  wallet_address TEXT UNIQUE NOT NULL,
+  dob TEXT NOT NULL,
+  birth_time TEXT NOT NULL,
+  birth_place TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create horoscopes table
+CREATE TABLE IF NOT EXISTS horoscopes (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  wallet_address TEXT NOT NULL,
+  date DATE NOT NULL,
+  horoscope_text TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  
+  -- Ensure one horoscope per user per day
+  UNIQUE(wallet_address, date)
+);
+
+-- Create indexes for better query performance
+CREATE INDEX IF NOT EXISTS idx_users_wallet ON users(wallet_address);
+CREATE INDEX IF NOT EXISTS idx_horoscopes_wallet_date ON horoscopes(wallet_address, date);
+CREATE INDEX IF NOT EXISTS idx_horoscopes_user_id ON horoscopes(user_id);
+
+-- Create updated_at trigger function
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create trigger for users table
+DROP TRIGGER IF EXISTS update_users_updated_at ON users;
+CREATE TRIGGER update_users_updated_at
+  BEFORE UPDATE ON users
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- Row Level Security (RLS) Policies
+-- Enable RLS on tables
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE horoscopes ENABLE ROW LEVEL SECURITY;
+
+-- Allow service role to do everything (for backend server)
+CREATE POLICY "Service role has full access to users"
+  ON users
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
+CREATE POLICY "Service role has full access to horoscopes"
+  ON horoscopes
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
+-- Allow anonymous users to read their own data (if using auth)
+CREATE POLICY "Users can read their own user data"
+  ON users
+  FOR SELECT
+  TO anon
+  USING (wallet_address = current_setting('request.jwt.claims', true)::json->>'wallet_address');
+
+CREATE POLICY "Users can read their own horoscopes"
+  ON horoscopes
+  FOR SELECT
+  TO anon
+  USING (wallet_address = current_setting('request.jwt.claims', true)::json->>'wallet_address');
+
+-- Create a view for easier querying
+CREATE OR REPLACE VIEW user_horoscopes AS
+SELECT 
+  h.id,
+  h.wallet_address,
+  h.date,
+  h.horoscope_text,
+  h.created_at,
+  u.dob,
+  u.birth_time,
+  u.birth_place
+FROM horoscopes h
+JOIN users u ON h.wallet_address = u.wallet_address;
+
+-- Grant access to the view
+GRANT SELECT ON user_horoscopes TO anon, service_role;
+
+-- Success message
+DO $$
+BEGIN
+  RAISE NOTICE 'Hastrology schema created successfully!';
+  RAISE NOTICE 'Tables created: users, horoscopes';
+  RAISE NOTICE 'View created: user_horoscopes';
+  RAISE NOTICE 'RLS policies enabled for security';
+END $$;
