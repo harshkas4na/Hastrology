@@ -1,26 +1,153 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@theme {
+  --color-cosmic-purple: #7C3AED;
+  --color-cosmic-pink: #EC4899;
+  --color-cosmic-gold: #F59E0B;
+  --color-cosmic-navy: #0F172A;
+  --color-cosmic-slate: #1E293B;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --image-gradient-cosmic: linear-gradient(to right, #7C3AED, #EC4899, #F59E0B);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-glow: glow 2s ease-in-out infinite alternate;
+  --animate-spin-slow: spin 20s linear infinite;
+
+  @keyframes float {
+
+    0%,
+    100% {
+      transform: translateY(0px);
+    }
+
+    50% {
+      transform: translateY(-20px);
+    }
+  }
+
+  @keyframes glow {
+    0% {
+      box-shadow: 0 0 5px #7C3AED, 0 0 10px #7C3AED;
+    }
+
+    100% {
+      box-shadow: 0 0 20px #7C3AED, 0 0 30px #EC4899;
+    }
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Cosmic background animation */
+@keyframes move-twink-back {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: -10000px 5000px;
+  }
+}
+
+.stars,
+.twinkling {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.stars {
+  background: #000 url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAE0lEQVQImWP4////fwYGBgYGBgYADfQC/SdKU+UAAAAASUVORK5CYII=) repeat top center;
+  z-index: 0;
+}
+
+.twinkling {
+  background: transparent url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAE0lEQVQImWP4////fwYGBgYGBgYADfQC/SdKU+UAAAAASUVORK5CYII=) repeat top center;
+  z-index: 1;
+  animation: move-twink-back 200s linear infinite;
+}
+
+/* Cosmic loader */
+@keyframes rotate {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes dash {
+  0% {
+    stroke-dasharray: 1, 150;
+    stroke-dashoffset: 0;
+  }
+
+  50% {
+    stroke-dasharray: 90, 150;
+    stroke-dashoffset: -35;
+  }
+
+  100% {
+    stroke-dasharray: 90, 150;
+    stroke-dashoffset: -124;
+  }
+}
+
+.cosmic-loader {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  margin: 0 auto;
+}
+
+.cosmic-loader::before {
+  content: '';
+  display: block;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: var(--color-cosmic-purple);
+  animation: rotate 1s linear infinite;
+}
+
+.cosmic-loader::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-bottom-color: var(--color-cosmic-gold);
+  animation: rotate reverse 0.75s linear infinite;
+}
+
+/* Wallet adapter overrides */
+.wallet-adapter-button {
+  background: linear-gradient(to right, #7C3AED, #EC4899) !important;
+}
+
+.wallet-adapter-button:not([disabled]):hover {
+  background: linear-gradient(to right, #6D28D9, #DB2777) !important;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1E293B;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #7C3AED;
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6D28D9;
 }
