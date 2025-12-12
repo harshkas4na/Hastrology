@@ -72,24 +72,24 @@ const userRegistrationSchema = Joi.object({
  * Horoscope confirmation validation schema
  */
 const horoscopeConfirmSchema = Joi.object({
-    // walletAddress: Joi.string()
-    //     .required()
-    //     .min(32)
-    //     .max(44)
-    //     .pattern(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/)
-    //     .messages({
-    //         'string.pattern.base': 'Invalid Solana wallet address format',
-    //         'string.empty': 'Wallet address is required',
-    //         'any.required': 'Wallet address is required'
-    //     }),
+    walletAddress: Joi.string()
+        .required()
+        .min(32)
+        .max(44)
+        .pattern(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/)
+        .messages({
+            'string.pattern.base': 'Invalid Solana wallet address format',
+            'string.empty': 'Wallet address is required',
+            'any.required': 'Wallet address is required'
+        }),
 
-    // signature: Joi.string()
-    //     .required()
-    //     .min(1)
-    //     .messages({
-    //         'string.empty': 'Transaction signature is required',
-    //         'any.required': 'Transaction signature is required'
-    //     })
+    signature: Joi.string()
+        .required()
+        .min(1)
+        .messages({
+            'string.empty': 'Transaction signature is required',
+            'any.required': 'Transaction signature is required'
+        })
 });
 
 module.exports = {

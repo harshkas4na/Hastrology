@@ -18,22 +18,25 @@ class HoroscopeService {
     }
 
     /**
-     * Save a new horoscope
-     * @param {Object} horoscopeData - Horoscope data
+     * Save new horoscope cards
+     * @param {Object} horoscopeData - Horoscope data with cards object
      * @returns {Promise<Object>} Saved horoscope
      */
-    async saveHoroscope({ walletAddress, horoscopeText, date = null }) {
+    async saveHoroscope({ walletAddress, cards, date = null }) {
         try {
             const horoscopeDate = date || this.getTodayDateString();
 
-            logger.info('Saving horoscope:', { walletAddress, date: horoscopeDate });
+            logger.info('Saving horoscope cards:', { walletAddress, date: horoscopeDate });
+
+            // Store cards as JSON string in horoscope_text column
+            const cardsJson = JSON.stringify(cards);
 
             const { data, error } = await this.supabase
                 .from('horoscopes')
                 .insert({
                     wallet_address: walletAddress,
                     date: horoscopeDate,
-                    horoscope_text: horoscopeText
+                    horoscope_text: cardsJson
                 })
                 .select()
                 .single();
@@ -48,8 +51,8 @@ class HoroscopeService {
                 throw error;
             }
 
-            logger.info('Horoscope saved successfully:', { id: data.id });
-            return data;
+            logger.info('Horoscope cards saved successfully:', { id: data.id });
+            return { ...data, cards };
         } catch (error) {
             logger.error('Save horoscope error:', error);
             throw error;
@@ -57,10 +60,24 @@ class HoroscopeService {
     }
 
     /**
-     * Get horoscope for a specific wallet and date
+     * Parse stored horoscope text to cards object
+     * @param {string} horoscopeText - Stored JSON string
+     * @returns {Object|null} Cards object or null
+     */
+    parseCards(horoscopeText) {
+        try {
+            return JSON.parse(horoscopeText);
+        } catch {
+            // If it's not JSON, it's a legacy text format
+            return null;
+        }
+    }
+
+    /**
+     * Get horoscope cards for a specific wallet and date
      * @param {string} walletAddress - User's wallet address
      * @param {string} date - Date in YYYY-MM-DD format
-     * @returns {Promise<Object|null>} Horoscope or null
+     * @returns {Promise<Object|null>} Horoscope with cards or null
      */
     async getHoroscope(walletAddress, date = null) {
         try {
@@ -78,7 +95,11 @@ class HoroscopeService {
                 throw error;
             }
 
-            return data || null;
+            if (!data) return null;
+
+            // Parse cards from stored JSON
+            const cards = this.parseCards(data.horoscope_text);
+            return { ...data, cards };
         } catch (error) {
             logger.error('Get horoscope error:', error);
             throw error;
@@ -131,10 +152,10 @@ class HoroscopeService {
         try {
             const todayHoroscope = await this.getHoroscope(walletAddress);
 
-            if (todayHoroscope) {
+            if (todayHoroscope && todayHoroscope.cards) {
                 return {
                     status: 'exists',
-                    horoscope: todayHoroscope.horoscope_text,
+                    cards: todayHoroscope.cards,
                     date: todayHoroscope.date
                 };
             }

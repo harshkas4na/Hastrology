@@ -1,8 +1,24 @@
-import { BirthDetails, HoroscopeStatus, HoroscopeResponse } from '@/types';
+import { BirthDetails, HoroscopeStatus, HoroscopeResponse, CardType, AstroCard } from '@/types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
 
 export const api = {
+    /**
+     * Get user profile by wallet address
+     */
+    async getUserProfile(walletAddress: string) {
+        const res = await fetch(`${API_BASE}/user/profile/${walletAddress}`);
+
+        if (!res.ok) {
+            if (res.status === 404) {
+                return null; // User not found
+            }
+            throw new Error('Failed to get user profile');
+        }
+
+        return res.json();
+    },
+
     /**
      * Register a new user with birth details
      */
@@ -35,7 +51,7 @@ export const api = {
     },
 
     /**
-     * Confirm payment and generate horoscope
+     * Confirm payment and generate horoscope cards
      */
     async confirmHoroscope(walletAddress: string, signature: string): Promise<HoroscopeResponse> {
         const res = await fetch(`${API_BASE}/horoscope/confirm`, {
@@ -65,3 +81,4 @@ export const api = {
         return res.json();
     }
 };
+

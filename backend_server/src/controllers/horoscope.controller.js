@@ -53,13 +53,13 @@ class HoroscopeController {
                 return errorResponse(res, 'User not found. Please register first.', 404);
             }
 
-            // Check if horoscope already exists for today
+            // Check if horoscope cards already exist for today
             const existingHoroscope = await horoscopeService.getHoroscope(walletAddress);
 
-            if (existingHoroscope) {
+            if (existingHoroscope && existingHoroscope.cards) {
                 return successResponse(res, {
                     message: 'Horoscope already generated for today',
-                    horoscope_text: existingHoroscope.horoscope_text,
+                    cards: existingHoroscope.cards,
                     date: existingHoroscope.date
                 });
             }
@@ -80,25 +80,25 @@ class HoroscopeController {
                 return errorResponse(res, 'Invalid transaction signature', 400);
             }
 
-            logger.info('Payment verified, generating horoscope', { walletAddress });
+            logger.info('Payment verified, generating horoscope cards', { walletAddress });
 
-            // Generate horoscope using AI
-            const horoscopeText = await aiService.generateHoroscope({
+            // Generate horoscope cards using AI
+            const cards = await aiService.generateHoroscope({
                 dob: user.dob,
                 birthTime: user.birth_time,
                 birthPlace: user.birth_place
             });
 
-            // Save horoscope to database
+            // Save horoscope cards to database
             const horoscope = await horoscopeService.saveHoroscope({
                 walletAddress,
-                horoscopeText
+                cards
             });
 
-            logger.info('Horoscope generated and saved', { walletAddress });
+            logger.info('Horoscope cards generated and saved', { walletAddress });
 
             return successResponse(res, {
-                horoscope_text: horoscopeText,
+                cards: cards,
                 date: horoscope.date
             });
         } catch (error) {

@@ -12,13 +12,13 @@ class AIService {
     }
 
     /**
-     * Generate horoscope using AI server
+     * Generate horoscope cards using AI server
      * @param {Object} birthDetails - User's birth details
-     * @returns {Promise<string>} Generated horoscope text
+     * @returns {Promise<Object>} Generated horoscope cards
      */
     async generateHoroscope({ dob, birthTime, birthPlace }) {
         try {
-            logger.info('Requesting horoscope from AI server');
+            logger.info('Requesting horoscope cards from AI server');
 
             const response = await axios.post(
                 `${this.aiServerUrl}/generate_horoscope`,
@@ -28,19 +28,20 @@ class AIService {
                     birth_place: birthPlace
                 },
                 {
-                    timeout: 30000, // 30 second timeout
+                    timeout: 60000, // 60 second timeout (increased for card generation)
                     headers: {
                         'Content-Type': 'application/json'
                     }
                 }
             );
 
-            if (!response.data || !response.data.horoscope_text) {
+            // New response format: { cards: {...}, cached: bool }
+            if (!response.data || !response.data.cards) {
                 throw new Error('Invalid response from AI server');
             }
 
-            logger.info('Horoscope generated successfully');
-            return response.data.horoscope_text;
+            logger.info('Horoscope cards generated successfully');
+            return response.data.cards;
         } catch (error) {
             if (error.code === 'ECONNREFUSED') {
                 logger.error('AI server is not running or not reachable');
@@ -74,3 +75,4 @@ class AIService {
 }
 
 module.exports = new AIService();
+
