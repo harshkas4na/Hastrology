@@ -128,7 +128,9 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
-// Start the server
-startServer();
+// Start the server (skip on Vercel - it uses the exported app directly)
+if (!process.env.VERCEL) {
+  startServer();
+}
 
-module.exports = app; // Export for testing
+module.exports = app; // Export for Vercel serverless + testing
