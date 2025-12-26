@@ -59,4 +59,11 @@ pub enum HashtrologyErrors {
 
     #[msg("Cannot rollover a lottery that has participants. Use request_draw instead.")]
     CannotRolloverWithPlayers,
+
+    // --- UpdateConfig Errors ---
+    #[msg("Only the authority can perform this action.")]
+    Unauthorized,
+
+    #[msg("The new lottery endtime must be in the future.")]
+    InvalidEndtime,
 }

@@ -2,12 +2,13 @@
 
 import { FC, useState, useEffect } from 'react';
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
-import { SystemProgram, Transaction, LAMPORTS_PER_SOL } from '@solana/web3.js';
+import { Transaction } from '@solana/web3.js';
 import { motion } from 'framer-motion';
 import { api } from '@/lib/api';
 import { useStore } from '@/store/useStore';
 import { AstroCardDeck } from './AstroCardDeck';
 import { AstroCardsData, CardType, AstroCard as AstroCardType, CARD_ORDER } from '@/types';
+import { buildEnterLotteryInstruction } from '@/lib/hastrology_program';
 
 const PAYMENT_AMOUNT = 0.01; // SOL
 
@@ -115,24 +116,26 @@ export const HoroscopeSection: FC = () => {
         setStatus('paying');
 
         try {
-            // Create payment transaction (0.01 SOL to self for now)
-            const transaction = new Transaction().add(
-                SystemProgram.transfer({
-                    fromPubkey: publicKey,
-                    toPubkey: publicKey, // In production, this would be your treasury wallet
-                    lamports: PAYMENT_AMOUNT * LAMPORTS_PER_SOL
-                })
-            );
+            // Build enter_lottery instruction
+            const instruction = await buildEnterLotteryInstruction(publicKey, connection);
+
+            const transaction = new Transaction().add(instruction);
 
             const signature = await sendTransaction(transaction, connection);
 
             // Generate horoscope cards
             setStatus('generating');
+
+            // Wait for confirmation to ensure backend can verify PDA
+            await connection.confirmTransaction(signature, 'confirmed');
+
+            // Call backend (signature optional now, but kept for logging/reference if needed)
             const result = await api.confirmHoroscope(publicKey.toBase58(), signature);
 
             setCards(result.cards);
             setStatus('complete');
         } catch (err: any) {
+            console.error('Payment error:', err);
             setError(err.message || 'Failed to process payment');
             setStatus('ready');
         } finally {

@@ -6,10 +6,10 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-hastrology_program = "2no8nWzYpbMyCo7gkVbJKFvxkGW84MhPKD96THuEbAoD"
+hastrology_program = "A3voJRWMzoy1118ZmTjsoYAGXrM9zPySUPwcgUQ3PV76"
 
 [programs.localnet]
-hastrology_program = "2no8nWzYpbMyCo7gkVbJKFvxkGW84MhPKD96THuEbAoD"
+hastrology_program = "A3voJRWMzoy1118ZmTjsoYAGXrM9zPySUPwcgUQ3PV76"
 
 [registry]
 url = "https://api.apr.dev"

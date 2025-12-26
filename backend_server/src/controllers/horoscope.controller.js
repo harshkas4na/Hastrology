@@ -64,21 +64,20 @@ class HoroscopeController {
                 });
             }
 
-            // Verify Solana signature
-            // In development, use mock verification
-            const isDevMode = process.env.NODE_ENV === 'development';
-            let isSignatureValid = false;
+            // Verify lottery participation via on-chain PDA
+            const hasParticipated = await solanaService.verifyLotteryParticipation(walletAddress);
 
-            if (isDevMode) {
-                isSignatureValid = await solanaService.mockVerifySignature(signature);
-                logger.warn('Using mock signature verification in development mode');
-            } else {
-                isSignatureValid = await solanaService.verifyTransaction(signature);
+            if (!hasParticipated) {
+                // If PDA check fails, we can fallback to signature verification for legacy support or retry
+                // But for the new lottery system, PDA is the source of truth
+                logger.warn('User has not entered the lottery:', { walletAddress });
+                return res.status(402).json({
+                    success: false,
+                    message: 'Please enter the lottery to view your horoscope'
+                });
             }
 
-            if (!isSignatureValid) {
-                return errorResponse(res, 'Invalid transaction signature', 400);
-            }
+            logger.info('Payment/Lottery entry verified for:', { walletAddress, signature });
 
             logger.info('Payment verified, generating horoscope cards', { walletAddress });
 

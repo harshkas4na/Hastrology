@@ -8,7 +8,12 @@
     "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["horoscope", "astrology", "supabase", "solana"],
+  "keywords": [
+    "horoscope",
+    "astrology",
+    "supabase",
+    "solana"
+  ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
@@ -16,6 +21,7 @@
     "@solana/web3.js": "^1.98.4",
     "@supabase/supabase-js": "^2.39.0",
     "axios": "^1.13.2",
+    "bn.js": "^5.2.2",
     "compression": "^1.7.4",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",

@@ -1,7 +1,7 @@
 #![allow(unexpected_cfgs, deprecated)]
 use anchor_lang::prelude::*;
 
-declare_id!("2no8nWzYpbMyCo7gkVbJKFvxkGW84MhPKD96THuEbAoD");
+declare_id!("A3voJRWMzoy1118ZmTjsoYAGXrM9zPySUPwcgUQ3PV76");
 
 pub mod state;
 pub mod instructions;
@@ -42,7 +42,6 @@ pub mod hastrology_program {
     }
 
     pub fn request_draw(ctx: Context<RequestDraw>) -> Result<()> {
-
         ctx.accounts.request_draw_handler()
     }
 
@@ -54,5 +53,20 @@ pub mod hastrology_program {
     pub fn payout(ctx: Context<Payout>) -> Result<()> {
 
         ctx.accounts.payout_handler()
+    }
+
+    pub fn update_config(
+        ctx: Context<UpdateConfig>,
+        new_ticket_price: Option<u64>,
+        new_platform_fee_bps: Option<u16>,
+        new_platform_wallet: Option<Pubkey>,
+        new_lottery_endtime: Option<i64>,
+    ) -> Result<()> {
+        ctx.accounts.update_config_handler(
+            new_ticket_price,
+            new_platform_fee_bps,
+            new_platform_wallet,
+            new_lottery_endtime,
+        )
     }
 }
