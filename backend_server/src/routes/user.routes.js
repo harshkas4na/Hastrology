@@ -3,6 +3,7 @@ const userController = require("../controllers/user.controller");
 const {
   validateUserRegistration,
   validateTwitterConfirm,
+  validateTwitterTokensUpdate,
 } = require("../middleware/validation");
 const { authLimiter } = require("../middleware/rateLimiter");
 
@@ -30,6 +31,18 @@ router.post(
   authLimiter,
   validateTwitterConfirm,
   userController.registerX
+);
+
+/**
+ * @route   PATCH /api/user/twitter-tokens
+ * @desc    Update Twitter OAuth tokens for a user
+ * @access  Private
+ */
+router.patch(
+  "/twitter-tokens",
+  authLimiter,
+  validateTwitterTokensUpdate,
+  userController.updateTwitterTokens
 );
 
 /**

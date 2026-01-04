@@ -1,57 +1,69 @@
 "use client";
-
 import { useWallet } from "@solana/wallet-adapter-react";
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { type FC, useEffect, useState } from "react";
+import { type FC, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { useStore } from "@/store/useStore";
 
 export const Hero: FC = () => {
 	const { publicKey, connected } = useWallet();
 	const router = useRouter();
-	const { user, setUser, setWallet } = useStore();
+	const { setUser, setWallet } = useStore();
 	const [isChecking, setIsChecking] = useState(false);
+	const hasCheckedRef = useRef(false);
 
-	// Check user status when wallet connects
 	useEffect(() => {
 		const checkUserStatus = async () => {
-			if (connected && publicKey) {
-				setIsChecking(true);
-				try {
-					const address = publicKey.toBase58();
-					setWallet(address);
-					const profileResponse = await api.getUserProfile(address);
+			if (!connected || !publicKey) {
+				hasCheckedRef.current = false;
+				return;
+			}
 
-					if (profileResponse?.user) {
-						setUser(profileResponse.user);
-					} else {
-						setUser(null);
-					}
-				} catch (error) {
-					console.error("Error checking user:", error);
+			if (hasCheckedRef.current) return;
+			hasCheckedRef.current = true;
+
+			setIsChecking(true);
+			try {
+				const address = publicKey.toBase58();
+				setWallet(address);
+
+				const profileResponse = await api.getUserProfile(address);
+
+				if (profileResponse?.user) {
+					setUser(profileResponse.user);
+					router.push("/cards");
+				} else {
 					setUser(null);
-				} finally {
-					setIsChecking(false);
+					try {
+						await api.registerUser({
+							username: null,
+							walletAddress: address,
+							dob: null,
+							birthTime: null,
+							birthPlace: null,
+							latitude: null,
+							longitude: null,
+						});
+					} catch (createError) {
+						console.error("Error creating account:", createError);
+					}
+
+					router.push("/link-x");
 				}
+			} catch (error) {
+				console.error("Error checking user:", error);
+				setUser(null);
+
+				router.push("/link-x");
+			} finally {
+				setIsChecking(false);
 			}
 		};
 
 		checkUserStatus();
-	}, [connected, publicKey, setUser, setWallet]);
-
-	const handleConnectClick = () => {
-		if (isChecking) return;
-
-		// If wallet is connected and user exists, go to cards
-		if (connected && user) {
-			router.push("/cards");
-			return;
-		}
-
-		// Otherwise go to login page
-		router.push("/login");
-	};
+	}, [connected, publicKey, setUser, setWallet, router]);
 
 	return (
 		<section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-black">
@@ -70,24 +82,18 @@ export const Hero: FC = () => {
 						src="/bg-home-lower.png"
 					/>
 				</div>
-
 				<div className="absolute inset-0 bg-linear-to-b from-transparent via-transparent to-transparent" />
 			</div>
-
 			<img
 				alt="Orange Planet"
 				className="absolute left-0 top-0 h-full w-auto object-contain object-left z-0"
 				src="/ellipse-left.png"
 			/>
-
-			{/* BLACK ELLIPSE - Overlapping the orange ellipse from left */}
 			<img
 				alt="Black Planet"
 				className="absolute left-0 top-0 h-full w-auto object-contain object-left z-10"
 				src="/ellipse-black.png"
 			/>
-
-			{/* STAR FIELD */}
 
 			{/* CONTENT */}
 			<motion.div
@@ -131,53 +137,38 @@ export const Hero: FC = () => {
 					initial={{ opacity: 0, y: 20 }}
 					transition={{ delay: 0.7, duration: 0.8 }}
 				>
-					<button
-						onClick={handleConnectClick}
-						disabled={isChecking}
-						type="button"
-						className={`
-              bg-[#1f1f1f]
-              hover:bg-[#121212]
-              text-white
-              h-12
-              px-8
-              py-6
-              border border-[#fc5411]
-           pt-2.5
-              rounded-xl
-              transition-all
-              ${isChecking ? "opacity-50 cursor-not-allowed" : ""}
-            `}
-					>
-						{isChecking
-							? "Locating Your Stars..."
-							: connected && user
-								? "See Your Stars"
-								: "Connect Wallet"}
-					</button>
+					{isChecking ? (
+						<button
+							disabled
+							type="button"
+							className="bg-[#1f1f1f] text-white h-12 px-8 py-6 border border-[#fc5411] pt-2.5 rounded-xl opacity-50 cursor-not-allowed"
+						>
+							Locating Your Stars...
+						</button>
+					) : (
+						<WalletMultiButton className="!bg-[#1f1f1f] hover:!bg-[#121212] !text-white !h-12 !px-8 !py-6 !border !border-[#fc5411] !pt-2.5 !rounded-xl !transition-all">
+							Connect Wallet
+						</WalletMultiButton>
+					)}
 				</motion.div>
 			</motion.div>
 
-			{/* BOTTOM FADE */}
 			<div className="absolute bottom-0 left-0 w-full h-32 bg-linear-to-t from-black to-transparent" />
 			<img
 				alt="Orange Planet"
 				className="absolute right-0 top-0 h-full w-auto object-contain object-left z-0"
 				src="/ellipse-right.png"
 			/>
-
 			<img
 				alt="Black Planet"
 				className="absolute right-0 top-0 h-full w-auto object-contain object-left z-10"
 				src="/ellipse-black-right.png"
 			/>
-
 			<div className="absolute bottom-11 left-0 w-full z-30 px-6">
 				<div className="font-display max-w-7xl mx-auto flex items-center justify-between text-md text-[#8A8A8A]">
 					<span className="font-display">
 						©2025 <span className="text-white">Hastrology</span>
 					</span>
-
 					<div className="flex gap-6">
 						<span className="text-white">Your cosmic journey on Solana.</span>
 						<a className="hover:text-white transition" href="/abc">

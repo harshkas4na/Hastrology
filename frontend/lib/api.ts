@@ -112,4 +112,27 @@ export const api = {
 
 		return res.json();
 	},
+
+	/**
+	 * Update Twitter OAuth tokens for a user
+	 */
+	async updateTwitterTokens(data: {
+		walletAddress: string; // Changed from userId
+		accessToken: string;
+		refreshToken: string;
+		expiresAt: string;
+	}) {
+		const res = await fetch(`${API_BASE}/user/twitter-tokens`, {
+			method: "PATCH",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(data),
+		});
+
+		if (!res.ok) {
+			const error = await res.json();
+			throw new Error(error.message || "Failed to update Twitter tokens");
+		}
+
+		return res.json();
+	},
 };

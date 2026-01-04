@@ -97,9 +97,45 @@ export function generateXAuthUrl(requestUrl: string, userId = ""): string {
 		response_type: "code",
 		code_challenge: "challenge",
 		code_challenge_method: "plain",
-		scope: "follows.write tweet.read users.read offline.access like.read",
+		scope:
+			"follows.write tweet.read tweet.write media.write users.read offline.access like.read",
 		state: btoa(encodeURIComponent(state)),
 	});
 
 	return `https://x.com/i/oauth2/authorize?${oauthUrl}`;
+}
+
+export async function refreshTwitterToken(refreshToken: string): Promise<{
+	accessToken: string;
+	refreshToken: string;
+	expiresIn: number;
+} | null> {
+	const secret = btoa(
+		`${process.env.NEXT_PUBLIC_X_CLIENT_ID}:${process.env.NEXT_PUBLIC_X_CLIENT_SECRET}`,
+	);
+
+	const response = await fetch(X_TOKEN_URL, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/x-www-form-urlencoded",
+			Authorization: `Basic ${secret}`,
+		},
+		body: new URLSearchParams({
+			refresh_token: refreshToken,
+			grant_type: "refresh_token",
+			client_id: process.env.NEXT_PUBLIC_X_CLIENT_ID || "",
+		}),
+	});
+
+	if (!response.ok) {
+		return null;
+	}
+
+	const data = await response.json();
+
+	return {
+		accessToken: data.access_token,
+		refreshToken: data.refresh_token,
+		expiresIn: data.expires_in,
+	};
 }

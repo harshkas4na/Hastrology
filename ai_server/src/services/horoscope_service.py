@@ -85,7 +85,7 @@ class HoroscopeService:
         try:
             # Using Gemini 1.5-flash for speed and better JSON adherence
             self.llm = ChatGoogleGenerativeAI(
-                model="gemini-1.5-flash", 
+                model="gemini-2.5-flash", 
                 google_api_key=settings.google_api_key,
                 temperature=0.75,  # Slightly lower for more consistent output
                 max_retries=3

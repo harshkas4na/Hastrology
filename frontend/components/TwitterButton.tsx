@@ -41,15 +41,14 @@ export const TwitterSignInButton: React.FC<TwitterSignInButtonProps> = ({
         items-center
         justify-center
         gap-3
-        rounded-lg
-        h-12
-       
+        rounded-2xl
+       px-8 py-4
         transition-all
         border border-[#fc5411]
         ${
 					disabled || isLoading
-						? "bg-[#141414] text-gray-500 border-[#2A2A2A] cursor-not-allowed opacity-60"
-						: "bg-[#1F1F1F] text-white border-[#2A2A2A] hover:bg-[#262626] hover:border-[#3A3A3A]"
+						? "bg-white/5 text-gray-500 border-[#2A2A2A] cursor-not-allowed opacity-60"
+						: "bg-white/5 text-white border-[#2A2A2A] hover:bg-[#262626] hover:border-[#3A3A3A]"
 				}
       `}
 			type="button"
