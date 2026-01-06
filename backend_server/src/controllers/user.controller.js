@@ -98,6 +98,9 @@ class UserController {
           timezoneOffset: user.timezone_offset,
           createdAt: user.created_at,
           username: user.username,
+          twitterAccessToken: user.twitter_access_token,
+          twitterRefreshToken: user.twitter_refresh_token,
+          twitterTokenExpiresAt: user.twitter_token_expires,
         },
       });
     } catch (error) {
@@ -112,9 +115,25 @@ class UserController {
    */
   async registerX(req, res, next) {
     try {
-      const { id, twitterId, twitterUsername, twitterProfileUrl } = req.body;
+      const {
+        id,
+        twitterId,
+        username,
+        twitterUsername,
+        twitterProfileUrl,
+        twitterAccessToken,
+        twitterRefreshToken,
+        twitterTokenExpiresAt,
+      } = req.body;
 
-      if (!id || (!twitterId && !twitterUsername && !twitterProfileUrl)) {
+      if (
+        !id ||
+        (!twitterId &&
+          !twitterUsername &&
+          !twitterProfileUrl &&
+          !twitterAccessToken &&
+          !username)
+      ) {
         return res.status(400).json({
           success: false,
           message: "User id and X account details are required",
@@ -124,8 +143,12 @@ class UserController {
       const user = await userService.registerXAccount({
         userId: id,
         twitterId,
+        username,
         twitterUsername,
         twitterProfileUrl,
+        twitterAccessToken,
+        twitterRefreshToken,
+        twitterTokenExpiresAt,
       });
 
       return successResponse(
@@ -147,6 +170,55 @@ class UserController {
       );
     } catch (error) {
       logger.error("Register X controller error:", error);
+      next(error);
+    }
+  }
+
+  /**
+   * Update user's Twitter OAuth tokens
+   * @route PATCH /api/user/twitter-tokens
+   */
+  async updateTwitterTokens(req, res, next) {
+    try {
+      const { walletAddress, accessToken, refreshToken, expiresAt } = req.body;
+
+      if (!walletAddress || !accessToken || !refreshToken || !expiresAt) {
+        return errorResponse(
+          res,
+          "Wallet address, access token, refresh token, and expiration time are required",
+          400
+        );
+      }
+
+      const existingUser = await userService.findUserByWallet(walletAddress);
+      if (!existingUser) {
+        return errorResponse(res, "User not found", 404);
+      }
+
+      const user = await userService.updateTwitterTokens({
+        walletAddress,
+        accessToken,
+        refreshToken,
+        expiresAt,
+      });
+
+      logger.info("Twitter tokens updated successfully", { walletAddress });
+
+      return successResponse(
+        res,
+        {
+          message: "Twitter tokens updated successfully",
+          user: {
+            id: user.id,
+            walletAddress: user.wallet_address,
+            twitterUsername: user.twitter_username,
+            twitterTokenExpiresAt: user.twitter_token_expires,
+          },
+        },
+        200
+      );
+    } catch (error) {
+      logger.error("Update Twitter tokens controller error:", error);
       next(error);
     }
   }

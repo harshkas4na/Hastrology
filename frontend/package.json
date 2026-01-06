@@ -18,10 +18,12 @@
     "bn.js": "^5.2.2",
     "framer-motion": "^12.23.24",
     "html-to-image": "^1.11.13",
+    "html2canvas": "^1.4.1",
     "next": "^16.0.10",
     "react": "19.2.0",
     "react-datepicker": "^8.9.0",
     "react-dom": "19.2.0",
+    "twitter-api-v2": "^1.28.0",
     "zustand": "^5.0.8"
   },
   "devDependencies": {

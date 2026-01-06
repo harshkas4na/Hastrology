@@ -1,275 +1,430 @@
-'use client';
+"use client";
 
-import { FC, useState, useEffect } from 'react';
-import { useConnection, useWallet } from '@solana/wallet-adapter-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import BN from 'bn.js';
-import { fetchLotteryState, fetchUserTicket, LotteryState } from '@/lib/hastrology_program';
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { FC, useEffect, useState } from "react";
+import {
+	fetchLotteryState,
+	fetchUserTicket,
+	LotteryState,
+} from "@/lib/hastrology_program";
 
 interface LotteryCountdownProps {
-    onBack?: () => void;
+	onBack?: () => void;
 }
 
 export const LotteryCountdown: FC<LotteryCountdownProps> = ({ onBack }) => {
-    const { connection } = useConnection();
-    const { publicKey } = useWallet();
+	const { connection } = useConnection();
+	const { publicKey } = useWallet();
 
-    const [state, setState] = useState<LotteryState | null>(null);
-    const [timeLeft, setTimeLeft] = useState<{ h: number; m: number; s: number } | null>(null);
-    const [status, setStatus] = useState<'loading' | 'countdown' | 'drawing' | 'result'>('loading');
-    const [result, setResult] = useState<'won' | 'lost' | 'pending' | null>(null);
-    const [winnerAddress, setWinnerAddress] = useState<string | null>(null);
-    const [prize, setPrize] = useState<string | null>(null);
+	const [state, setState] = useState<LotteryState | null>(null);
+	const [timeLeft, setTimeLeft] = useState<{
+		h: number;
+		m: number;
+		s: number;
+	} | null>(null);
+	const [status, setStatus] = useState<
+		"loading" | "countdown" | "drawing" | "checking" | "result"
+	>("loading");
+	const [result, setResult] = useState<"won" | "lost" | "pending" | null>(null);
+	const [winnerAddress, setWinnerAddress] = useState<string | null>(null);
+	const [prize, setPrize] = useState<string | null>(null);
+	const [error, setError] = useState<string | null>(null);
 
-    // Poll for lottery state
-    useEffect(() => {
-        const checkState = async () => {
-            try {
-                const lotteryState = await fetchLotteryState(connection);
-                if (lotteryState) {
-                    setState(lotteryState);
+	// Calculate prize pool
+	const prizePool = state
+		? (
+				(Number(state.ticketPrice) * Number(state.totalParticipants)) /
+				1e9
+			).toFixed(2)
+		: "0.00";
 
-                    // Logic to determine status
-                    const now = Math.floor(Date.now() / 1000);
-                    const end = lotteryState.lotteryEndtime.toNumber();
+	useEffect(() => {
+		const checkState = async () => {
+			try {
+				const lotteryState = await fetchLotteryState(connection);
+				if (lotteryState) {
+					setState(lotteryState);
 
-                    if (now >= end) {
-                        setStatus('drawing'); // Time passed, waiting for draw
-                    } else {
-                        setStatus('countdown');
-                    }
-                }
-            } catch (err) {
-                console.error("Error fetching state:", err);
-            }
-        };
+					const now = Math.floor(Date.now() / 1000);
+					const end = lotteryState.lotteryEndtime.toNumber();
 
-        checkState();
-        const interval = setInterval(checkState, 10000); // Check every 10s
-        return () => clearInterval(interval);
-    }, [connection]);
+					if (now >= end) {
+						setStatus("drawing");
+					} else {
+						setStatus("countdown");
+					}
+				}
+			} catch (err) {
+				console.error("Error fetching state:", err);
+				setError("Failed to load lottery data");
+			}
+		};
 
-    // Countdown Timer
-    useEffect(() => {
-        if (!state || status !== 'countdown') return;
+		checkState();
+		const interval = setInterval(checkState, 10000);
+		return () => clearInterval(interval);
+	}, [connection]);
 
-        const timer = setInterval(() => {
-            const now = Math.floor(Date.now() / 1000);
-            const end = state.lotteryEndtime.toNumber();
-            const diff = end - now;
+	// Countdown Timer
+	useEffect(() => {
+		if (!state || status !== "countdown") return;
 
-            if (diff <= 0) {
-                setStatus('drawing');
-                setTimeLeft({ h: 0, m: 0, s: 0 });
-            } else {
-                const h = Math.floor(diff / 3600);
-                const m = Math.floor((diff % 3600) / 60);
-                const s = diff % 60;
-                setTimeLeft({ h, m, s });
-            }
-        }, 1000);
+		const timer = setInterval(() => {
+			const now = Math.floor(Date.now() / 1000);
+			const end = state.lotteryEndtime.toNumber();
+			const diff = end - now;
 
-        return () => clearInterval(timer);
-    }, [state, status]);
+			if (diff <= 0) {
+				setStatus("drawing");
+				setTimeLeft({ h: 0, m: 0, s: 0 });
+			} else {
+				const h = Math.floor(diff / 3600);
+				const m = Math.floor((diff % 3600) / 60);
+				const s = diff % 60;
+				setTimeLeft({ h, m, s });
+			}
+		}, 1000);
 
-    const handleCheckResult = async () => {
-        if (!state || !publicKey) return;
+		return () => clearInterval(timer);
+	}, [state, status]);
 
-        // Check if we have a winner in the state
-        // The 'winner' field in state applies to:
-        // - The CURRENT lottery IF 'isDrawing' is true? No, resolve_draw sets it.
-        // - The PREVIOUS lottery IF payout ran (since it increments ID but keeps winner field? Unlikely to be reliable indefinitely)
-        // Best bet: Check if 'winner' > 0.
+	const handleCheckResult = async () => {
+		if (!state || !publicKey) return;
 
-        // However, if we are in 'drawing' state (time passed), we are waiting for 'winner' to be set.
+		setStatus("checking");
+		setError(null);
 
-        if (state.winner.eqn(0)) {
-            alert("The draw hasn't happened yet! Please wait for the Oracle to pick a winner.");
-            return;
-        }
+		try {
+			if (state.winner.eqn(0)) {
+				setError("Draw hasn't happened yet. Please wait for the Oracle.");
+				setStatus("drawing");
+				return;
+			}
 
-        // Check our ticket
-        try {
-            // We need to know WHICH lottery ID to check.
-            // If the user is checking NOW, and a winner is set, it's likely for the Current ID matching the winner?
-            // Wait, resolve_draw sets winner for 'currentLotteryId'. 
-            // Payout increments 'currentLotteryId'.
-            // So if 'winner' > 0 and 'totalParticipants' == 0 (reset), then winner is for (ID-1).
-            // If 'winner' > 0 and 'totalParticipants' > 0, then winner is for (ID).
+			let idToCheck = state.currentLotteryId;
+			if (state.totalParticipants.eqn(0)) {
+				idToCheck = state.currentLotteryId.subn(1);
+			}
 
-            let idToCheck = state.currentLotteryId;
-            if (state.totalParticipants.eqn(0)) {
-                // Payout happened, ID incremented
-                idToCheck = state.currentLotteryId.subn(1);
-            }
+			const pdaWinnerIndex = state.winner.subn(1);
+			const winningTicket = await fetchUserTicket(
+				connection,
+				idToCheck,
+				pdaWinnerIndex,
+			);
 
-            // Ticket Number is 0-indexed in PDA? 
-            // In program: winner is 1-indexed U64. 0 means no winner.
-            // Our fix used (winner - 1) for PDA.
+			if (winningTicket) {
+				setWinnerAddress(winningTicket.user.toBase58());
+				setPrize((winningTicket.prizeAmount.toNumber() / 1e9).toFixed(2));
 
-            const pdaWinnerIndex = state.winner.subn(1);
+				if (winningTicket.user.equals(publicKey)) {
+					setResult("won");
+				} else {
+					setResult("lost");
+				}
+				setStatus("result");
+			} else {
+				setResult("pending");
+				setStatus("result");
+			}
+		} catch (err) {
+			console.error(err);
+			setError("Failed to check results. Please try again.");
+			setStatus("drawing");
+		}
+	};
 
-            // We want to check if *this user* is the winner.
-            // But we don't know our ticket number easily without fetching ALL receipts.
-            // Actually, we can just fetch the 'winningTicket' PDA using the known winner index.
-            // If the .user matches us, WE WON!
+	if (!state) {
+		return (
+			<section className="min-h-[600px] flex items-center justify-center">
+				<div className="text-center">
+					<div className="w-16 h-16 border-4 border-black border-t-[#fc5411] rounded-full animate-spin mx-auto mb-4" />
+					<p className="text-slate-400">Loading lottery data...</p>
+				</div>
+			</section>
+		);
+	}
 
-            const winningTicket = await fetchUserTicket(connection, idToCheck, pdaWinnerIndex);
+	return (
+		<section className="min-h-[600px] flex items-center justify-center relative overflow-hidden">
+			<div className="relative z-10 w-full max-w-7xl px-4">
+				<AnimatePresence mode="wait">
+					{/* LOADING STATE */}
+					{status === "loading" && (
+						<motion.div
+							key="loading"
+							initial={{ opacity: 0 }}
+							animate={{ opacity: 1 }}
+							exit={{ opacity: 0 }}
+							className="text-center"
+						>
+							<div className="w-16 h-16 border-4 border-black border-t-[#fc5411] rounded-full animate-spin mx-auto mb-4" />
+							<p className="text-slate-400">Loading lottery data...</p>
+						</motion.div>
+					)}
 
-            if (winningTicket) {
-                setWinnerAddress(winningTicket.user.toBase58());
-                setPrize((winningTicket.prizeAmount.toNumber() / 1e9).toFixed(2));
+					{/* COUNTDOWN STATE */}
+					{status === "countdown" && (
+						<motion.div
+							key="countdown"
+							initial={{ opacity: 0, y: 30 }}
+							animate={{ opacity: 1, y: 0 }}
+							exit={{ opacity: 0, y: -20 }}
+							className="text-center space-y-8"
+						>
+							{/* Header */}
+							<div>
+								<span className="inline-block py-1.5 px-4 rounded-full border border-[#fc5411] bg-black text-[#fc5411] text-sm font-semibold tracking-wide uppercase mb-4">
+									Next Cosmic Draw
+								</span>
 
-                if (winningTicket.user.equals(publicKey)) {
-                    setResult('won');
-                } else {
-                    setResult('lost');
-                }
-            } else {
-                setResult('pending');
-            }
+								{/* Prize Pool - Prominent */}
+								<h2 className="text-5xl md:text-6xl font-bold text-white mb-2">
+									{prizePool}{" "}
+									<span className="text-3xl text-slate-400">SOL</span>
+								</h2>
+								<p className="text-slate-400 text-lg">
+									{state.totalParticipants.toString()} cosmic tickets entered
+								</p>
+							</div>
 
-        } catch (err) {
-            console.error(err);
-            setResult('pending');
-        }
-    };
+							{/* Timer Display */}
+							<div className="flex justify-center gap-3 md:gap-4">
+								{timeLeft ? (
+									<>
+										<TimeBlock value={timeLeft.h} label="Hours" />
+										<div className="flex items-center">
+											<span className="text-3xl font-light text-white/30 mb-6">
+												:
+											</span>
+										</div>
+										<TimeBlock value={timeLeft.m} label="Minutes" />
+										<div className="flex items-center">
+											<span className="text-3xl font-light text-white/30 mb-6">
+												:
+											</span>
+										</div>
+										<TimeBlock value={timeLeft.s} label="Seconds" />
+									</>
+								) : (
+									<div className="text-2xl text-white/50 animate-pulse py-8">
+										Calculating...
+									</div>
+								)}
+							</div>
 
-    if (!state) return null;
+							<div className="pt-6 space-y-4">
+								<p className="text-slate-300 text-lg">
+									Your lucky stars are locked in ✨
+								</p>
+								<p className="text-slate-300 text-lg">
+									Return when the countdown ends to reveal your fate
+								</p>
+							</div>
 
-    return (
-        <section className="min-h-screen flex items-center justify-center relative overflow-hidden">
-            {/* Background */}
-            <div className="absolute inset-0 bg-slate-950">
-                <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/20 via-slate-950 to-slate-950"></div>
-                {/* Stars/Grid overlay could go here */}
-            </div>
+							{/* Footer Info */}
+							<div className="pt-8 border-t border-white/5">
+								<p className="text-xs text-slate-500">
+									Lottery #{state.currentLotteryId.toString()}
+								</p>
+							</div>
+						</motion.div>
+					)}
 
-            <div className="relative z-10 w-full max-w-2xl px-4 text-center">
+					{/* DRAWING STATE */}
+					{status === "drawing" && (
+						<motion.div
+							key="drawing"
+							initial={{ opacity: 0, scale: 0.95 }}
+							animate={{ opacity: 1, scale: 1 }}
+							exit={{ opacity: 0, scale: 0.95 }}
+							className="text-center space-y-8"
+						>
+							<div>
+								<h2 className="py-3 mb-10 text-4xl md:text-5xl font-bold text-white">
+									The Stars Are Aligning ✨
+								</h2>
+								<p className="text-slate-300 text-2xl mb-2">
+									Time's up! The cosmic draw is ready.
+								</p>
+								<p className="text-2xl font-bold text-white mb-8">
+									Prize Pool: {prizePool} SOL
+								</p>
+							</div>
 
-                <AnimatePresence mode="wait">
-                    {/* COUNTDOWN STATE */}
-                    {(status === 'countdown' || (status === 'drawing' && !result)) && (
-                        <motion.div
-                            key="countdown"
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-12 shadow-2xl"
-                        >
-                            <span className="inline-block py-1 px-3 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-bold tracking-widest uppercase mb-6">
-                                Next Cosmic Draw
-                            </span>
+							{error && (
+								<motion.div
+									initial={{ opacity: 0, y: -10 }}
+									animate={{ opacity: 1, y: 0 }}
+									className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg"
+								>
+									<p className="text-red-400 text-sm">{error}</p>
+								</motion.div>
+							)}
 
-                            {/* Timer Display */}
-                            <div className="flex justify-center gap-4 mb-8">
-                                {timeLeft ? (
-                                    <>
-                                        <TimeControl value={timeLeft.h} label="HRS" />
-                                        <span className="text-4xl font-light text-white/20 mt-2">:</span>
-                                        <TimeControl value={timeLeft.m} label="MIN" />
-                                        <span className="text-4xl font-light text-white/20 mt-2">:</span>
-                                        <TimeControl value={timeLeft.s} label="SEC" />
-                                    </>
-                                ) : (
-                                    <div className="text-4xl text-white/50 animate-pulse">Calculating...</div>
-                                )}
-                            </div>
+							<button
+								onClick={handleCheckResult}
+								disabled={status === ("checking" as typeof status)}
+								className="w-full group relative py-4 px-10  border border-[#FC5411] rounded-xl font-bold text-lg text-white shadow-xl hover:scale-102 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 hover:shadow-[0_0_30px_rgba(252,84,17,0.3)]"
+								type="button"
+							>
+								<span className="relative z-10 flex items-center gap-2 justify-center">
+									{status === "checking" ? (
+										<>
+											<div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+											Checking...
+										</>
+									) : (
+										<>Check If You Won 🏆</>
+									)}
+								</span>
+							</button>
 
-                            {status === 'drawing' ? (
-                                <div className="space-y-6">
-                                    <p className="text-xl text-yellow-300 font-light">
-                                        ✨ The stars are aligning... Draw is Ready!
-                                    </p>
-                                    <button
-                                        onClick={handleCheckResult}
-                                        className="py-4 px-8 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl font-bold text-black shadow-lg hover:scale-105 transition-transform"
-                                    >
-                                        Check If You Won 🏆
-                                    </button>
-                                </div>
-                            ) : (
-                                <p className="text-slate-400 text-lg">
-                                    Your lucky stars are locked in. <br />
-                                    Come back when the timer hits zero.
-                                </p>
-                            )}
+							<p className="text-slate-500 text-lg">
+								Lottery #{state.currentLotteryId.toString()}
+							</p>
+						</motion.div>
+					)}
 
-                            {/* Lottery ID Badge */}
-                            <div className="mt-8 pt-6 border-t border-white/5">
-                                <p className="text-sm text-slate-500">
-                                    Lottery ID: #{state.currentLotteryId.toString()} • Total Pot: {(Number(state.ticketPrice) * Number(state.totalParticipants) / 1e9).toFixed(2)} SOL
-                                </p>
-                            </div>
+					{/* CHECKING STATE */}
+					{status === "checking" && (
+						<motion.div
+							key="checking"
+							initial={{ opacity: 0 }}
+							animate={{ opacity: 1 }}
+							exit={{ opacity: 0 }}
+							className="text-center py-12"
+						>
+							<div className="w-16 h-16 border-4 border-yellow-500/30 border-t-yellow-500 rounded-full animate-spin mx-auto mb-6" />
+							<p className="text-xl text-slate-300 mb-2">
+								Reading the cosmos...
+							</p>
+							<p className="text-slate-500 text-sm">Checking your ticket</p>
+						</motion.div>
+					)}
 
-                            {onBack && (
-                                <button onClick={onBack} className="mt-6 text-slate-500 hover:text-white text-sm transition-colors">
-                                    ← Back to Horoscope
-                                </button>
-                            )}
+					{/* RESULT STATE */}
+					{status === "result" && result && (
+						<motion.div
+							key="result"
+							initial={{ opacity: 0, scale: 0.9 }}
+							animate={{ opacity: 1, scale: 1 }}
+							exit={{ opacity: 0, scale: 0.9 }}
+							className="text-center space-y-6"
+						>
+							{result === "won" && (
+								<>
+									<motion.div
+										initial={{ scale: 0 }}
+										animate={{ scale: 1 }}
+										transition={{ type: "spring", duration: 0.6 }}
+										className="text-8xl mb-4"
+									>
+										🎉
+									</motion.div>
+									<h2 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-orange-500 mb-4">
+										COSMIC VICTORY!
+									</h2>
+									<div className="p-8 bg-gradient-to-br from-yellow-500/20 to-orange-500/20 border-2 border-yellow-500/50 rounded-2xl">
+										<p className="text-slate-300 mb-2">You won</p>
+										<p className="text-6xl font-bold text-white mb-4">
+											{prize} SOL
+										</p>
+										<p className="text-slate-400 text-sm">
+											The universe has smiled upon you ✨
+										</p>
+									</div>
+								</>
+							)}
 
-                        </motion.div>
-                    )}
+							{result === "lost" && (
+								<>
+									<h2 className="text-6xl font-bold text-white mb-12">
+										Not This Time 🌙
+									</h2>
 
-                    {/* RESULT STATE */}
-                    {result && (
-                        <motion.div
-                            key="result"
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            className={`rounded-3xl p-12 shadow-2xl border ${result === 'won'
-                                    ? 'bg-gradient-to-br from-yellow-500/20 to-orange-500/20 border-yellow-500/30'
-                                    : 'bg-white/5 border-white/10'
-                                } backdrop-blur-2xl`}
-                        >
-                            <div className="text-6xl mb-6">
-                                {result === 'won' ? '🎉' : '💫'}
-                            </div>
+									<p className="text-white text-2xl mb-4">
+										The cosmic winner of this round:
+									</p>
+									<p className="text-2xl font-mono text-[#fc5411] mb-4 break-all">
+										<a
+											href={`https://solscan.io/account/${winnerAddress}`}
+											target="_blank"
+											rel="noopener noreferrer"
+											className="hover:underline hover:text-[#ff7a3d] transition-colors"
+										>
+											{winnerAddress}
+										</a>
+									</p>
 
-                            <h2 className={`text-4xl font-bold mb-4 ${result === 'won' ? 'text-yellow-300' : 'text-white'}`}>
-                                {result === 'won' ? 'YOU WON!' : 'Divine Timing'}
-                            </h2>
+									<p className="text-2xl font-bold text-white mb-2">
+										Your Prize: {prize} SOL
+									</p>
+									<p className="text-white text-xl mt-6">
+										Your stars will align next time 🌟
+									</p>
+								</>
+							)}
 
-                            {result === 'won' ? (
-                                <p className="text-xl text-white/80 mb-8">
-                                    The stars have blessed you with <span className="font-bold text-yellow-300">{prize} SOL</span>!
-                                </p>
-                            ) : (
-                                <p className="text-lg text-slate-300 mb-8">
-                                    This wasn't your round, but the cosmos is always turning.<br />
-                                    Winner was: <span className="font-mono text-purple-300">{winnerAddress?.slice(0, 4)}...{winnerAddress?.slice(-4)}</span>
-                                </p>
-                            )}
+							{result === "pending" && (
+								<>
+									<div className="text-6xl mb-4">⏳</div>
+									<h2 className="text-3xl font-bold text-slate-300 mb-4">
+										Results Pending
+									</h2>
+									<p className="text-slate-400">
+										The Oracle hasn't announced the winner yet.
+										<br />
+										Check back in a moment.
+									</p>
+								</>
+							)}
 
-                            <div className="flex gap-4 justify-center">
-                                <button
-                                    onClick={() => { setResult(null); setStatus('countdown'); }}
-                                    className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl font-medium transition-colors"
-                                >
-                                    Check Again Later
-                                </button>
-                                {onBack && (
-                                    <button onClick={onBack} className="px-6 py-3 text-slate-400 hover:text-white">
-                                        Back to Horoscope
-                                    </button>
-                                )}
-                            </div>
-                        </motion.div>
-                    )}
+							<button
+								onClick={() => {
+									setResult(null);
+									setStatus("drawing");
+								}}
+								className="group relative w-full px-8 py-4
+border border-[#FC5411]
+rounded-2xl transition-all
+hover:scale-102
+hover:shadow-[0_0_30px_rgba(252,84,17,0.3)]"
+								type="button"
+							>
+								Check Again
+							</button>
+						</motion.div>
+					)}
+				</AnimatePresence>
 
-                </AnimatePresence>
-            </div>
-        </section>
-    );
+				{/* Back Button - Always visible */}
+				{onBack && (
+					<motion.button
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+						transition={{ delay: 0.3 }}
+						onClick={onBack}
+						className="mt-8 text-slate-500 hover:text-white text-sm transition-colors flex items-center gap-2 mx-auto"
+					>
+						<span>←</span> Back to Horoscope
+					</motion.button>
+				)}
+			</div>
+		</section>
+	);
 };
 
-const TimeControl = ({ value, label }: { value: number, label: string }) => (
-    <div className="flex flex-col items-center">
-        <div className="relative bg-black/40 rounded-2xl p-4 w-24 h-24 flex items-center justify-center border border-white/10">
-            <span className="text-4xl font-mono text-white font-bold">
-                {value.toString().padStart(2, '0')}
-            </span>
-        </div>
-        <span className="text-xs font-bold text-slate-500 mt-2 tracking-widest">{label}</span>
-    </div>
+const TimeBlock = ({ value, label }: { value: number; label: string }) => (
+	<div className="flex flex-col items-center">
+		<div className="relative rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border border-white/10 p-4 w-20 h-20 md:w-24 md:h-24 flex items-center justify-center shadow-lg">
+			<span className="text-3xl md:text-4xl font-mono text-white font-bold tabular-nums">
+				{value.toString().padStart(2, "0")}
+			</span>
+		</div>
+		<span className="text-xs font-semibold text-slate-500 mt-2 tracking-wider uppercase">
+			{label}
+		</span>
+	</div>
 );

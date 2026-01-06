@@ -20,7 +20,7 @@ type FormStep = "initial" | "birth-details";
 const LoginPage: FC = () => {
 	const { publicKey, connected } = useWallet();
 	const [name, setName] = useState("");
-	const [formStep, setFormStep] = useState<FormStep>("initial");
+	const [formStep, setFormStep] = useState<FormStep>("birth-details");
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const hasCheckedProfileRef = useRef(false);
 	const [userState, setUserState] = useState<"unknown" | "new" | "existing">(
@@ -33,15 +33,22 @@ const LoginPage: FC = () => {
 	const [birthDate, setBirthDate] = useState("");
 	const [birthTime, setBirthTime] = useState("");
 	const [birthPlace, setBirthPlace] = useState("");
+	const wasConnected = useRef(false);
 
-	// Check if user exists when wallet connects
+	useEffect(() => {
+		if (wasConnected.current && !publicKey) {
+			router.push("/");
+		}
+		wasConnected.current = !!publicKey;
+	}, [publicKey, router]);
+
 	useEffect(() => {
 		const checkExistingUser = async () => {
 			if (!connected || !publicKey) {
 				reset();
 				hasCheckedProfileRef.current = false;
 				setUserState("unknown");
-				setFormStep("initial");
+				setFormStep("birth-details");
 				setError(null);
 				return;
 			}
@@ -55,10 +62,13 @@ const LoginPage: FC = () => {
 			try {
 				const profileResponse = await api.getUserProfile(address);
 
-				if (profileResponse?.user) {
-					// EXISTING USER
+				if (profileResponse?.user?.username) {
 					setUserState("existing");
 					setUser(profileResponse.user);
+
+					if (profileResponse.user.username) {
+						setName(profileResponse.user.username);
+					}
 
 					if (
 						profileResponse.user.dob &&
@@ -81,7 +91,6 @@ const LoginPage: FC = () => {
 		checkExistingUser();
 	}, [connected, publicKey, reset, setUser, setWallet, router]);
 
-	// Handle initial registration (name + wallet)
 	const handleInitialSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (userState !== "new") return;
@@ -111,7 +120,6 @@ const LoginPage: FC = () => {
 			}
 
 			setUser(createdUser.user);
-			// Move to birth details form
 			setFormStep("birth-details");
 			setIsSubmitting(false);
 		} catch (err) {
@@ -173,7 +181,7 @@ const LoginPage: FC = () => {
 			}
 
 			setUser(updatedUser.user);
-			router.push("/link-x");
+			router.push("/cards");
 		} catch (err) {
 			console.error("Birth details submission failed:", err);
 			setError("Failed to save birth details. Please try again.");
@@ -220,7 +228,7 @@ const LoginPage: FC = () => {
 					{formStep === "initial" ? (
 						<>
 							<h1 className="text-5xl font-semibold text-white mb-2">
-								Connect Your Wallet
+								Enter Your Name
 							</h1>
 							<p className="text-gray-400 mb-8 mt-2 text-2xl">
 								To know more about yourself
@@ -329,6 +337,28 @@ const LoginPage: FC = () => {
 										disabled={!name.trim()}
 									/>
 								)}
+							</div>
+
+							<div className="flex flex-row justify-center items-center gap-2 mt-6 text-center">
+								<p className="text-md text-gray-400">
+									Prefer to connect using X?
+								</p>
+
+								<Link
+									href="/link-x"
+									className="
+			inline-flex items-center gap-2
+			text-[#eb5a16]
+			text-md font-medium
+			hover:text-[#ff7a3d]
+			transition
+		"
+								>
+									Continue with X Login
+									<span className="transition-transform group-hover:translate-x-1">
+										→
+									</span>
+								</Link>
 							</div>
 						</>
 					) : (

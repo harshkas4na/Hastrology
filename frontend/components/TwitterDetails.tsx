@@ -11,7 +11,7 @@ export const UserXDetails: FC = () => {
 	const profileUrl = `https://x.com/${user.twitterUsername}`;
 
 	return (
-		<div className="fixed top-6 right-50 z-50">
+		<div className="absolute top-6 left-5 z-50">
 			<a
 				href={profileUrl}
 				target="_blank"

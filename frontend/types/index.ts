@@ -2,7 +2,7 @@ export interface BirthDetails {
 	walletAddress: string;
 	dob: string | null;
 	birthTime: string | null;
-	username: string;
+	username: string | null;
 	birthPlace: string | null;
 	latitude: number | null;
 	longitude: number | null;
@@ -158,6 +158,9 @@ export interface User {
 	twitterId?: string;
 	twitterProfileUrl?: string;
 	twitterUsername?: string;
+	twitterAccessToken?: string;
+	twitterRefreshToken?: string;
+	twitterTokenExpiresAt?: string;
 }
 
 export interface AppState {
@@ -177,8 +180,12 @@ export interface AppState {
 export interface XDetails {
 	id: string;
 	twitterId: string;
+	username: string;
 	twitterUsername: string;
 	twitterProfileUrl: string;
+	twitterAccessToken: string;
+	twitterRefreshToken: string;
+	twitterTokenExpiresAt: string;
 }
 
 export interface TwitterUserData {

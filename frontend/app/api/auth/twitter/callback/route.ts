@@ -47,22 +47,19 @@ export async function GET(request: NextRequest) {
 		}
 
 		const externalId = `twitter_${result.userData.data.id}`;
-		/*const existingAccountProvider = await api.getUserProfile({
-			accountId: externalId,
-			accountType: "twitter",
-		});
-		if (existingAccountProvider) {
-			return NextResponse.redirect(
-				new URL("/login?error=account_exisits", request.url),
-			);
-		}*/
+		const expiresAt = new Date(Date.now() + result.expiresIn * 1000);
 
 		await api.regsiterX({
 			id: parsedState.user_id,
 			twitterId: externalId,
+			username:
+				result?.userData?.data?.name ?? result?.userData?.data?.username,
 			twitterUsername:
 				result?.userData?.data?.username ?? result?.userData?.data?.name,
 			twitterProfileUrl: result?.userData?.data?.profile_image_url,
+			twitterAccessToken: result.accessToken,
+			twitterRefreshToken: result.refreshToken,
+			twitterTokenExpiresAt: expiresAt.toISOString(),
 		});
 		const response = NextResponse.redirect(
 			new URL("/link-x?twitter_success=true", request.url),

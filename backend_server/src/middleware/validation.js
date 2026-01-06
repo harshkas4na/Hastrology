@@ -38,10 +38,7 @@ const userRegistrationSchema = Joi.object({
     "any.required": "Wallet address is required",
   }),
 
-  username: Joi.string().required().trim().messages({
-    "string.empty": "Name is required",
-    "any.required": "Name is required",
-  }),
+  username: Joi.string().optional().allow("", null).trim(),
 
   dob: Joi.string()
     .optional()
@@ -60,6 +57,23 @@ const userRegistrationSchema = Joi.object({
     }),
 
   birthPlace: Joi.string().optional().allow("", null).trim(),
+  latitude: Joi.number().optional().allow(null).min(-90).max(90).messages({
+    "number.min": "Latitude must be between -90 and 90",
+    "number.max": "Latitude must be between -90 and 90",
+  }),
+  longitude: Joi.number().optional().allow(null).min(-180).max(180).messages({
+    "number.min": "Longitude must be between -180 and 180",
+    "number.max": "Longitude must be between -180 and 180",
+  }),
+  timezoneOffset: Joi.number()
+    .optional()
+    .allow(null)
+    .min(-12)
+    .max(14)
+    .messages({
+      "number.min": "Timezone offset must be between -12 and 14",
+      "number.max": "Timezone offset must be between -12 and 14",
+    }),
 }).options({ stripUnknown: true });
 
 /**
@@ -87,17 +101,20 @@ const horoscopeConfirmSchema = Joi.object({
  * X account creation validation schema
  */
 const xAccountCreationSchema = Joi.object({
-  id: Joi.string()
-    .required()
-    .messages({
-      "string.pattern.base": "Invalid User ID",
-      "string.empty": "User ID is required",
-      "any.required": "User ID is required",
-    }),
+  id: Joi.string().required().messages({
+    "string.pattern.base": "Invalid User ID",
+    "string.empty": "User ID is required",
+    "any.required": "User ID is required",
+  }),
 
   twitterId: Joi.string().required().min(1).messages({
     "string.empty": "Twitter id is required",
     "any.required": "Twitter Id is required",
+  }),
+
+  username: Joi.string().required().min(1).messages({
+    "string.empty": "Username is required",
+    "any.required": "Username is required",
   }),
 
   twitterUsername: Joi.string().required().min(1).messages({
@@ -109,6 +126,48 @@ const xAccountCreationSchema = Joi.object({
     "string.empty": "Twitter Profile Url is required",
     "any.required": "Twitter Profile Url is required",
   }),
+
+  twitterAccessToken: Joi.string().required().min(1).messages({
+    "string.empty": "Access Token is required",
+    "any.required": "Access Token is required",
+  }),
+  twitterRefreshToken: Joi.string().required().min(1).messages({
+    "string.empty": "Refresh Token is required",
+    "any.required": "Refresh Token is required",
+  }),
+  twitterTokenExpiresAt: Joi.string().required().min(1).messages({
+    "string.empty": "Expired is required",
+    "any.required": "Expired is required",
+  }),
+});
+
+/**
+ * Twitter tokens update validation schema
+ */
+const twitterTokensUpdateSchema = Joi.object({
+  walletAddress: Joi.string()
+    .required()
+    .min(32)
+    .max(44)
+    .pattern(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/)
+    .messages({
+      "string.pattern.base": "Invalid Solana wallet address format",
+      "string.empty": "Wallet address is required",
+      "any.required": "Wallet address is required",
+    }),
+  accessToken: Joi.string().required().min(1).messages({
+    "string.empty": "Access token is required",
+    "any.required": "Access token is required",
+  }),
+  refreshToken: Joi.string().required().min(1).messages({
+    "string.empty": "Refresh token is required",
+    "any.required": "Refresh token is required",
+  }),
+  expiresAt: Joi.string().required().isoDate().messages({
+    "string.empty": "Expiration time is required",
+    "any.required": "Expiration time is required",
+    "string.isoDate": "Expiration time must be a valid ISO date",
+  }),
 });
 
 module.exports = {
@@ -116,4 +175,5 @@ module.exports = {
   validateUserRegistration: validate(userRegistrationSchema),
   validateHoroscopeConfirm: validate(horoscopeConfirmSchema),
   validateTwitterConfirm: validate(xAccountCreationSchema),
+  validateTwitterTokensUpdate: validate(twitterTokensUpdateSchema),
 };

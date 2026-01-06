@@ -15,55 +15,102 @@ const XLoginPage: FC = () => {
 	const { setWallet, setUser, reset, user } = useStore();
 	const [error, setError] = useState<string | null>(null);
 	const [success, setSuccess] = useState<string | null>(null);
-	const [isLoading, setIsLoading] = useState(false);
 	const hasCheckedProfileRef = useRef(false);
+	const wasConnected = useRef(false);
+	const isHandlingCallbackRef = useRef(false);
+
 	useEffect(() => {
-		const errorParam = searchParams.get("error");
-		const successParam = searchParams.get("twitter_success");
+		if (wasConnected.current && !publicKey) {
+			router.push("/");
+		}
+		wasConnected.current = !!publicKey;
+	}, [publicKey, router]);
 
-		if (errorParam) {
-			switch (errorParam) {
-				case "twitter_auth_failed":
-					setError("Twitter authentication failed. Please try again.");
-					break;
-				case "invalid_callback":
-					setError("Invalid callback received. Please try again.");
-					break;
-				case "auth_processing_failed":
-					setError("Authentication processing failed. Please try again.");
-					break;
-				case "account_exisits":
-					setError("This X account is already linked to another user.");
-					break;
-				default:
-					setError("An error occurred during authentication.");
+	useEffect(() => {
+		const handleTwitterCallback = async () => {
+			const errorParam = searchParams.get("error");
+			const successParam = searchParams.get("twitter_success");
+
+			if (errorParam) {
+				switch (errorParam) {
+					case "twitter_auth_failed":
+						setError("Twitter authentication failed. Please try again.");
+						break;
+					case "invalid_callback":
+						setError("Invalid callback received. Please try again.");
+						break;
+					case "auth_processing_failed":
+						setError("Authentication processing failed. Please try again.");
+						break;
+					case "account_exisits":
+						setError("This X account is already linked to another user.");
+						break;
+					default:
+						setError("An error occurred during authentication.");
+				}
 			}
-		}
 
-		if (successParam === "true") {
-			setSuccess("X account successfully connected!");
+			if (successParam === "true" && publicKey) {
+				isHandlingCallbackRef.current = true;
+				setSuccess("X account successfully connected!");
 
-			const timer = setTimeout(() => {
-				router.push("/cards");
-			}, 2000);
-			return () => clearTimeout(timer);
-		}
-	}, [searchParams, router]);
+				try {
+					const profileResponse = await api.getUserProfile(
+						publicKey.toBase58(),
+					);
+
+					if (profileResponse?.user) {
+						setUser(profileResponse.user);
+						const hasBirthDetails = !!(
+							profileResponse.user.dob &&
+							profileResponse.user.birthTime &&
+							profileResponse.user.birthPlace
+						);
+
+						const timer = setTimeout(() => {
+							if (hasBirthDetails) {
+								router.push("/cards");
+							} else {
+								router.push("/login");
+							}
+						}, 2000);
+
+						return () => clearTimeout(timer);
+					} else {
+						setTimeout(() => {
+							router.push("/login");
+						}, 2000);
+					}
+				} catch (err) {
+					console.error("Error fetching user profile:", err);
+					setError("Error loading profile. Redirecting to login...");
+
+					setTimeout(() => {
+						router.push("/login");
+					}, 2000);
+				}
+			}
+		};
+
+		handleTwitterCallback();
+	}, [searchParams, router, publicKey, setUser]);
 
 	useEffect(() => {
 		const checkExistingUser = async () => {
+			if (isHandlingCallbackRef.current) {
+				return;
+			}
 			if (!connected || !publicKey) {
 				reset();
 				hasCheckedProfileRef.current = false;
 				setError(null);
-				setIsLoading(false);
+
 				return;
 			}
 
 			if (hasCheckedProfileRef.current) return;
 			hasCheckedProfileRef.current = true;
 
-			setIsLoading(true);
 			const address = publicKey.toBase58();
 			setWallet(address);
 			setError(null);
@@ -83,8 +130,6 @@ const XLoginPage: FC = () => {
 			} catch (err) {
 				console.error("Error checking user profile:", err);
 				setError("Error checking profile. Please try again.");
-			} finally {
-				setIsLoading(false);
 			}
 		};
 
@@ -184,14 +229,6 @@ const XLoginPage: FC = () => {
 									userId={user.id}
 								/>
 							</div>
-						</div>
-					)}
-
-					{/* Loading State */}
-					{isLoading && (
-						<div className="text-center py-10">
-							<div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#FC5411]"></div>
-							<p className="text-gray-400 mt-4">Loading your profile...</p>
 						</div>
 					)}
 				</div>

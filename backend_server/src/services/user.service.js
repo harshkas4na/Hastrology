@@ -74,8 +74,12 @@ class UserService {
   async registerXAccount({
     userId,
     twitterId,
+    username,
     twitterUsername,
     twitterProfileUrl,
+    twitterAccessToken,
+    twitterRefreshToken,
+    twitterTokenExpiresAt,
   }) {
     try {
       logger.info("Updating X account for user:", { userId });
@@ -84,8 +88,12 @@ class UserService {
         .from("users")
         .update({
           twitter_id: twitterId,
+          username: username,
           twitter_username: twitterUsername,
           twitter_profile_url: twitterProfileUrl,
+          twitter_access_token: twitterAccessToken,
+          twitter_refresh_token: twitterRefreshToken,
+          twitter_token_expires: twitterTokenExpiresAt,
           updated_at: new Date().toISOString(),
         })
         .eq("id", userId)
@@ -195,6 +203,49 @@ class UserService {
   async userExists(walletAddress) {
     const user = await this.findUserByWallet(walletAddress);
     return !!user;
+  }
+
+  /**
+   * Update user's Twitter OAuth tokens
+   * @param {Object} params
+   * @param {string} params.walletAddress - User's wallet address
+   * @param {string} params.accessToken - New access token
+   * @param {string} params.refreshToken - New refresh token
+   * @param {string} params.expiresAt - Token expiration time (ISO string)
+   * @returns {Promise<Object>} Updated user
+   */
+  async updateTwitterTokens({
+    walletAddress,
+    accessToken,
+    refreshToken,
+    expiresAt,
+  }) {
+    try {
+      logger.info("Updating Twitter tokens for user:", { walletAddress });
+
+      const { data, error } = await this.supabase
+        .from("users")
+        .update({
+          twitter_access_token: accessToken,
+          twitter_refresh_token: refreshToken,
+          twitter_token_expires: expiresAt,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("wallet_address", walletAddress)
+        .select()
+        .single();
+
+      if (error) {
+        logger.error("Twitter tokens update error:", error);
+        throw error;
+      }
+
+      logger.info("Twitter tokens updated successfully:", { walletAddress });
+      return data;
+    } catch (error) {
+      logger.error("Update Twitter tokens error:", error);
+      throw error;
+    }
   }
 }
 
