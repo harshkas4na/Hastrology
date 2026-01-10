@@ -139,10 +139,9 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 
 			// Generate high-quality image with increased pixel ratio
 			const blob = await htmlToImage.toBlob(cardElement as HTMLElement, {
-				quality: 1.0,
 				pixelRatio: 3,
+				quality: 1,
 				cacheBust: true,
-				backgroundColor: "transparent",
 			});
 
 			// Restore original border radius
@@ -198,7 +197,7 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 				setTimeout(() => {
 					setShowTweetSuccess(false);
 					setTweetUrl(null);
-				},15000);
+				}, 15000);
 			}
 		} catch (error: any) {
 			console.error("Failed to share:", error);
@@ -359,7 +358,7 @@ hover:shadow-[0_0_30px_rgba(252,84,17,0.3)]"
 			>
 				{/* Card Content */}
 				<div
-					className="w-full max-w-md h-full cursor-pointer"
+					className="w-full mt-15 max-w-md h-full cursor-pointer"
 					onClick={() => !showTweetSuccess && setIsFlipped(!isFlipped)}
 				>
 					<motion.div
@@ -368,163 +367,143 @@ hover:shadow-[0_0_30px_rgba(252,84,17,0.3)]"
 						style={{ transformStyle: "preserve-3d" }}
 						transition={{ duration: 0.8, type: "spring", stiffness: 100 }}
 					>
-						<motion.div
-							initial={{ opacity: 0, y: -20 }}
-							animate={{ opacity: 1, y: 0 }}
-							transition={{ delay: 0.2 }}
-							className="mb-8 text-center"
-						>
-							<div className="inline-flex items-center gap-3 backdrop-blur-xl bg-white/5 border border-white/10 rounded-full px-6 py-3 shadow-lg">
-								<span className="text-2xl">{theme.emoji}</span>
-								<span className="text-sm font-bold uppercase tracking-wider text-white/80">
-									{card.ruling_planet_theme} Energy
-								</span>
-							</div>
-						</motion.div>
 						{/* ==================== FRONT FACE ==================== */}
 						<motion.div
 							data-card-front
-							className="absolute w-full h-full backface-hidden rounded-[2.5rem] overflow-hidden shadow-2xl"
+							className="absolute w-full h-full rounded-[2.5rem] overflow-hidden shadow-2xl"
 							style={{
 								backfaceVisibility: "hidden",
 								WebkitBackfaceVisibility: "hidden",
-								boxShadow: `0 25px 50px -12px ${accent}40`,
+								boxShadow: `
+      0 0 16px rgba(220, 220, 220, 0.25),
+      0 0 18px rgba(180, 180, 180, 0.15),
+      0 25px 50px -12px ${accent}40
+    `,
 							}}
 						>
 							{/* Background Gradient */}
-							<div
-								className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-90`}
-							></div>
+							<img
+								src="/cardbg.png"
+								alt="Card Background"
+								className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
+							/>
 
+							<img
+								src="/small-ellipse.png"
+								alt="Card Background"
+								className="absolute left-0 bottom-0 w-full h-auto object-cover z-20 pointer-events-none"
+							/>
+
+							<img
+								src="/small-black-ellipse.png"
+								alt="Card Background"
+								className="absolute left-0 bottom-0 w-full h-auto object-cover z-20 pointer-events-none"
+							/>
 							{/* Noise Texture Overlay */}
-							<div className="absolute inset-0 opacity-30 mix-blend-overlay bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIiB4PSIwIiB5PSIwIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PGZlQ29sb3JNYXRyaXggdHlwZT0ic2F0dXJhdGUiIHZhbHVlcz0iMCIvPjwvZmlsdGVyPjxwYXRoIGQ9Ik0wIDBoMzAwdjMwMEgweiIgZmlsdGVyPSJ1cmwoI2EpIiBvcGFjaXR5PSIuMDUiLz48L3N2Zz4=')]"></div>
-
-							{/* Decorative Orbs */}
-							<div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-							<div className="absolute bottom-0 left-0 w-48 h-48 bg-black/20 rounded-full blur-2xl"></div>
 
 							{/* Content */}
-							<div className="relative h-full flex flex-col p-8">
+							<div className="relative z-20 h-full flex flex-col gap-0 p-8">
 								{/* Header */}
-								<div className="flex justify-between items-start mb-auto">
+								<div className="flex justify-center items-center mb-0">
 									<div
-										className={`${vibeColors.bg} ${vibeColors.text} ${vibeColors.border} backdrop-blur-md px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest border`}
+										className={`text-white  px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest`}
+										style={{
+											boxShadow: `
+      0 0 4px rgba(220, 220, 220, 0.25),
+      0 0 4px rgba(180, 180, 180, 0.15),
+      0 25px 75px -12px ${accent}10
+    `,
+										}}
 									>
-										{card.front.vibe_status}
-									</div>
-									<div className="text-right">
-										<div className="text-5xl mb-2 filter drop-shadow-lg">
-											{card.front.energy_emoji}
-										</div>
-										<div className="text-xs text-white/60 font-mono uppercase tracking-widest">
-											{card.front.zodiac_sign}
-										</div>
+										<img
+											src={"/Hastrology.svg"}
+											alt={"Hastrology"}
+											className="w-40 h-8"
+										/>
 									</div>
 								</div>
 
 								{/* Center Content */}
-								<div className="flex-1 flex flex-col justify-center items-center text-center space-y-8 my-8">
-									{/* Giant Zodiac Symbol */}
-									<motion.div
-										animate={{ scale: 1 }}
-										className="text-[120px] leading-none text-white/90 drop-shadow-2xl font-serif"
-										initial={{ scale: 0 }}
-										transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-									>
-										{zodiacEmoji}
-									</motion.div>
-
-									{/* Luck Score */}
-									<motion.div
-										animate={{ opacity: 1, y: 0 }}
-										className="space-y-2"
-										initial={{ opacity: 0, y: 20 }}
-										transition={{ delay: 0.4 }}
-									>
-										<div className="text-sm uppercase tracking-[0.3em] text-white/70 font-medium">
-											Luck Index
+								<div className="flex-1 mt-15 mb-20 min-h-0 overflow-y-auto pr-2 space-y-6 custom-scrollbar">
+									<div className="mb-12 flex items-center justify-between">
+										<div>
+											<h2 className="text-2xl font-bold text-white tracking-tight">
+												{user?.username}
+											</h2>
+											<h3 className="text-sm mt-1 font-bold text-white/60 tracking-tight">
+												@{user?.twitterUsername}
+											</h3>
 										</div>
-										<div className="text-6xl font-black text-white drop-shadow-lg tracking-tight">
-											{card.front.luck_score}
-											<span className="text-3xl text-white/80">%</span>
-										</div>
-									</motion.div>
-
-									{/* Tagline */}
-									<motion.div
-										animate={{ opacity: 1, y: 0 }}
-										className="max-w-sm"
-										initial={{ opacity: 0, y: 20 }}
-										transition={{ delay: 0.6 }}
-									>
-										<div className="text-sm uppercase tracking-[0.25em] text-white/60 font-medium mb-3">
-											The Message
-										</div>
-										<h3 className="text-2xl font-serif italic text-white/95 leading-snug drop-shadow-md">
-											"{card.front.tagline}"
-										</h3>
-									</motion.div>
-								</div>
-
-								{/* Footer */}
-								<motion.div
-									animate={{ opacity: 1 }}
-									className="bg-black/30 backdrop-blur-xl rounded-2xl p-4 border border-white/10 flex items-center justify-center"
-									initial={{ opacity: 0 }}
-									transition={{ delay: 0.8 }}
-								>
-									<div className="flex items-center gap-2 text-white/80">
-										<svg
-											fill="none"
-											height="16"
-											stroke="currentColor"
-											strokeLinecap="round"
-											strokeLinejoin="round"
-											strokeWidth="2"
-											viewBox="0 0 24 24"
-											width="16"
-										>
-											<circle cx="12" cy="12" r="10"></circle>
-											<path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"></path>
-										</svg>
-										<span className="text-sm font-medium">
-											Tap to flip for deep insight
-										</span>
+										<img
+											src={`/api/image?url=${encodeURIComponent(
+												user?.twitterProfileUrl || "",
+											)}`}
+											alt="twitter"
+											crossOrigin="anonymous"
+											className="w-18 h-18 rounded-xl object-cover border border-white/20 shadow-md"
+										/>
 									</div>
-								</motion.div>
+
+									{/* Details */}
+									<div className="flex flex-row justify-between items-center">
+										<div className="space-y-1 text-white/80 text-md font-medium">
+											<p className="text-white font-medium text-xl mb-4">
+												{card.front.vibe_status}
+											</p>
+											<h3 className="text-md leading-snug drop-shadow-md text-left text-white/80 mx-0 max-w-35 wrap-break-words">
+												{card.front.tagline}
+											</h3>
+
+											<p>
+												<span className="text-white/50">Energy Emoji :</span>{" "}
+												{theme.emoji}
+											</p>
+											<p>
+												<span className="text-white/50">Luck Score :</span>{" "}
+												{card.front.luck_score}
+											</p>
+										</div>
+										<div className="mt-4">
+											<img
+												src={`/stars/${card.front.zodiac_sign.toLowerCase()}.svg`}
+												alt={card.front.zodiac_sign}
+												className="w-29 h-29"
+											/>
+										</div>
+									</div>
+								</div>
+								<div className="flex flex-col items-center gap-2 justify-center z-9999">
+									<img
+										src={`/zodiac/${card.front.zodiac_sign.toLowerCase()}.svg`}
+										alt="Cosmic Back Visual"
+										className="text-white w-25 h-25 object-contain drop-shadow-[0_0_20px_rgba(255,255,255,0.15)]"
+									/>
+									<span className="uppercase text-white/50">
+										Ruling Planet:{card.ruling_planet_theme}
+									</span>
+								</div>
+								{/* Footer */}
 							</div>
 						</motion.div>
 
 						{/* ==================== BACK FACE ==================== */}
 						<motion.div
-							className="absolute w-full h-full backface-hidden rounded-[2.5rem] overflow-hidden shadow-2xl"
+							className="absolute w-full h-full rounded-[2.5rem] overflow-hidden shadow-2xl"
 							style={{
 								transform: "rotateY(180deg)",
 								backfaceVisibility: "hidden",
 								WebkitBackfaceVisibility: "hidden",
-								background: "#0D0D15",
-								boxShadow: `0 25px 50px -12px ${accent}30`,
+								boxShadow: `
+      0 0 16px rgba(220, 220, 220, 0.25),
+      0 0 18px rgba(180, 180, 180, 0.15),
+      0 25px 50px -12px ${accent}40
+    `,
 							}}
 						>
-							{/* Ambient Glow */}
-							<div
-								className="absolute top-[-30%] right-[-30%] w-[80%] h-[80%] rounded-full blur-[100px] opacity-20"
-								style={{ background: accent }}
-							></div>
-
 							{/* Content */}
 							<div className="relative h-full flex flex-col p-8">
 								{/* Header */}
-								<div className="flex justify-between items-center mb-6">
-									<div className="flex items-center gap-2">
-										<div
-											className="w-3 h-3 rounded-full animate-pulse"
-											style={{ background: accent }}
-										></div>
-										<span className="text-xs font-bold text-white/40 uppercase tracking-widest">
-											Cosmic Download
-										</span>
-									</div>
+								<div className="flex justify-end items-center mb-3">
 									<button
 										onClick={(e) => {
 											e.stopPropagation();
@@ -686,6 +665,32 @@ hover:shadow-[0_0_30px_rgba(252,84,17,0.3)]"
 						</motion.div>
 					</motion.div>
 				</div>
+
+				<motion.div
+					animate={{ opacity: 1 }}
+					className="bg-black/30 mt-5 backdrop-blur-xl rounded-2xl p-4 border border-white/10 flex items-center justify-center max-w-md"
+					initial={{ opacity: 0 }}
+					transition={{ delay: 0.8 }}
+				>
+					<div className="flex items-center gap-2 text-white/80">
+						<svg
+							fill="none"
+							height="16"
+							stroke="currentColor"
+							strokeLinecap="round"
+							strokeLinejoin="round"
+							strokeWidth="2"
+							viewBox="0 0 24 24"
+							width="16"
+						>
+							<circle cx="12" cy="12" r="10"></circle>
+							<path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"></path>
+						</svg>
+						<span className="text-sm font-medium">
+							Tap card to flip for deep insight
+						</span>
+					</div>
+				</motion.div>
 
 				{/* Custom Scrollbar Styles */}
 				<style jsx>{`
