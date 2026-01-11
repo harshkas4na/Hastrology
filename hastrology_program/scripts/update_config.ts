@@ -69,12 +69,17 @@ async function main() {
     // New values
     const newTicketPrice = new BN(LAMPORTS_PER_SOL / 100); // 0.01 SOL = 10,000,000 lamports
 
-    // Set lottery endtime to end of today (midnight UTC tomorrow)
+    // Set lottery endtime to next midnight IST
+    // IST is UTC+5:30, so midnight IST = 18:30 UTC previous day
     const now = new Date();
-    const tomorrow = new Date(now);
-    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-    tomorrow.setUTCHours(0, 0, 0, 0);
-    const newLotteryEndtime = new BN(Math.floor(tomorrow.getTime() / 1000));
+    const istNow = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+    const nextMidnightIST = new Date(istNow);
+    nextMidnightIST.setHours(24, 0, 0, 0); // Set to next midnight
+    // Convert back to UTC timestamp
+    const nextMidnightUTC = new Date(nextMidnightIST.toLocaleString('en-US', { timeZone: 'UTC' }));
+    // IST is UTC+5:30, so subtract 5.5 hours to get UTC time
+    const midnightISTinUTC = Math.floor(nextMidnightIST.getTime() / 1000) - (5 * 3600 + 30 * 60);
+    const newLotteryEndtime = new BN(midnightISTinUTC);
 
     console.log("NEW CONFIG TO SET:");
     console.log("-".repeat(60));

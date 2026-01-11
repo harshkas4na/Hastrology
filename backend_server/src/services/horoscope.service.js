@@ -66,7 +66,14 @@ class HoroscopeService {
      */
     parseCards(horoscopeText) {
         try {
-            return JSON.parse(horoscopeText);
+            const cards = JSON.parse(horoscopeText);
+
+            // Map ruling_planet to ruling_planet_theme for frontend compatibility
+            if (cards && cards.ruling_planet && !cards.ruling_planet_theme) {
+                cards.ruling_planet_theme = cards.ruling_planet;
+            }
+
+            return cards;
         } catch {
             // If it's not JSON, it's a legacy text format
             return null;

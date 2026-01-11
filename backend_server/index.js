@@ -98,6 +98,19 @@ const startServer = async () => {
       logger.info('✓ Supabase connection successful');
     }
 
+    // Initialize lottery scheduler
+    const lotteryScheduler = require('./src/services/lottery-scheduler.service');
+    const keypairPath = process.env.LOTTERY_AUTHORITY_KEYPAIR;
+
+    if (keypairPath) {
+      lotteryScheduler.initialize(keypairPath);
+      lotteryScheduler.startScheduler();
+      logger.info('✓ Lottery scheduler initialized');
+    } else {
+      logger.warn('⚠️ LOTTERY_AUTHORITY_KEYPAIR not set. Automatic lottery draws disabled.');
+      logger.warn('   To enable: set LOTTERY_AUTHORITY_KEYPAIR in .env');
+    }
+
     // Start listening
     const PORT = config.server.port;
     app.listen(PORT, () => {

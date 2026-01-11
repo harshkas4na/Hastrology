@@ -61,12 +61,16 @@ pub mod hastrology_program {
         new_platform_fee_bps: Option<u16>,
         new_platform_wallet: Option<Pubkey>,
         new_lottery_endtime: Option<i64>,
+        reset_winner: Option<bool>,
+        reset_drawing: Option<bool>,
     ) -> Result<()> {
         ctx.accounts.update_config_handler(
             new_ticket_price,
             new_platform_fee_bps,
             new_platform_wallet,
             new_lottery_endtime,
+            reset_winner,
+            reset_drawing,
         )
     }
 }

@@ -45,6 +45,8 @@ class LuckyAssets(BaseModel):
 
 class HoroscopeFront(BaseModel):
     tagline: str = Field(..., description="Witty GenZ hook")
+    hook_1: str = Field(..., description="Astrological reason, max 15 words")
+    hook_2: str = Field(..., description="CT action with persona language, max 20 words")
     luck_score: int = Field(..., ge=0, le=100)
     vibe_status: str = Field(..., description="Stellar, Ascending, Shaky, or Eclipse")
     energy_emoji: str
@@ -68,6 +70,7 @@ class AstroCard(BaseModel):
     front: HoroscopeFront
     back: HoroscopeBack
     ruling_planet: str
+    ruling_planet_theme: str
     sect: str = Field(default="Diurnal")
     cdo_summary: Optional[Dict[str, Any]] = Field(default=None)
 
@@ -254,7 +257,9 @@ class HoroscopeService:
         latitude: float = 0.0,
         longitude: float = 0.0,
         timezone_offset: float = 0.0,
-        use_cache: bool = True
+        use_cache: bool = True,
+        x_handle: Optional[str] = None,
+        x_bio: Optional[str] = None
     ) -> Tuple[Dict[str, Any], bool, str]:
         """
         Generate personalized horoscope using CDO architecture.
@@ -325,6 +330,7 @@ class HoroscopeService:
             "time_lord_activation": cdo_summary.get("time_lord_activation", "No direct activations"),
             "cusp_alert": f"**Cosmic Cusp Alert**: Ascendant on sign boundary" if cdo_summary.get("is_cusp") else "",
             "dignity_warning": cdo_summary.get("dignity_warning", ""),
+            "x_context": f"User's X: @{x_handle} | Bio: {x_bio}" if x_handle else "No X context provided",
         }
         
         try:
@@ -342,15 +348,26 @@ class HoroscopeService:
                 else:
                     raise OutputParserException("No JSON found in LLM response")
             
+            # Fallback for missing hooks (common issue with some models)
+            front_data = card_data.get("front", {})
+            if not front_data.get("hook_1"):
+                time_lord = front_data.get("time_lord", "The Stars")
+                front_data["hook_1"] = f"{time_lord} is highlighting your chart today."
+            
+            if not front_data.get("hook_2"):
+                front_data["hook_2"] = "Trust the process and keep building. WAGMI."
+            
+            # Ensure ruling_planet_theme is populated
+            if not card_data.get("ruling_planet_theme"):
+                card_data["ruling_planet_theme"] = card_data.get("ruling_planet", front_data.get("time_lord", "Sun"))
+                
             # Validate and enhance
             validated_card = AstroCard(**card_data)
             
             # Add CDO summary to response
+            card_dict = validated_card.model_dump()
             if cdo_summary:
-                card_dict = validated_card.model_dump()
                 card_dict["cdo_summary"] = cdo_summary
-            else:
-                card_dict = validated_card.model_dump()
             
             # Cache result
             if use_cache:
@@ -395,6 +412,8 @@ class HoroscopeService:
         return AstroCard(
             front=HoroscopeFront(
                 tagline="The stars are recalibrating... ✨",
+                hook_1="Mercury retrograde in the cosmic servers",
+                hook_2="HODL tight. The stars will align shortly.",
                 luck_score=50,
                 vibe_status="Shaky",
                 energy_emoji="🔮",
@@ -413,6 +432,7 @@ class HoroscopeService:
                 cusp_alert=None
             ),
             ruling_planet=time_lord,
+            ruling_planet_theme=time_lord,
             sect=sect,
             cdo_summary=None
         ).model_dump()

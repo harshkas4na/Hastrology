@@ -28,6 +28,8 @@ impl<'info> UpdateConfig<'info> {
         new_platform_fee_bps: Option<u16>,
         new_platform_wallet: Option<Pubkey>,
         new_lottery_endtime: Option<i64>,
+        reset_winner: Option<bool>,
+        reset_drawing: Option<bool>,
     ) -> Result<()> {
         let lottery_state = &mut self.lottery_state;
 
@@ -66,6 +68,16 @@ impl<'info> UpdateConfig<'info> {
             );
             msg!("Updating lottery endtime from {} to {}", lottery_state.lottery_endtime, endtime);
             lottery_state.lottery_endtime = endtime;
+        }
+
+        if let Some(true) = reset_winner {
+            msg!("Resetting winner from {} to 0", lottery_state.winner);
+            lottery_state.winner = 0;
+        }
+
+        if let Some(true) = reset_drawing {
+            msg!("Resetting is_drawing from {} to false", lottery_state.is_drawing);
+            lottery_state.is_drawing = false;
         }
 
         msg!("Config updated successfully");

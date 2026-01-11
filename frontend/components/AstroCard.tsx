@@ -613,13 +613,11 @@ hover:shadow-[0_0_30px_rgba(252,84,17,0.3)]"
 												{card.front.vibe_status}
 											</p>
 											<h3 className="text-sm leading-snug drop-shadow-md text-left text-white/80 mx-0 mb-4">
-												Today isn't for launching; it’s for optimizing. Refine
-												your foundation and let others be loud.
+												{card.front.hook_1}
 											</h3>
 
 											<h3 className="text-sm leading-snug drop-shadow-md text-left text-white/80 mx-0">
-												Check your bank balance before hitting 'Buy Now'. Venus
-												is making you feel too generous.
+												{card.front.hook_2}
 											</h3>
 
 											<motion.div
@@ -665,7 +663,7 @@ hover:shadow-[0_0_30px_rgba(252,84,17,0.3)]"
 										className="text-white w-24 h-24 object-contain drop-shadow-[0_0_20px_rgba(255,255,255,0.15)]"
 									/>
 									<span className="uppercase text-white/50">
-										Ruling Planet:{card.ruling_planet_theme}
+										Ruling Planet: {card.ruling_planet_theme}
 									</span>
 								</div>
 								{/* Footer */}

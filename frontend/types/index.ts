@@ -32,6 +32,8 @@ export interface LuckyAssets {
 
 export interface TelescopeCardFront {
 	tagline: string;
+	hook_1: string;
+	hook_2: string;
 	luck_score: number;
 	vibe_status: string;
 	energy_emoji: string;

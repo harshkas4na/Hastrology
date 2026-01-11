@@ -1,5 +1,6 @@
 use anchor_lang::{
     prelude::*,
+    system_program::{transfer, Transfer},
 };
 
 use crate::{
@@ -22,7 +23,7 @@ pub struct Payout<'info> {
     )]
     pub lottery_state: Account<'info, LotteryState>,
 
-    /// CHECK: This is the PDA vault .
+    /// CHECK: This is the PDA vault.
     #[account(
         mut,
         seeds = [POT_VAULT_SEED],
@@ -79,19 +80,46 @@ impl<'info> Payout<'info> {
             .checked_sub(platform_fee_amount)
             .ok_or(HashtrologyErrors::Overflow)?;
 
-        **self.pot_vault.try_borrow_mut_lamports()? -= platform_fee_amount;
-        **self.platform_wallet.try_borrow_mut_lamports()? += platform_fee_amount;
-        msg!("platform fee transferred");
+        // Create signer seeds for pot_vault PDA
+        let pot_vault_bump = lottery_state.pot_vault_bump;
+        let pot_vault_seeds: &[&[u8]] = &[POT_VAULT_SEED, &[pot_vault_bump]];
+        let signer_seeds = &[pot_vault_seeds];
 
-        **self.pot_vault.try_borrow_mut_lamports()? -= winner_prize_amount;
-        **self.winner.try_borrow_mut_lamports()? += winner_prize_amount;
-        msg!("winner prize transferred");
+        // Transfer platform fee using invoke_signed
+        if platform_fee_amount > 0 {
+            transfer(
+                CpiContext::new_with_signer(
+                    self.system_program.to_account_info(),
+                    Transfer {
+                        from: self.pot_vault.to_account_info(),
+                        to: self.platform_wallet.to_account_info(),
+                    },
+                    signer_seeds,
+                ),
+                platform_fee_amount,
+            )?;
+            msg!("platform fee transferred: {} lamports", platform_fee_amount);
+        }
 
+        // Transfer winner prize using invoke_signed
+        transfer(
+            CpiContext::new_with_signer(
+                self.system_program.to_account_info(),
+                Transfer {
+                    from: self.pot_vault.to_account_info(),
+                    to: self.winner.to_account_info(),
+                },
+                signer_seeds,
+            ),
+            winner_prize_amount,
+        )?;
+        msg!("winner prize transferred: {} lamports", winner_prize_amount);
 
         winning_ticket.is_winner = true;
         winning_ticket.prize_amount = winner_prize_amount;  
 
         lottery_state.total_participants = 0;
+        lottery_state.winner = 0; // Reset winner for the next round
         lottery_state.current_lottery_id = lottery_state.current_lottery_id.checked_add(1).ok_or(HashtrologyErrors::Overflow)?;
         lottery_state.lottery_endtime = lottery_state.lottery_endtime.checked_add(86400).ok_or(HashtrologyErrors::Overflow)?;
         lottery_state.is_drawing = false; 

@@ -111,7 +111,9 @@ class HoroscopeController {
                 birthPlace: user.birth_place,
                 latitude: user.latitude,
                 longitude: user.longitude,
-                timezoneOffset: user.timezone_offset
+                timezoneOffset: user.timezone_offset,
+                xHandle: user.twitter_username,
+                xBio: null // Bio storing is not yet implemented
             });
 
 

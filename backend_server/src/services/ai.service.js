@@ -16,9 +16,9 @@ class AIService {
      * @param {Object} birthDetails - User's birth details including coordinates
      * @returns {Promise<Object>} Generated horoscope card (single card)
      */
-    async generateHoroscope({ dob, birthTime, birthPlace, latitude, longitude, timezoneOffset }) {
+    async generateHoroscope({ dob, birthTime, birthPlace, latitude, longitude, timezoneOffset, xHandle, xBio }) {
         try {
-            logger.info('Requesting horoscope cards from AI server', { latitude, longitude });
+            logger.info('Requesting horoscope cards from AI server', { latitude, longitude, xHandle });
 
             const response = await axios.post(
                 `${this.aiServerUrl}/generate_horoscope`,
@@ -28,7 +28,9 @@ class AIService {
                     birth_place: birthPlace,
                     latitude: latitude || 0,
                     longitude: longitude || 0,
-                    timezone_offset: timezoneOffset || 0
+                    timezone_offset: timezoneOffset || 0,
+                    x_handle: xHandle || null,
+                    x_bio: xBio || null
                 },
                 {
                     timeout: 60000, // 60 second timeout (increased for card generation)
@@ -44,7 +46,14 @@ class AIService {
             }
 
             logger.info('Horoscope card generated successfully', { mode: response.data.generation_mode });
-            return response.data.card;
+
+            const card = response.data.card;
+            // Ensure ruling_planet_theme is present (frontend expects this)
+            if (card && card.ruling_planet && !card.ruling_planet_theme) {
+                card.ruling_planet_theme = card.ruling_planet;
+            }
+
+            return card;
         } catch (error) {
             if (error.code === 'ECONNREFUSED') {
                 logger.error('AI server is not running or not reachable');

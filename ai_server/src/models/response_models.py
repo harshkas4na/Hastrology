@@ -15,6 +15,8 @@ class LuckyAssets(BaseModel):
 class HoroscopeCardFront(BaseModel):
     """Front side of the horoscope card - Public/Shareable"""
     tagline: str = Field(..., description="Witty GenZ hook")
+    hook_1: str = Field(..., description="Short astrological reason (max 15 words)")
+    hook_2: str = Field(..., description="CT-aligned action with persona language (max 20 words)")
     luck_score: int = Field(..., ge=0, le=100, description="Luck score (0-100)")
     vibe_status: str = Field(..., description="Cosmic status (Stellar, Ascending, Shaky, Eclipse)")
     energy_emoji: str = Field(..., description="Emoji representing the energy")
@@ -57,6 +59,10 @@ class AstroCard(BaseModel):
         ..., 
         description="Time Lord - the Lord of the Year from profections"
     )
+    ruling_planet_theme: str = Field(
+        ...,
+        description="The theme of the ruling planet (usually same as ruling_planet)"
+    )
     sect: str = Field(
         ...,
         description="Chart sect: Diurnal (day) or Nocturnal (night)"
@@ -87,6 +93,8 @@ class HoroscopeResponse(BaseModel):
                 "card": {
                     "front": {
                         "tagline": "Mercury's Got Your Back Today ⚡",
+                        "hook_1": "Your 10th house profection activates career themes",
+                        "hook_2": "Time to ship that code. Founder mode activated.",
                         "luck_score": 78,
                         "vibe_status": "Ascending",
                         "energy_emoji": "🧠",
