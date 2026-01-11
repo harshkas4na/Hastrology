@@ -2,6 +2,7 @@ const userService = require('../services/user.service');
 const horoscopeService = require('../services/horoscope.service');
 const aiService = require('../services/ai.service');
 const solanaService = require('../services/solana.service');
+const twitterService = require('../services/twitter.service');
 const { successResponse, errorResponse } = require('../utils/response');
 const logger = require('../config/logger');
 
@@ -104,7 +105,21 @@ class HoroscopeController {
 
             logger.info('Payment verified, generating horoscope card', { walletAddress });
 
-            // Generate horoscope card using AI with coordinates for CDO
+            // Fetch enriched X context for personalization (bio, tweets, persona)
+            let xContext = { available: false, handle: user.twitter_username };
+            try {
+                xContext = await twitterService.getEnrichedXContext(user);
+                logger.info('X context fetched:', {
+                    handle: xContext.handle,
+                    hasBio: !!xContext.bio,
+                    tweetCount: xContext.recentTweets?.length || 0,
+                    persona: xContext.persona
+                });
+            } catch (error) {
+                logger.warn('Failed to fetch X context, continuing with basic info:', error.message);
+            }
+
+            // Generate horoscope card using AI with coordinates for CDO and enriched X context
             const card = await aiService.generateHoroscope({
                 dob: user.dob,
                 birthTime: user.birth_time,
@@ -112,8 +127,10 @@ class HoroscopeController {
                 latitude: user.latitude,
                 longitude: user.longitude,
                 timezoneOffset: user.timezone_offset,
-                xHandle: user.twitter_username,
-                xBio: null // Bio storing is not yet implemented
+                xHandle: xContext.handle || user.twitter_username,
+                xBio: xContext.bio,
+                xRecentTweets: xContext.recentTweets,
+                xPersona: xContext.persona
             });
 
 

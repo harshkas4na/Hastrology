@@ -16,9 +16,9 @@ class AIService {
      * @param {Object} birthDetails - User's birth details including coordinates
      * @returns {Promise<Object>} Generated horoscope card (single card)
      */
-    async generateHoroscope({ dob, birthTime, birthPlace, latitude, longitude, timezoneOffset, xHandle, xBio }) {
+    async generateHoroscope({ dob, birthTime, birthPlace, latitude, longitude, timezoneOffset, xHandle, xBio, xRecentTweets, xPersona }) {
         try {
-            logger.info('Requesting horoscope cards from AI server', { latitude, longitude, xHandle });
+            logger.info('Requesting horoscope cards from AI server', { latitude, longitude, xHandle, xPersona });
 
             const response = await axios.post(
                 `${this.aiServerUrl}/generate_horoscope`,
@@ -30,7 +30,9 @@ class AIService {
                     longitude: longitude || 0,
                     timezone_offset: timezoneOffset || 0,
                     x_handle: xHandle || null,
-                    x_bio: xBio || null
+                    x_bio: xBio || null,
+                    x_recent_tweets: xRecentTweets || [],
+                    x_persona: xPersona || null
                 },
                 {
                     timeout: 60000, // 60 second timeout (increased for card generation)

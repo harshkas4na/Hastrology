@@ -35,7 +35,7 @@ async def generate_horoscope(request: HoroscopeRequest):
         HTTPException: If horoscope generation fails
     """
     try:
-        logger.info(f"CDO Horoscope request: DOB={request.dob}, Lat={request.latitude}, Lon={request.longitude}")
+        logger.info(f"CDO Horoscope request: DOB={request.dob}, Lat={request.latitude}, Lon={request.longitude}, X=@{request.x_handle}")
         
         card_data, was_cached, generation_mode = await horoscope_service.generate_horoscope(
             dob=request.dob,
@@ -43,7 +43,11 @@ async def generate_horoscope(request: HoroscopeRequest):
             birth_place=request.birth_place,
             latitude=request.latitude,
             longitude=request.longitude,
-            timezone_offset=request.timezone_offset or 0.0
+            timezone_offset=request.timezone_offset or 0.0,
+            x_handle=request.x_handle,
+            x_bio=request.x_bio,
+            x_recent_tweets=request.x_recent_tweets,
+            x_persona=request.x_persona
         )
         
         # Convert raw card data to AstroCard model

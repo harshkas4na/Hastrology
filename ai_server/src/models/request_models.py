@@ -31,6 +31,11 @@ class HoroscopeRequest(BaseModel):
         default=None,
         description="UTC offset in hours (e.g., 5.5 for IST). If not provided, will be estimated."
     )
+    # X (Twitter) profile context for personalization
+    x_handle: Optional[str] = Field(default=None, description="User's X/Twitter username")
+    x_bio: Optional[str] = Field(default=None, description="User's X/Twitter bio")
+    x_recent_tweets: Optional[list[str]] = Field(default=None, description="User's recent tweets (max 5)")
+    x_persona: Optional[str] = Field(default=None, description="Inferred persona type (degen, builder, whale, analyst, etc.)")
     
     @field_validator('dob', 'birth_time', 'birth_place')
     @classmethod

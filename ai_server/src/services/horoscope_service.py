@@ -259,7 +259,9 @@ class HoroscopeService:
         timezone_offset: float = 0.0,
         use_cache: bool = True,
         x_handle: Optional[str] = None,
-        x_bio: Optional[str] = None
+        x_bio: Optional[str] = None,
+        x_recent_tweets: Optional[list] = None,
+        x_persona: Optional[str] = None
     ) -> Tuple[Dict[str, Any], bool, str]:
         """
         Generate personalized horoscope using CDO architecture.
@@ -317,6 +319,20 @@ class HoroscopeService:
             generation_mode = "fallback"
             cdo_summary = self._build_fallback_summary(dob, birth_time, age)
         
+        # Build enriched X context for personalization
+        x_context_parts = []
+        if x_handle:
+            x_context_parts.append(f"**Handle**: @{x_handle}")
+            if x_bio:
+                x_context_parts.append(f"**Bio**: {x_bio}")
+            if x_recent_tweets and len(x_recent_tweets) > 0:
+                tweets_formatted = "\n".join([f"  - {t[:100]}..." if len(t) > 100 else f"  - {t}" for t in x_recent_tweets[:5]])
+                x_context_parts.append(f"**Recent Tweets**:\n{tweets_formatted}")
+            if x_persona:
+                x_context_parts.append(f"**Inferred Persona**: {x_persona.upper()}")
+        
+        x_context = "\n".join(x_context_parts) if x_context_parts else "No X context provided"
+        
         # Build prompt variables
         prompt_vars = {
             "cdo_json": cdo_json,
@@ -330,7 +346,7 @@ class HoroscopeService:
             "time_lord_activation": cdo_summary.get("time_lord_activation", "No direct activations"),
             "cusp_alert": f"**Cosmic Cusp Alert**: Ascendant on sign boundary" if cdo_summary.get("is_cusp") else "",
             "dignity_warning": cdo_summary.get("dignity_warning", ""),
-            "x_context": f"User's X: @{x_handle} | Bio: {x_bio}" if x_handle else "No X context provided",
+            "x_context": x_context,
         }
         
         try:
