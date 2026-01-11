@@ -72,14 +72,18 @@ async function main() {
     // Set lottery endtime to next midnight IST
     // IST is UTC+5:30, so midnight IST = 18:30 UTC previous day
     const now = new Date();
-    const istNow = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-    const nextMidnightIST = new Date(istNow);
-    nextMidnightIST.setHours(24, 0, 0, 0); // Set to next midnight
-    // Convert back to UTC timestamp
-    const nextMidnightUTC = new Date(nextMidnightIST.toLocaleString('en-US', { timeZone: 'UTC' }));
-    // IST is UTC+5:30, so subtract 5.5 hours to get UTC time
-    const midnightISTinUTC = Math.floor(nextMidnightIST.getTime() / 1000) - (5 * 3600 + 30 * 60);
-    const newLotteryEndtime = new BN(midnightISTinUTC);
+    // IST is UTC + 5:30
+    const IST_OFFSET = (5 * 60 + 30) * 60 * 1000;
+    const nowIST = new Date(now.getTime() + IST_OFFSET);
+
+    // Create a date for tomorrow 00:00:00 in IST
+    const tomorrowIST = new Date(nowIST);
+    tomorrowIST.setUTCDate(tomorrowIST.getUTCDate() + 1);
+    tomorrowIST.setUTCHours(0, 0, 0, 0);
+
+    // Convert back to UTC by subtracting the offset
+    const tomorrowMidnightISTinUTC = new Date(tomorrowIST.getTime() - IST_OFFSET);
+    const newLotteryEndtime = new BN(Math.floor(tomorrowMidnightISTinUTC.getTime() / 1000));
 
     console.log("NEW CONFIG TO SET:");
     console.log("-".repeat(60));
@@ -98,7 +102,9 @@ async function main() {
                 newTicketPrice,           // new_ticket_price
                 null,                     // new_platform_fee_bps (keep current)
                 null,                     // new_platform_wallet (keep current)
-                newLotteryEndtime         // new_lottery_endtime
+                newLotteryEndtime,        // new_lottery_endtime
+                null,                     // reset_winner
+                null                      // reset_drawing
             )
             .accountsStrict({
                 authority: provider.wallet.publicKey,

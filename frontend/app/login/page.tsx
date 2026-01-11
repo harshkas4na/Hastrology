@@ -153,7 +153,7 @@ const LoginPage: FC = () => {
 			if (!geoResult.success) {
 				setError(
 					geoResult.error ||
-						'Could not find location. Please try a more specific place name (e.g., "New Delhi, India")',
+					'Could not find location. Please try a more specific place name (e.g., "New Delhi, India")',
 				);
 				setIsGeocoding(false);
 				return;
@@ -193,7 +193,7 @@ const LoginPage: FC = () => {
 
 	return (
 		<section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-black">
-			<div className="absolute inset-y-0 right-0 w-1/2 z-0 flex flex-col">
+			<div className="hidden lg:flex absolute inset-y-0 right-0 w-1/2 z-0 flex-col">
 				<div className="relative h-full w-full">
 					<img
 						alt="Upper Background"
@@ -213,28 +213,28 @@ const LoginPage: FC = () => {
 
 			<img
 				alt="Orange Planet"
-				className="absolute left-170 top-0 h-full w-auto object-contain object-left z-0"
+				className="hidden lg:block absolute left-[40%] top-0 h-full w-auto object-contain object-left z-0"
 				src="/ellipse-left.png"
 			/>
 			<img
 				alt="Black Planet"
-				className="absolute left-170 top-0 h-full w-auto object-contain object-left z-10"
+				className="hidden lg:block absolute left-[40%] top-0 h-full w-auto object-contain object-left z-10"
 				src="/ellipse-black.png"
 			/>
 
 			{/* LEFT BLACK PANEL — FORMS */}
-			<div className="absolute inset-y-0 left-0 w-1/2 z-20 flex items-start justify-center pt-35">
-				<div className="w-full max-w-xl px-10">
+			<div className="relative lg:absolute inset-y-0 left-0 w-full lg:w-1/2 z-20 flex items-center lg:items-start justify-center pt-8 lg:pt-35 px-4">
+				<div className="w-full max-w-xl px-4 lg:px-10">
 					{formStep === "initial" ? (
 						<>
-							<h1 className="text-5xl font-semibold text-white mb-2">
+							<h1 className="text-3xl lg:text-5xl font-semibold text-white mb-2">
 								Enter Your Name
 							</h1>
-							<p className="text-gray-400 mb-8 mt-2 text-2xl">
+							<p className="text-gray-400 mb-6 lg:mb-8 mt-2 text-lg lg:text-2xl">
 								To know more about yourself
 							</p>
 
-							<div className="mb-10 mt-25">
+							<div className="mb-6 lg:mb-10 mt-12 lg:mt-25">
 								<div className="flex items-center justify-between px-4 py-3 rounded-lg bg-[#1F1F1F] border border-[#2A2A2A] text-gray-300">
 									<span className="flex items-center gap-3">
 										<img
@@ -282,10 +282,9 @@ const LoginPage: FC = () => {
 												!h-12
 												!border
 												transition-all
-												${
-													name.trim()
-														? "!bg-[#1F1F1F] !text-white !border-[#FC5411] hover:!bg-[#262626]"
-														: "!bg-[#141414] !text-gray-500 !border-[#2A2A2A] cursor-not-allowed opacity-60"
+												${name.trim()
+													? "!bg-[#1F1F1F] !text-white !border-[#FC5411] hover:!bg-[#262626]"
+													: "!bg-[#141414] !text-gray-500 !border-[#2A2A2A] cursor-not-allowed opacity-60"
 												}
 											`}
 											disabled={userState === "new" && !name.trim()}
@@ -303,10 +302,9 @@ const LoginPage: FC = () => {
 												h-12
 												border
 												transition-all
-												${
-													name.trim() && !isSubmitting
-														? "bg-[#1F1F1F] text-white border-[#FC5411] hover:bg-[#262626]"
-														: "bg-[#141414] text-gray-500 border-[#2A2A2A] cursor-not-allowed opacity-60"
+												${name.trim() && !isSubmitting
+													? "bg-[#1F1F1F] text-white border-[#FC5411] hover:bg-[#262626]"
+													: "bg-[#141414] text-gray-500 border-[#2A2A2A] cursor-not-allowed opacity-60"
 												}
 											`}
 											disabled={userState === "new" && !name.trim()}
@@ -328,11 +326,10 @@ const LoginPage: FC = () => {
 												!h-12
 												!border
 												transition-all
-												${
-													name.trim()
-														? "!bg-[#1F1F1F] !text-white !border-[#FC5411] hover:!bg-[#262626]"
-														: "!bg-[#141414] !text-gray-500 !border-[#2A2A2A] cursor-not-allowed opacity-60"
-												}
+												${name.trim()
+												? "!bg-[#1F1F1F] !text-white !border-[#FC5411] hover:!bg-[#262626]"
+												: "!bg-[#141414] !text-gray-500 !border-[#2A2A2A] cursor-not-allowed opacity-60"
+											}
 											`}
 										disabled={!name.trim()}
 									/>
@@ -365,16 +362,16 @@ const LoginPage: FC = () => {
 						// BIRTH DETAILS FORM
 						<>
 							<div className="flex items-center justify-between mb-2">
-								<h1 className="text-5xl font-semibold text-white">
+								<h1 className="text-3xl lg:text-5xl font-semibold text-white">
 									Enter Your Birth Details
 								</h1>
 							</div>
-							<p className="text-gray-400 mb-16 mt-2 text-2xl">
+							<p className="text-gray-400 mb-8 lg:mb-16 mt-2 text-lg lg:text-2xl">
 								Align Your Energy With Cosmos ✨
 							</p>
 
 							<form
-								className="space-y-10 mt-26"
+								className="space-y-6 lg:space-y-10 mt-8 lg:mt-26"
 								onSubmit={handleBirthDetailsSubmit}
 							>
 								{/* Date of Birth */}
@@ -456,10 +453,9 @@ const LoginPage: FC = () => {
 										h-12
 										border
 										transition-all
-										${
-											birthDate && birthTime && birthPlace && !isSubmitting
-												? "bg-[#1F1F1F] text-white border-[#FC5411] hover:bg-[#262626]"
-												: "bg-[#1f1f1f] text-gray-500 border-[#2A2A2A] cursor-not-allowed opacity-60"
+										${birthDate && birthTime && birthPlace && !isSubmitting
+											? "bg-[#1F1F1F] text-white border-[#FC5411] hover:bg-[#262626]"
+											: "bg-[#1f1f1f] text-gray-500 border-[#2A2A2A] cursor-not-allowed opacity-60"
 										}
 									`}
 									disabled={
@@ -484,11 +480,10 @@ const LoginPage: FC = () => {
 												!h-12
 												!border
 												transition-all
-												${
-													name.trim()
-														? "!bg-[#1F1F1F] !text-white !border-[#FC5411] hover:!bg-[#262626]"
-														: "!bg-[#141414] !text-gray-500 !border-[#2A2A2A] cursor-not-allowed opacity-60"
-												}
+												${name.trim()
+												? "!bg-[#1F1F1F] !text-white !border-[#FC5411] hover:!bg-[#262626]"
+												: "!bg-[#141414] !text-gray-500 !border-[#2A2A2A] cursor-not-allowed opacity-60"
+											}
 											`}
 										disabled={!name.trim()}
 									/>
@@ -503,18 +498,17 @@ const LoginPage: FC = () => {
 				</div>
 			</div>
 
-			{/* CONTENT */}
+			{/* CONTENT - Hidden on mobile */}
 			<motion.div
 				animate={{ opacity: 1, y: 0 }}
 				className="
+					hidden lg:block
 					relative z-10
 					text-center
 					px-6
 					max-w-4xl
 					ml-auto
-					mr-24
-					md:mr-10
-					lg:mr-15
+					mr-15
 				"
 				initial={{ opacity: 0, y: 30 }}
 				transition={{ duration: 0.9, ease: "easeOut" }}
@@ -548,7 +542,7 @@ const LoginPage: FC = () => {
 				</motion.p>
 			</motion.div>
 
-			<div className="absolute bottom-11 left-0 w-full z-30 px-6">
+			<div className="hidden lg:block absolute bottom-11 left-0 w-full z-30 px-6">
 				<div className="font-display max-w-7xl mx-auto flex items-center justify-between text-md text-[#8A8A8A]">
 					<span className="font-display">
 						©2025 <span className="text-white">Hastrology</span>

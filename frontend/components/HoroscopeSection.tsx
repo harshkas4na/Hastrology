@@ -219,7 +219,7 @@ export const HoroscopeSection: FC = () => {
 								<div className="absolute inset-0 rounded-[3rem] bg-gradient-to-r from-orange-500/30 via-[#FC5411]/40 to-orange-600/30 blur-xl"></div>
 								<div className="absolute inset-0 rounded-[3rem] bg-gradient-to-br from-[#FC5411]/20 to-orange-500/20 blur-xl"></div>
 
-								<div className="relative backdrop-blur-2xl bg-black/95 rounded-[3rem] p-8 md:p-12 shadow-2xl">
+								<div className="relative backdrop-blur-2xl bg-black/95 rounded-2xl md:rounded-[3rem] p-6 md:p-8 lg:p-12 shadow-2xl">
 									{/* Decorative Elements */}
 									<div className="absolute top-8 left-8 w-20 h-20 bg-purple-500/10 rounded-full blur-2xl animate-pulse"></div>
 									<div className="absolute bottom-8 right-8 w-32 h-32 bg-pink-500/10 rounded-full blur-3xl animate-pulse delay-700"></div>
@@ -231,7 +231,7 @@ export const HoroscopeSection: FC = () => {
 											initial={{ opacity: 0, y: 20 }}
 											animate={{ opacity: 1, y: 0 }}
 											transition={{ delay: 0.3 }}
-											className="text-4xl md:text-6xl font-bold mb-4"
+											className="text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-bold mb-4"
 										>
 											<span>Your Cosmic Reading Awaits</span>
 										</motion.h2>
@@ -241,7 +241,7 @@ export const HoroscopeSection: FC = () => {
 											initial={{ opacity: 0, y: 20 }}
 											animate={{ opacity: 1, y: 0 }}
 											transition={{ delay: 0.4 }}
-											className="text-slate-400 text-lg md:text-xl mb-10 max-w-2xl mx-auto font-light"
+											className="text-slate-400 text-base md:text-lg lg:text-xl mb-6 md:mb-10 max-w-2xl mx-auto font-light"
 										>
 											Unlock your personalized astrology card powered by AI and
 											your birth chart

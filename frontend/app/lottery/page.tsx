@@ -123,7 +123,7 @@ const LotteryPage: FC = () => {
 	}
 
 	return (
-		<section className="relative min-h-screen overflow-y-auto pb-40">
+		<section className="relative min-h-screen overflow-y-auto pb-24 md:pb-40">
 			{user?.twitterId && <UserXDetails />}
 			<div className="fixed inset-0 z-0">
 				<div className="relative h-1/2 w-full">
@@ -170,13 +170,13 @@ const LotteryPage: FC = () => {
 				</button>
 			</div>
 
-			<div className="relative z-10 w-full max-w-8xl mx-auto px-4 pt-24 md:pt-15">
-				<div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-1 items-start">
+			<div className="relative z-10 w-full max-w-8xl mx-auto px-4 pt-16 md:pt-24 lg:pt-15">
+				<div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-1 items-start">
 					<motion.div
 						initial={{ opacity: 0, x: -50 }}
 						animate={{ opacity: 1, x: 0 }}
 						transition={{ duration: 0.6 }}
-						className="w-full pt-30 pl-20"
+						className="w-full pt-8 md:pt-16 lg:pt-30 px-4 md:px-8 lg:pl-20"
 					>
 						<LotteryCountdown />
 					</motion.div>

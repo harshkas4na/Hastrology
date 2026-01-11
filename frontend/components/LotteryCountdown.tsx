@@ -31,6 +31,16 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({ onBack }) => {
 	const [prize, setPrize] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
 
+	// Calculate IST Time for display
+	const istTime = state
+		? new Date(state.lotteryEndtime.toNumber() * 1000).toLocaleTimeString("en-IN", {
+			timeZone: "Asia/Kolkata",
+			hour: "2-digit",
+			minute: "2-digit",
+			hour12: true,
+		})
+		: "";
+
 	// Calculate prize pool
 	const prizePool = state
 		? (
@@ -179,7 +189,7 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({ onBack }) => {
 							{/* Header */}
 							<div>
 								<span className="inline-block py-1.5 px-4 rounded-full border border-[#fc5411] bg-black text-[#fc5411] text-sm font-semibold tracking-wide uppercase mb-4">
-									Next Cosmic Draw
+									Next Cosmic Draw: {istTime} IST
 								</span>
 
 								{/* Prize Pool - Prominent */}

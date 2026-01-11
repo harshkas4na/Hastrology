@@ -86,12 +86,12 @@ export const Hero: FC = () => {
 			</div>
 			<img
 				alt="Orange Planet"
-				className="absolute left-0 top-0 h-full w-auto object-contain object-left z-0"
+				className="hidden md:block absolute left-0 top-0 h-full w-auto object-contain object-left z-0"
 				src="/ellipse-left.png"
 			/>
 			<img
 				alt="Black Planet"
-				className="absolute left-0 top-0 h-full w-auto object-contain object-left z-10"
+				className="hidden md:block absolute left-0 top-0 h-full w-auto object-contain object-left z-10"
 				src="/ellipse-black.png"
 			/>
 
@@ -156,21 +156,21 @@ export const Hero: FC = () => {
 			<div className="absolute bottom-0 left-0 w-full h-32 bg-linear-to-t from-black to-transparent" />
 			<img
 				alt="Orange Planet"
-				className="absolute right-0 top-0 h-full w-auto object-contain object-left z-0"
+				className="hidden md:block absolute right-0 top-0 h-full w-auto object-contain object-left z-0"
 				src="/ellipse-right.png"
 			/>
 			<img
 				alt="Black Planet"
-				className="absolute right-0 top-0 h-full w-auto object-contain object-left z-10"
+				className="hidden md:block absolute right-0 top-0 h-full w-auto object-contain object-left z-10"
 				src="/ellipse-black-right.png"
 			/>
-			<div className="absolute bottom-11 left-0 w-full z-30 px-6">
-				<div className="font-display max-w-7xl mx-auto flex items-center justify-between text-md text-[#8A8A8A]">
+			<div className="absolute bottom-4 md:bottom-11 left-0 w-full z-30 px-4 md:px-6">
+				<div className="font-display max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2 md:gap-0 text-xs md:text-md text-[#8A8A8A]">
 					<span className="font-display">
 						©2025 <span className="text-white">Hastrology</span>
 					</span>
-					<div className="flex gap-6">
-						<span className="text-white">Your cosmic journey on Solana.</span>
+					<div className="flex flex-wrap justify-center gap-3 md:gap-6">
+						<span className="text-white hidden sm:inline">Your cosmic journey on Solana.</span>
 						<a className="hover:text-white transition" href="/abc">
 							About us
 						</a>

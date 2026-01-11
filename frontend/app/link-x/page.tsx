@@ -167,7 +167,7 @@ const XLoginContent: FC = () => {
 					{publicKey?.toBase58().slice(-4)}
 				</button>
 			</div>
-			<div className="absolute inset-y-0 right-0 w-1/2 z-0 flex flex-col">
+			<div className="hidden lg:flex absolute inset-y-0 right-0 w-1/2 z-0 flex-col">
 				<div className="relative h-full w-full">
 					<img
 						alt="Upper Background"
@@ -187,24 +187,24 @@ const XLoginContent: FC = () => {
 
 			<img
 				alt="Orange Planet"
-				className="absolute left-170 top-0 h-full w-auto object-contain object-left z-0"
+				className="hidden lg:block absolute left-[40%] top-0 h-full w-auto object-contain object-left z-0"
 				src="/ellipse-left.png"
 			/>
 			<img
 				alt="Black Planet"
-				className="absolute left-170 top-0 h-full w-auto object-contain object-left z-10"
+				className="hidden lg:block absolute left-[40%] top-0 h-full w-auto object-contain object-left z-10"
 				src="/ellipse-black.png"
 			/>
 
 			{/* LEFT BLACK PANEL — X LOGIN FORM */}
-			<div className="absolute inset-y-0 left-0 w-1/2 z-20 flex items-start justify-center pt-35">
-				<div className="mt-10 w-full max-w-2xl px-10">
+			<div className="relative lg:absolute inset-y-0 left-0 w-full lg:w-1/2 z-20 flex items-center lg:items-start justify-center pt-8 lg:pt-35 px-4">
+				<div className="mt-0 lg:mt-10 w-full max-w-2xl px-4 lg:px-10">
 					<div className="flex items-center justify-between mb-2">
-						<h1 className="text-5xl font-semibold text-white">
+						<h1 className="text-3xl lg:text-5xl font-semibold text-white">
 							Connect Your X Account
 						</h1>
 					</div>
-					<p className="text-gray-400 mb-16 mt-2 text-2xl">
+					<p className="text-gray-400 mb-8 lg:mb-16 mt-2 text-lg lg:text-2xl">
 						Link your X account for personalized cosmic insights ✨
 					</p>
 
@@ -217,7 +217,7 @@ const XLoginContent: FC = () => {
 
 					{/* X Sign In Button - Only shown when wallet is connected */}
 					{connected && user && !success && (
-						<div className="space-y-6 mt-26 mr-10">
+						<div className="space-y-6 mt-12 lg:mt-26 mr-0 lg:mr-10">
 							<div className="text-center">
 								<p className="text-gray-300 text-md mb-4">
 									Welcome back, {user.username}! Connect your X account to
@@ -234,18 +234,17 @@ const XLoginContent: FC = () => {
 				</div>
 			</div>
 
-			{/* RIGHT CONTENT */}
+			{/* RIGHT CONTENT - Hidden on mobile */}
 			<motion.div
 				animate={{ opacity: 1, y: 0 }}
 				className="
+          hidden lg:block
           relative z-10
           text-center
           px-6
           max-w-4xl
           ml-auto
-          mr-24
-          md:mr-10
-          lg:mr-15
+          mr-15
         "
 				initial={{ opacity: 0, y: 30 }}
 				transition={{ duration: 0.9, ease: "easeOut" }}
@@ -279,7 +278,7 @@ const XLoginContent: FC = () => {
 				</motion.p>
 			</motion.div>
 
-			<div className="absolute bottom-11 left-0 w-full z-30 px-6">
+			<div className="hidden lg:block absolute bottom-11 left-0 w-full z-30 px-6">
 				<div className="font-display max-w-7xl mx-auto flex items-center justify-between text-md text-[#8A8A8A]">
 					<span className="font-display">
 						©2025 <span className="text-white">Hastrology</span>

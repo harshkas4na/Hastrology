@@ -359,7 +359,7 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 
 	return (
 		<div
-			className={`w-full h-full grid grid-cols-1 ${showShare ? "lg:grid-cols-2" : "lg:grid-cols-1"} gap-8 lg:gap-16 items-center`}
+			className={`w-full h-full flex flex-col ${showShare ? "lg:grid lg:grid-cols-2" : ""} gap-6 lg:gap-16 items-center`}
 		>
 			{/* LEFT SIDE - Heading & Share Button */}
 			{/* LEFT SIDE */}
@@ -368,17 +368,17 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 					initial={{ opacity: 0, x: -50 }}
 					animate={{ opacity: 1, x: 0 }}
 					transition={{ delay: 0.2 }}
-					className="flex flex-col justify-center space-y-8 mt-16"
+					className="flex flex-col justify-center space-y-6 lg:space-y-8 mt-8 lg:mt-16 order-2 lg:order-1"
 				>
 					{!showTweetSuccess ? (
 						/* ================= NORMAL SHARE STATE ================= */
 						<>
 							{/* Heading */}
-							<div className="space-y-4">
-								<h1 className="text-3xl md:text-4xl font-bold text-white">
+							<div className="space-y-3 lg:space-y-4">
+								<h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white">
 									Share Your Card On X
 								</h1>
-								<p className="text-slate-400 text-lg md:text-xl max-w-lg">
+								<p className="text-slate-400 text-base lg:text-lg md:text-xl max-w-lg">
 									Get your personalized daily horoscope cards. 10 cards covering
 									your vibe, health, wealth, love & more.
 								</p>
@@ -507,11 +507,11 @@ hover:shadow-[0_0_30px_rgba(252,84,17,0.3)]"
 
 			{/* RIGHT SIDE - Card Display */}
 			<div
-				className={`w-full h-[765px] perspective-1000 relative ${!showShare ? "mx-auto max-w-xl" : ""}`}
+				className={`w-full min-h-[550px] md:min-h-[650px] lg:h-[765px] perspective-1000 relative order-1 lg:order-2 ${!showShare ? "mx-auto max-w-xl" : ""}`}
 			>
 				{/* Card Content */}
 				<div
-					className="w-full max-w-md h-full cursor-pointer"
+					className="w-full max-w-sm md:max-w-md h-full cursor-pointer mx-auto lg:mx-0"
 					onClick={() => !showTweetSuccess && setIsFlipped(!isFlipped)}
 				>
 					<motion.div
