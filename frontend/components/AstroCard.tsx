@@ -379,8 +379,8 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 									Share Your Card On X
 								</h1>
 								<p className="text-slate-400 text-base lg:text-lg md:text-xl max-w-lg">
-									Get your personalized daily horoscope cards. 10 cards covering
-									your vibe, health, wealth, love & more.
+									Get your personalized daily horoscope cards. A card for your vibe,
+									health, wealth, love & more.
 								</p>
 							</div>
 

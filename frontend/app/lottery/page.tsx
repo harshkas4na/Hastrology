@@ -76,6 +76,11 @@ const LotteryPage: FC = () => {
 		}
 	}, [publicKey, checkStatus]);
 
+	const [lotteryStatus, setLotteryStatus] = useState("loading");
+
+	// Determine if we should show full screen (when showing results)
+	const isResultMode = lotteryStatus === "result";
+
 	const handleDisconnect = async () => {
 		try {
 			await disconnect();
@@ -171,18 +176,20 @@ const LotteryPage: FC = () => {
 			</div>
 
 			<div className="relative z-10 w-full max-w-8xl mx-auto px-4 pt-16 md:pt-24 lg:pt-15">
-				<div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-1 items-start">
+				<div className={`grid grid-cols-1 ${!isResultMode ? "lg:grid-cols-2" : ""} gap-8 lg:gap-1 items-start`}>
 					<motion.div
 						initial={{ opacity: 0, x: -50 }}
 						animate={{ opacity: 1, x: 0 }}
 						transition={{ duration: 0.6 }}
-						className="w-full pt-8 md:pt-16 lg:pt-30 px-4 md:px-8 lg:pl-20"
+						className={`w-full pt-8 md:pt-16 lg:pt-30 px-4 md:px-8 ${!isResultMode ? "lg:pl-20" : "flex justify-center"}`}
 					>
-						<LotteryCountdown />
+						<div className={isResultMode ? "w-full max-w-4xl" : "w-full"}>
+							<LotteryCountdown onStatusChange={setLotteryStatus} />
+						</div>
 					</motion.div>
 
-					{/* Right: Astro Card */}
-					{card && (
+					{/* Right: Astro Card - Only show when not in result mode */}
+					{!isResultMode && card && (
 						<motion.div
 							key="card-display"
 							initial={{ opacity: 0, x: 50 }}
@@ -196,7 +203,7 @@ const LotteryPage: FC = () => {
 						</motion.div>
 					)}
 
-					{!card && (
+					{!isResultMode && !card && (
 						<motion.div
 							key="card-placeholder"
 							initial={{ opacity: 0, x: 50 }}

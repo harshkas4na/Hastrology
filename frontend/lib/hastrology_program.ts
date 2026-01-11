@@ -285,3 +285,65 @@ export async function hasUserEnteredLottery(
 
     return accountInfo !== null;
 }
+
+/**
+ * UserEntryReceipt account structure
+ */
+export interface UserEntryReceipt {
+    user: PublicKey;
+    lotteryId: BN;
+    ticketNumber: BN;
+}
+
+/**
+ * Decode UserEntryReceipt from account data
+ */
+export function decodeUserReceipt(data: Buffer): UserEntryReceipt {
+    let offset = 8; // Skip 8-byte discriminator
+
+    const user = new PublicKey(data.slice(offset, offset + 32));
+    offset += 32;
+
+    const lotteryId = new BN(data.slice(offset, offset + 8), 'le');
+    offset += 8;
+
+    const ticketNumber = new BN(data.slice(offset, offset + 8), 'le');
+
+    return {
+        user,
+        lotteryId,
+        ticketNumber,
+    };
+}
+
+/**
+ * Fetch user's entry receipt for a specific lottery
+ */
+export async function fetchUserReceipt(
+    connection: Connection,
+    userPubkey: PublicKey,
+    lotteryId: BN
+): Promise<UserEntryReceipt | null> {
+    const [userReceiptPDA] = getUserReceiptPDA(userPubkey, lotteryId);
+    const accountInfo = await connection.getAccountInfo(userReceiptPDA);
+
+    if (!accountInfo) {
+        return null;
+    }
+
+    return decodeUserReceipt(accountInfo.data as Buffer);
+}
+
+/**
+ * Check if a user has entered a specific lottery (by ID)
+ */
+export async function hasUserEnteredSpecificLottery(
+    connection: Connection,
+    userPubkey: PublicKey,
+    lotteryId: BN
+): Promise<boolean> {
+    const [userReceiptPDA] = getUserReceiptPDA(userPubkey, lotteryId);
+    const accountInfo = await connection.getAccountInfo(userReceiptPDA);
+    return accountInfo !== null;
+}
+
