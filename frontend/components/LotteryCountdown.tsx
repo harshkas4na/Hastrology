@@ -160,7 +160,7 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({ onBack }) => {
 	}
 
 	return (
-		<section className="min-h-[600px] flex items-center justify-center relative overflow-hidden">
+		<section className="md:min-h-[600px] min-h-[500px] flex items-center justify-center relative overflow-hidden">
 			<div className="relative z-10 w-full max-w-7xl px-4">
 				<AnimatePresence mode="wait">
 					{/* LOADING STATE */}

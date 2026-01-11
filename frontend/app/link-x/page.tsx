@@ -3,7 +3,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, type FC, useEffect, useRef, useState } from "react";
+import { type FC, Suspense, useEffect, useRef, useState } from "react";
 import { TwitterSignInButton } from "@/components/TwitterButton";
 import { api } from "@/lib/api";
 import { useStore } from "@/store/useStore";
@@ -138,36 +138,7 @@ const XLoginContent: FC = () => {
 
 	return (
 		<section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-black">
-			<div className="fixed top-6 right-6 z-50">
-				<button
-					onClick={() => {
-						if (!publicKey) return;
-						disconnect();
-					}}
-					className="flex flex-row gap-2 items-center
-      bg-[#1F1F1F]
-      border border-[#FC5411]
-      text-white
-      px-4
-      py-2
-      rounded-xl
-      font-medium
-      hover:bg-[#262626]
-      hover:shadow-[0_0_20px_rgba(252,84,17,0.35)]
-      transition
-    "
-					type="button"
-				>
-					<img
-						alt="Solana Logo"
-						className="w-4 h-5"
-						src="https://solana.com/src/img/branding/solanaLogoMark.svg"
-					/>
-					{publicKey?.toBase58().slice(0, 4)}...
-					{publicKey?.toBase58().slice(-4)}
-				</button>
-			</div>
-			<div className="hidden lg:flex absolute inset-y-0 right-0 w-1/2 z-0 flex-col">
+			<div className="flex absolute inset-y-0 right-0 w-full md:w-1/2 z-0 flex-col">
 				<div className="relative h-full w-full">
 					<img
 						alt="Upper Background"
@@ -185,6 +156,38 @@ const XLoginContent: FC = () => {
 				<div className="absolute inset-0 bg-linear-to-b from-transparent via-transparent to-transparent" />
 			</div>
 
+			<div className="md:hidden pointer-events-none absolute top-0 left-0 w-full flex flex-col justify-center z-20">
+				<div className="relative w-full max-w-md h-48 overflow-hidden">
+					{/* Orange ellipse (foreground, inverted) */}
+					<img
+						src="/inverted-ellipse.png"
+						alt="Orange Ellipse"
+						className="absolute -top-2 left-1/2 -translate-x-1/2 w-full
+                 object-contain blur-sm drop-shadow-[0_0_40px_rgba(252,84,17,0.35)]"
+					/>
+					<img
+						src="/inverted-black-ellipse.png"
+						alt="Black Ellipse"
+						className="absolute top-0 left-1/2 -translate-x-1/2 w-full
+             object-contain"
+					/>
+				</div>
+				<Link href="/" className="inline-block">
+					<motion.img
+						alt="Hastrology Logo"
+						animate={{ scale: 1, opacity: 1 }}
+						className="-mt-0 md:-mt-5
+              w-72 md:w-96 lg:w-120
+              mx-auto
+              drop-shadow-[0_0_20px_rgba(251,146,60,0.35)]
+            "
+						initial={{ scale: 0.9, opacity: 0 }}
+						src="/Hastrology.svg"
+						transition={{ delay: 0.2, duration: 0.8 }}
+					/>
+				</Link>
+			</div>
+
 			<img
 				alt="Orange Planet"
 				className="hidden lg:block absolute left-[40%] top-0 h-full w-auto object-contain object-left z-0"
@@ -199,12 +202,12 @@ const XLoginContent: FC = () => {
 			{/* LEFT BLACK PANEL — X LOGIN FORM */}
 			<div className="relative lg:absolute inset-y-0 left-0 w-full lg:w-1/2 z-20 flex items-center lg:items-start justify-center pt-8 lg:pt-35 px-4">
 				<div className="mt-0 lg:mt-10 w-full max-w-2xl px-4 lg:px-10">
-					<div className="flex items-center justify-between mb-2">
-						<h1 className="text-3xl lg:text-5xl font-semibold text-white">
+					<div className="flex items-center justify-center md:justify-between mb-2">
+						<h1 className="md:text-left text-center text-3xl lg:text-5xl font-semibold text-white">
 							Connect Your X Account
 						</h1>
 					</div>
-					<p className="text-gray-400 mb-8 lg:mb-16 mt-2 text-lg lg:text-2xl">
+					<p className="text-gray-400 md:text-left text-center mb-8 lg:mb-16 mt-2 text-lg lg:text-2xl">
 						Link your X account for personalized cosmic insights ✨
 					</p>
 
@@ -219,7 +222,7 @@ const XLoginContent: FC = () => {
 					{connected && user && !success && (
 						<div className="space-y-6 mt-12 lg:mt-26 mr-0 lg:mr-10">
 							<div className="text-center">
-								<p className="text-gray-300 text-md mb-4">
+								<p className="hidden md:block text-gray-300 text-md mb-4">
 									Welcome back, {user.username}! Connect your X account to
 									continue.
 								</p>
@@ -278,13 +281,45 @@ const XLoginContent: FC = () => {
 				</motion.p>
 			</motion.div>
 
-			<div className="hidden lg:block absolute bottom-11 left-0 w-full z-30 px-6">
-				<div className="font-display max-w-7xl mx-auto flex items-center justify-between text-md text-[#8A8A8A]">
+			<div className="block absolute bottom-4 md:bottom-11 left-0 w-full z-30 px-6">
+				<div className="w-full flex md:hidden mt-0 mb-5 flex-col items-center gap-4">
+					<button
+						onClick={() => {
+							if (!publicKey) return;
+							disconnect();
+						}}
+						className="flex flex-row gap-2 items-center
+      bg-[#1F1F1F]
+      border border-[#FC5411]
+      text-white
+      px-4
+      py-2
+      rounded-xl
+      font-medium
+      hover:bg-[#262626]
+      hover:shadow-[0_0_20px_rgba(252,84,17,0.35)]
+      transition
+    "
+						type="button"
+					>
+						<img
+							alt="Solana Logo"
+							className="w-4 h-5"
+							src="https://solana.com/src/img/branding/solanaLogoMark.svg"
+						/>
+						{publicKey?.toBase58().slice(0, 4)}...
+						{publicKey?.toBase58().slice(-4)}
+					</button>
+				</div>
+
+				<div className="font-display max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2 md:gap-0 text-xs md:text-md text-[#8A8A8A]">
 					<span className="font-display">
 						©2025 <span className="text-white">Hastrology</span>
 					</span>
-					<div className="flex gap-6">
-						<span className="text-white">Your cosmic journey on Solana.</span>
+					<div className="flex flex-wrap justify-center gap-3 md:gap-6">
+						<span className="text-white hidden sm:inline">
+							Your cosmic journey on Solana.
+						</span>
 						<a className="hover:text-white transition" href="/abc">
 							About us
 						</a>

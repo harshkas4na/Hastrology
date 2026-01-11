@@ -69,28 +69,28 @@ const getVibeColor = (
 	vibe: string,
 ): { bg: string; text: string; border: string } => {
 	const vibeMap: Record<string, { bg: string; text: string; border: string }> =
-	{
-		stellar: {
-			bg: "bg-emerald-500/20",
-			text: "text-emerald-300",
-			border: "border-emerald-500/30",
-		},
-		ascending: {
-			bg: "bg-blue-500/20",
-			text: "text-blue-300",
-			border: "border-blue-500/30",
-		},
-		shaky: {
-			bg: "bg-amber-500/20",
-			text: "text-amber-300",
-			border: "border-amber-500/30",
-		},
-		eclipse: {
-			bg: "bg-purple-500/20",
-			text: "text-purple-300",
-			border: "border-purple-500/30",
-		},
-	};
+		{
+			stellar: {
+				bg: "bg-emerald-500/20",
+				text: "text-emerald-300",
+				border: "border-emerald-500/30",
+			},
+			ascending: {
+				bg: "bg-blue-500/20",
+				text: "text-blue-300",
+				border: "border-blue-500/30",
+			},
+			shaky: {
+				bg: "bg-amber-500/20",
+				text: "text-amber-300",
+				border: "border-amber-500/30",
+			},
+			eclipse: {
+				bg: "bg-purple-500/20",
+				text: "text-purple-300",
+				border: "border-purple-500/30",
+			},
+		};
 	return vibeMap[vibe.toLowerCase()] || vibeMap.stellar;
 };
 
@@ -359,7 +359,7 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 
 	return (
 		<div
-			className={`w-full h-full flex flex-col ${showShare ? "lg:grid lg:grid-cols-2" : ""} gap-6 lg:gap-16 items-center`}
+			className={`mt-10 md:mt-10 w-full h-full flex flex-col ${showShare ? "lg:grid lg:grid-cols-2" : ""} gap-6 lg:gap-16 items-center`}
 		>
 			{/* LEFT SIDE - Heading & Share Button */}
 			{/* LEFT SIDE */}
@@ -368,29 +368,28 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 					initial={{ opacity: 0, x: -50 }}
 					animate={{ opacity: 1, x: 0 }}
 					transition={{ delay: 0.2 }}
-					className="flex flex-col justify-center space-y-6 lg:space-y-8 mt-8 lg:mt-16 order-2 lg:order-1"
+					className="mt-5 flex flex-col justify-center space-y-3 md:space-y-6 lg:space-y-8 md:mt-8 lg:mt-16 order-2 lg:order-1"
 				>
 					{!showTweetSuccess ? (
 						/* ================= NORMAL SHARE STATE ================= */
 						<>
 							{/* Heading */}
-							<div className="space-y-3 lg:space-y-4">
-								<h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white">
+							<div
+								className="text-center md:text-left space-y-3 lg:space-y-4 text-sm md:text-lg
+                invisible md:visible h-0 md:h-auto"
+							>
+								<h1 className="text-lg md:text-2xl lg:text-4xl font-bold text-white">
 									Share Your Card On X
 								</h1>
-								<p className="text-slate-400 text-base lg:text-lg md:text-xl max-w-lg">
+								<p className="text-slate-400 text-sm lg:text-lg md:text-xl max-w-lg">
 									Get your personalized daily horoscope cards. 10 cards covering
 									your vibe, health, wealth, love & more.
 								</p>
 							</div>
 
 							{/* Share Button */}
-							<motion.div
-								initial={{ opacity: 0 }}
-								animate={{ opacity: 1 }}
-								transition={{ delay: 1.0 }}
-								className="w-full"
-							>
+							<motion.div className="w-full flex flex-col gap-4 md:gap-6 pb-8">
+								{/* Share / Sign-in */}
 								{isTwitterExpired ? (
 									<TwitterSignInButton
 										onError={(err) =>
@@ -406,55 +405,34 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 									<button
 										onClick={shareOnTwitter}
 										disabled={shareStatus.show && shareStatus.type === "info"}
-										className="group relative w-full px-8 py-4
-border border-[#FC5411]
-bg-white/5 hover:bg-white/10
-rounded-2xl transition-all
-hover:scale-105
-hover:shadow-[0_0_30px_rgba(252,84,17,0.3)]"
-										type="button"
+										className="group relative w-full px-8 py-4 border border-[#FC5411]
+      bg-white/5 hover:bg-white/10 rounded-2xl transition-all"
 									>
-										<span className="text-white text-lg font-medium tracking-wide group-hover:text-[#FC5411]">
+										<span className="text-white text-sm md:text-lg font-medium">
 											{shareStatus.show && shareStatus.type === "info"
 												? shareStatus.message
 												: "Share on X"}
 										</span>
 									</button>
 								)}
+
+								{/* Download */}
 								<button
 									onClick={downloadFrontAndBackCard}
-									type="button"
-									className="
-		group relative w-full mt-8 px-8 py-4
-		border border-[#FC5411]
-		 hover:bg-white/10
-		rounded-2xl transition-all
-		hover:scale-105
-	"
+									className="text-sm md:text-lg group relative w-full px-8 py-4 border border-[#FC5411]
+    hover:bg-white/10 rounded-2xl transition-all"
 								>
-									<span className="text-white text-lg font-medium tracking-wide group-hover:text-[#FC5411]">
-										Download Card
-									</span>
+									Download Card
 								</button>
-							</motion.div>
 
-							<motion.div
-								initial={{ opacity: 0 }}
-								animate={{ opacity: 1 }}
-								transition={{ delay: 1.0 }}
-								className="w-full mt-0 pb-12"
-							>
+								{/* Lottery */}
 								<button
 									onClick={() => router.push("/lottery")}
-									className="text-center w-full border border-[#FC5411] group flex items-center justify-center gap-3 px-8 py-4 bg-white/5 hover:bg-white/10 rounded-2xl transition-all hover:scale-105"
-									type="button"
+									className="text-sm md:text-lg w-full border border-[#FC5411]
+    flex items-center justify-center gap-3 px-8 py-4
+     hover:bg-white/10 rounded-2xl transition-all"
 								>
-									<span className="text-white text-center font-medium tracking-wide group-hover:text-[#FC5411]">
-										Check Your Lottery Luck
-									</span>
-									<span className="text-xl group-hover:translate-x-1 transition-transform">
-										→
-									</span>
+									Check Your Lottery Luck →
 								</button>
 							</motion.div>
 						</>
@@ -507,7 +485,7 @@ hover:shadow-[0_0_30px_rgba(252,84,17,0.3)]"
 
 			{/* RIGHT SIDE - Card Display */}
 			<div
-				className={`w-full min-h-[550px] md:min-h-[650px] lg:h-[765px] perspective-1000 relative order-1 lg:order-2 ${!showShare ? "mx-auto max-w-xl" : ""}`}
+				className={`w-full h-[705px] md:min-h-[650px] lg:h-[765px] perspective-1000 relative order-1 lg:order-2 ${!showShare ? "mx-auto max-w-xl" : ""}`}
 			>
 				{/* Card Content */}
 				<div
@@ -523,12 +501,15 @@ hover:shadow-[0_0_30px_rgba(252,84,17,0.3)]"
 						{/* ==================== FRONT FACE ==================== */}
 						<motion.div
 							data-card-front
-							className={`absolute w-full h-full rounded-[2.5rem] overflow-hidden shadow-2xl ${isFlipped ? "pointer-events-none" : "pointer-events-auto"
-								}`}
+							className={`absolute w-full h-full rounded-[2.5rem] overflow-hidden shadow-2xl ${
+								isFlipped ? "pointer-events-none" : "pointer-events-auto"
+							}`}
 							style={{
 								backfaceVisibility: "hidden",
 								WebkitBackfaceVisibility: "hidden",
-								transform: isFlipped ? "rotateY(0deg) translateZ(-1px)" : "rotateY(0deg) translateZ(1px)",
+								transform: isFlipped
+									? "rotateY(0deg) translateZ(-1px)"
+									: "rotateY(0deg) translateZ(1px)",
 								boxShadow: `
       0 0 16px rgba(220, 220, 220, 0.25),
       0 0 18px rgba(180, 180, 180, 0.15),
@@ -673,10 +654,13 @@ hover:shadow-[0_0_30px_rgba(252,84,17,0.3)]"
 						{/* ==================== BACK FACE ==================== */}
 						<motion.div
 							data-card-back
-							className={`absolute w-full h-full rounded-[2.5rem] overflow-hidden shadow-2xl ${isFlipped ? "pointer-events-auto" : "pointer-events-none"
-								}`}
+							className={`absolute w-full h-full rounded-[2.5rem] overflow-hidden shadow-2xl ${
+								isFlipped ? "pointer-events-auto" : "pointer-events-none"
+							}`}
 							style={{
-								transform: isFlipped ? "rotateY(180deg) translateZ(1px)" : "rotateY(180deg) translateZ(-1px)",
+								transform: isFlipped
+									? "rotateY(180deg) translateZ(1px)"
+									: "rotateY(180deg) translateZ(-1px)",
 								backfaceVisibility: "hidden",
 								WebkitBackfaceVisibility: "hidden",
 								boxShadow: `
@@ -774,7 +758,6 @@ hover:shadow-[0_0_30px_rgba(252,84,17,0.3)]"
 											{card.back.shadow_warning}
 										</p>
 									</motion.div>
-
 								</div>
 							</div>
 						</motion.div>
@@ -783,7 +766,7 @@ hover:shadow-[0_0_30px_rgba(252,84,17,0.3)]"
 
 				<motion.div
 					animate={{ opacity: 1 }}
-					className="bg-black/30 mt-5 backdrop-blur-xl rounded-2xl p-4 border border-white/10 flex items-center justify-center max-w-md"
+					className="hidden bg-black/30 mt-5 backdrop-blur-xl rounded-2xl p-4 border border-white/10 md:flex items-center justify-center max-w-md"
 					initial={{ opacity: 0 }}
 					transition={{ delay: 0.8 }}
 				>
