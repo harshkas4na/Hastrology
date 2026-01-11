@@ -211,6 +211,144 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 		}
 	};
 
+	const downloadFrontAndBackCard = async () => {
+		try {
+			setShareStatus({
+				show: true,
+				message: "📸 Generating card images...",
+				type: "info",
+			});
+
+			const front = document.querySelector(
+				"[data-card-front]",
+			) as HTMLElement | null;
+			const back = document.querySelector(
+				"[data-card-back]",
+			) as HTMLElement | null;
+
+			if (!front || !back) {
+				setShareStatus({
+					show: true,
+					message: "Card elements not found",
+					type: "error",
+				});
+				return;
+			}
+
+			const frontOriginalBorderRadius = front.style.borderRadius;
+			const backOriginalBorderRadius = back.style.borderRadius;
+			const backOriginalTransform = back.style.transform;
+
+			front.style.borderRadius = "0";
+			back.style.borderRadius = "0";
+
+			const frontBlob = await htmlToImage.toBlob(front, {
+				pixelRatio: 3,
+				cacheBust: true,
+				quality: 1,
+			});
+
+			if (!frontBlob) {
+				front.style.borderRadius = frontOriginalBorderRadius;
+				back.style.borderRadius = backOriginalBorderRadius;
+				throw new Error("Failed to capture front");
+			}
+
+			// Flip to back
+			const wasFlipped = isFlipped;
+			setIsFlipped(true);
+
+			await new Promise((resolve) => setTimeout(resolve, 1000));
+			back.style.transform = "rotateY(0deg)";
+
+			await new Promise((resolve) => setTimeout(resolve, 100));
+			const backBlob = await htmlToImage.toBlob(back, {
+				pixelRatio: 3,
+				cacheBust: true,
+				quality: 1,
+			});
+
+			front.style.borderRadius = frontOriginalBorderRadius;
+			back.style.borderRadius = backOriginalBorderRadius;
+			back.style.transform = backOriginalTransform;
+
+			setIsFlipped(wasFlipped);
+
+			if (!backBlob) throw new Error("Failed to capture back");
+			const frontUrl = URL.createObjectURL(frontBlob);
+			const backUrl = URL.createObjectURL(backBlob);
+
+			const frontImg = new Image();
+			const backImg = new Image();
+
+			await Promise.all([
+				new Promise((resolve, reject) => {
+					frontImg.onload = resolve;
+					frontImg.onerror = reject;
+					frontImg.src = frontUrl;
+				}),
+				new Promise((resolve, reject) => {
+					backImg.onload = resolve;
+					backImg.onerror = reject;
+					backImg.src = backUrl;
+				}),
+			]);
+
+			// Create canvas
+			const canvas = document.createElement("canvas");
+			const ctx = canvas.getContext("2d");
+			if (!ctx) throw new Error("Could not get canvas context");
+
+			const gap = 72; // 24px * 3 (pixelRatio)
+			const padding = 72; // 24px * 3 (pixelRatio)
+
+			canvas.width = frontImg.width + backImg.width + gap + padding * 2;
+			canvas.height = Math.max(frontImg.height, backImg.height) + padding * 2;
+
+			ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+			ctx.drawImage(frontImg, padding, padding);
+
+			ctx.drawImage(backImg, frontImg.width + gap + padding, padding);
+
+			URL.revokeObjectURL(frontUrl);
+			URL.revokeObjectURL(backUrl);
+			canvas.toBlob(
+				(blob) => {
+					if (!blob) {
+						setShareStatus({
+							show: true,
+							message: "Failed to generate image",
+							type: "error",
+						});
+						return;
+					}
+
+					const link = document.createElement("a");
+					link.download = "hastrology-card-front-back.png";
+					link.href = URL.createObjectURL(blob);
+					link.click();
+					setTimeout(() => URL.revokeObjectURL(link.href), 100);
+
+					setShareStatus({
+						show: false,
+						message: "",
+						type: "success",
+					});
+				},
+				"image/png",
+				1,
+			);
+		} catch (err) {
+			console.error("Download failed:", err);
+			setShareStatus({
+				show: true,
+				message: "Failed to download card. Please try again.",
+				type: "error",
+			});
+		}
+	};
+
 	const theme = card
 		? getPlanetaryTheme(card.ruling_planet_theme || "mars")
 		: getPlanetaryTheme("mars");
@@ -283,13 +421,28 @@ hover:shadow-[0_0_30px_rgba(252,84,17,0.3)]"
 										</span>
 									</button>
 								)}
+								<button
+									onClick={downloadFrontAndBackCard}
+									type="button"
+									className="
+		group relative w-full mt-8 px-8 py-4
+		border border-[#FC5411]
+		 hover:bg-white/10
+		rounded-2xl transition-all
+		hover:scale-105
+	"
+								>
+									<span className="text-white text-lg font-medium tracking-wide group-hover:text-[#FC5411]">
+										Download Card
+									</span>
+								</button>
 							</motion.div>
 
 							<motion.div
 								initial={{ opacity: 0 }}
 								animate={{ opacity: 1 }}
 								transition={{ delay: 1.0 }}
-								className="w-full mt-2 pb-12"
+								className="w-full mt-0 pb-12"
 							>
 								<button
 									onClick={() => router.push("/lottery")}
@@ -354,7 +507,7 @@ hover:shadow-[0_0_30px_rgba(252,84,17,0.3)]"
 
 			{/* RIGHT SIDE - Card Display */}
 			<div
-				className={`w-full h-[700px] perspective-1000 relative ${!showShare ? "mx-auto max-w-xl" : ""}`}
+				className={`w-full h-[765px] perspective-1000 relative ${!showShare ? "mx-auto max-w-xl" : ""}`}
 			>
 				{/* Card Content */}
 				<div
@@ -424,8 +577,8 @@ hover:shadow-[0_0_30px_rgba(252,84,17,0.3)]"
 								</div>
 
 								{/* Center Content */}
-								<div className="flex-1 mt-15 mb-20 min-h-0 overflow-y-auto pr-2 space-y-6 custom-scrollbar">
-									<div className="mb-12 flex items-center justify-between">
+								<div className="flex-1 mt-8 mb-20 min-h-0 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
+									<div className="mb-4 flex items-center justify-between">
 										<div>
 											<h2 className="text-2xl font-bold text-white tracking-tight">
 												{user?.username}
@@ -444,31 +597,62 @@ hover:shadow-[0_0_30px_rgba(252,84,17,0.3)]"
 										/>
 									</div>
 
+									<div className="mt-4">
+										<img
+											src={`/stars/${card.front.zodiac_sign.toLowerCase()}.svg`}
+											alt={card.front.zodiac_sign}
+											className="w-25 h-15"
+										/>
+									</div>
 									{/* Details */}
 									<div className="flex flex-row justify-between items-center">
-										<div className="space-y-1 text-white/80 text-md font-medium">
-											<p className="text-white font-medium text-xl mb-4">
+										<div className="flex flex-col gap-2 space-y-1 text-white/80 text-md font-medium">
+											<p className=" text-white font-medium text-md">
 												{card.front.vibe_status}
 											</p>
-											<h3 className="text-md leading-snug drop-shadow-md text-left text-white/80 mx-0 max-w-35 wrap-break-words">
-												{card.front.tagline}
+											<h3 className="text-sm leading-snug drop-shadow-md text-left text-white/80 mx-0 mb-4">
+												Today isn't for launching; it’s for optimizing. Refine
+												your foundation and let others be loud.
 											</h3>
 
-											<p>
-												<span className="text-white/50">Energy Emoji :</span>{" "}
-												{theme.emoji}
-											</p>
-											<p>
-												<span className="text-white/50">Luck Score :</span>{" "}
-												{card.front.luck_score}
-											</p>
-										</div>
-										<div className="mt-4">
-											<img
-												src={`/stars/${card.front.zodiac_sign.toLowerCase()}.svg`}
-												alt={card.front.zodiac_sign}
-												className="w-29 h-29"
-											/>
+											<h3 className="text-sm leading-snug drop-shadow-md text-left text-white/80 mx-0">
+												Check your bank balance before hitting 'Buy Now'. Venus
+												is making you feel too generous.
+											</h3>
+
+											<motion.div
+												animate={{ opacity: 1, y: 0 }}
+												className="space-y-3 mt-2"
+												initial={{ opacity: 0, y: 10 }}
+												transition={{ delay: 0.5 }}
+											>
+												<div className="grid grid-cols-3 gap-3">
+													<div className="bg-white/5 rounded-xl p-2 text-center border border-white/5 hover:border-white/10 transition-colors backdrop-blur-sm">
+														<div className="text-[10px] text-white/40 uppercase mb-2 tracking-wider font-medium">
+															Lucky Number
+														</div>
+														<div className="text-sm font-black text-white">
+															{card.back.lucky_assets.number}
+														</div>
+													</div>
+													<div className="bg-white/5 rounded-xl p-2 text-center border border-white/5 hover:border-white/10 transition-colors backdrop-blur-sm">
+														<div className="text-[10px] text-white/40 uppercase mb-2 tracking-wider font-medium">
+															Lucky Color
+														</div>
+														<div className="text-sm font-black text-white">
+															{card.back.lucky_assets.color}
+														</div>
+													</div>
+													<div className="bg-white/5 rounded-xl p-2 text-center border border-white/5 hover:border-white/10 transition-colors backdrop-blur-sm">
+														<div className="text-[10px] text-white/40 uppercase mb-2 tracking-wider font-medium">
+															Power Hour
+														</div>
+														<div className="text-xs font-black text-white">
+															{card.back.lucky_assets.power_hour}
+														</div>
+													</div>
+												</div>
+											</motion.div>
 										</div>
 									</div>
 								</div>
@@ -488,6 +672,7 @@ hover:shadow-[0_0_30px_rgba(252,84,17,0.3)]"
 
 						{/* ==================== BACK FACE ==================== */}
 						<motion.div
+							data-card-back
 							className="absolute w-full h-full rounded-[2.5rem] overflow-hidden shadow-2xl"
 							style={{
 								transform: "rotateY(180deg)",
@@ -501,7 +686,7 @@ hover:shadow-[0_0_30px_rgba(252,84,17,0.3)]"
 							}}
 						>
 							{/* Content */}
-							<div className="relative h-full flex flex-col p-8">
+							<div className="relative z-20 h-full flex flex-col gap-0 p-8">
 								{/* Header */}
 								<div className="flex justify-end items-center mb-3">
 									<button
@@ -526,7 +711,7 @@ hover:shadow-[0_0_30px_rgba(252,84,17,0.3)]"
 								</div>
 
 								{/* Scrollable Content */}
-								<div className="flex-1 overflow-y-auto pr-2 space-y-6 custom-scrollbar">
+								<div className="flex-1 min-h-0 overflow-y-auto pr-2 space-y-6 custom-scrollbar">
 									{/* Detailed Reading */}
 									<motion.div
 										animate={{ opacity: 1, y: 0 }}
@@ -535,15 +720,6 @@ hover:shadow-[0_0_30px_rgba(252,84,17,0.3)]"
 										transition={{ delay: 0.2 }}
 									>
 										<div className="flex items-center gap-2">
-											<svg
-												fill="currentColor"
-												height="16"
-												style={{ color: accent }}
-												viewBox="0 0 24 24"
-												width="16"
-											>
-												<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-											</svg>
 											<h4 className="text-sm font-bold text-white/90 uppercase tracking-wider">
 												Deep Insight
 											</h4>
@@ -568,20 +744,7 @@ hover:shadow-[0_0_30px_rgba(252,84,17,0.3)]"
 										></div>
 										<div className="relative p-5 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-sm space-y-3">
 											<div className="flex items-center gap-2">
-												<svg
-													className="text-emerald-400"
-													fill="none"
-													height="14"
-													stroke="currentColor"
-													strokeLinecap="round"
-													strokeLinejoin="round"
-													strokeWidth="2.5"
-													viewBox="0 0 24 24"
-													width="14"
-												>
-													<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-												</svg>
-												<h4 className="text-xs font-black uppercase tracking-widest text-emerald-400">
+												<h4 className="text-xs font-black uppercase tracking-widest">
 													Hustle Alpha
 												</h4>
 											</div>
@@ -599,26 +762,11 @@ hover:shadow-[0_0_30px_rgba(252,84,17,0.3)]"
 										transition={{ delay: 0.4 }}
 									>
 										<div className="flex items-center gap-2">
-											<svg
-												className="text-red-400"
-												fill="none"
-												height="14"
-												stroke="currentColor"
-												strokeLinecap="round"
-												strokeLinejoin="round"
-												strokeWidth="2.5"
-												viewBox="0 0 24 24"
-												width="14"
-											>
-												<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-												<line x1="12" x2="12" y1="9" y2="13" />
-												<line x1="12" x2="12.01" y1="17" y2="17" />
-											</svg>
-											<h4 className="text-xs font-black uppercase tracking-widest text-red-400">
+											<h4 className="text-xs font-black uppercase tracking-widest">
 												Shadow Warning
 											</h4>
 										</div>
-										<p className="text-xs text-white/70 italic leading-relaxed">
+										<p className="text-sm text-white/90 leading-relaxed">
 											{card.back.shadow_warning}
 										</p>
 									</motion.div>

@@ -415,7 +415,7 @@ export const HoroscopeSection: FC = () => {
 									animate={{ opacity: 1, y: 0 }}
 									transition={{ delay: 0.4, duration: 0.8 }}
 									className="w-full max-w-screen mx-auto mb-20"
-									style={{ height: "70vh", minHeight: "600px" }}
+									style={{ height: "80vh", minHeight: "600px" }}
 								>
 									<AstroCard card={card} showShare={true} />
 								</motion.div>
