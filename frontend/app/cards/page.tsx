@@ -60,7 +60,7 @@ const CardsPage: FC = () => {
 	};
 
 	return (
-		<section className="relative min-h-screen flex flex-col bg-black">
+		<section className="relative min-h-screen flex flex-col bg-black pb-24">
 			{user?.twitterId && <UserXDetails />}
 
 			<div className="fixed inset-0 z-0 flex flex-col pointer-events-none">
@@ -111,12 +111,13 @@ const CardsPage: FC = () => {
 				<HoroscopeSection />
 			</div>
 
-			<footer className="relative z-10 w-full px-6 py-6">
-				<div className="font-display max-w-auto mx-auto flex items-center justify-between text-md text-[#8A8A8A]">
-					<span>
+			{/* Footer */}
+			<div className="fixed bottom-4 left-0 w-full z-30 px-6">
+				<div className="font-display max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-[#8A8A8A]">
+					<span className="font-display">
 						©2025 <span className="text-white">Hastrology</span>
 					</span>
-					<div className="flex gap-6">
+					<div className="flex flex-wrap gap-4 md:gap-6 items-center justify-center">
 						<span className="text-white">Your cosmic journey on Solana.</span>
 						<a className="hover:text-white transition" href="/abc">
 							About us
@@ -126,7 +127,7 @@ const CardsPage: FC = () => {
 						</a>
 					</div>
 				</div>
-			</footer>
+			</div>
 		</section>
 	);
 };

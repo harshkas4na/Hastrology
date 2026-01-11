@@ -110,7 +110,7 @@ export const AstroCardDeck: FC<AstroCardDeckProps> = ({ cards, onComplete }) => 
                     >
                         {/* Safeguard against missing card data */}
                         {currentCard ? (
-                            <AstroCard card={currentCard} />
+                            <AstroCard card={currentCard} showShare={false} />
                         ) : (
                             <div className="w-full h-full flex items-center justify-center text-white/50">
                                 <p>Card Unavailable</p>

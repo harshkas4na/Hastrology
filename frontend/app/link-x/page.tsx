@@ -3,12 +3,12 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { type FC, useEffect, useRef, useState } from "react";
+import { Suspense, type FC, useEffect, useRef, useState } from "react";
 import { TwitterSignInButton } from "@/components/TwitterButton";
 import { api } from "@/lib/api";
 import { useStore } from "@/store/useStore";
 
-const XLoginPage: FC = () => {
+const XLoginContent: FC = () => {
 	const { publicKey, connected, disconnect } = useWallet();
 	const router = useRouter();
 	const searchParams = useSearchParams();
@@ -296,6 +296,14 @@ const XLoginPage: FC = () => {
 				</div>
 			</div>
 		</section>
+	);
+};
+
+const XLoginPage: FC = () => {
+	return (
+		<Suspense fallback={<div>Loading...</div>}>
+			<XLoginContent />
+		</Suspense>
 	);
 };
 

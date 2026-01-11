@@ -201,7 +201,7 @@ export const HoroscopeSection: FC = () => {
 		<>
 			<section
 				id="horoscope-section"
-				className="min-h-screen flex items-center justify-center py-0 px-4 relative overflow-hidden"
+				className="min-h-screen flex items-center justify-center py-12 px-4 relative"
 			>
 				<div className="w-full max-w-8xl relative z-10">
 					<AnimatePresence mode="wait">
@@ -415,7 +415,6 @@ export const HoroscopeSection: FC = () => {
 									animate={{ opacity: 1, y: 0 }}
 									transition={{ delay: 0.4, duration: 0.8 }}
 									className="w-full max-w-screen mx-auto mb-20"
-									style={{ height: "80vh", minHeight: "600px" }}
 								>
 									<AstroCard card={card} showShare={true} />
 								</motion.div>

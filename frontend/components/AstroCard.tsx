@@ -69,28 +69,28 @@ const getVibeColor = (
 	vibe: string,
 ): { bg: string; text: string; border: string } => {
 	const vibeMap: Record<string, { bg: string; text: string; border: string }> =
-		{
-			stellar: {
-				bg: "bg-emerald-500/20",
-				text: "text-emerald-300",
-				border: "border-emerald-500/30",
-			},
-			ascending: {
-				bg: "bg-blue-500/20",
-				text: "text-blue-300",
-				border: "border-blue-500/30",
-			},
-			shaky: {
-				bg: "bg-amber-500/20",
-				text: "text-amber-300",
-				border: "border-amber-500/30",
-			},
-			eclipse: {
-				bg: "bg-purple-500/20",
-				text: "text-purple-300",
-				border: "border-purple-500/30",
-			},
-		};
+	{
+		stellar: {
+			bg: "bg-emerald-500/20",
+			text: "text-emerald-300",
+			border: "border-emerald-500/30",
+		},
+		ascending: {
+			bg: "bg-blue-500/20",
+			text: "text-blue-300",
+			border: "border-blue-500/30",
+		},
+		shaky: {
+			bg: "bg-amber-500/20",
+			text: "text-amber-300",
+			border: "border-amber-500/30",
+		},
+		eclipse: {
+			bg: "bg-purple-500/20",
+			text: "text-purple-300",
+			border: "border-purple-500/30",
+		},
+	};
 	return vibeMap[vibe.toLowerCase()] || vibeMap.stellar;
 };
 
@@ -359,7 +359,7 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 
 	return (
 		<div
-			className={`w-full h-full grid grid-cols-1 ${showShare ? "lg:grid-cols-2" : "lg:grid-cols-1"} gap-30 items-center`}
+			className={`w-full h-full grid grid-cols-1 ${showShare ? "lg:grid-cols-2" : "lg:grid-cols-1"} gap-8 lg:gap-16 items-center`}
 		>
 			{/* LEFT SIDE - Heading & Share Button */}
 			{/* LEFT SIDE */}
@@ -368,7 +368,7 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 					initial={{ opacity: 0, x: -50 }}
 					animate={{ opacity: 1, x: 0 }}
 					transition={{ delay: 0.2 }}
-					className="flex flex-col justify-center space-y-8 mt-18"
+					className="flex flex-col justify-center space-y-8 mt-16"
 				>
 					{!showTweetSuccess ? (
 						/* ================= NORMAL SHARE STATE ================= */
@@ -511,7 +511,7 @@ hover:shadow-[0_0_30px_rgba(252,84,17,0.3)]"
 			>
 				{/* Card Content */}
 				<div
-					className="w-full mt-15 max-w-md h-full cursor-pointer"
+					className="w-full max-w-md h-full cursor-pointer"
 					onClick={() => !showTweetSuccess && setIsFlipped(!isFlipped)}
 				>
 					<motion.div
@@ -523,10 +523,12 @@ hover:shadow-[0_0_30px_rgba(252,84,17,0.3)]"
 						{/* ==================== FRONT FACE ==================== */}
 						<motion.div
 							data-card-front
-							className="absolute w-full h-full rounded-[2.5rem] overflow-hidden shadow-2xl"
+							className={`absolute w-full h-full rounded-[2.5rem] overflow-hidden shadow-2xl ${isFlipped ? "pointer-events-none" : "pointer-events-auto"
+								}`}
 							style={{
 								backfaceVisibility: "hidden",
 								WebkitBackfaceVisibility: "hidden",
+								transform: isFlipped ? "rotateY(0deg) translateZ(-1px)" : "rotateY(0deg) translateZ(1px)",
 								boxShadow: `
       0 0 16px rgba(220, 220, 220, 0.25),
       0 0 18px rgba(180, 180, 180, 0.15),
@@ -601,7 +603,7 @@ hover:shadow-[0_0_30px_rgba(252,84,17,0.3)]"
 										<img
 											src={`/stars/${card.front.zodiac_sign.toLowerCase()}.svg`}
 											alt={card.front.zodiac_sign}
-											className="w-25 h-15"
+											className="w-24 h-16"
 										/>
 									</div>
 									{/* Details */}
@@ -660,7 +662,7 @@ hover:shadow-[0_0_30px_rgba(252,84,17,0.3)]"
 									<img
 										src={`/zodiac/${card.front.zodiac_sign.toLowerCase()}.svg`}
 										alt="Cosmic Back Visual"
-										className="text-white w-25 h-25 object-contain drop-shadow-[0_0_20px_rgba(255,255,255,0.15)]"
+										className="text-white w-24 h-24 object-contain drop-shadow-[0_0_20px_rgba(255,255,255,0.15)]"
 									/>
 									<span className="uppercase text-white/50">
 										Ruling Planet:{card.ruling_planet_theme}
@@ -673,9 +675,10 @@ hover:shadow-[0_0_30px_rgba(252,84,17,0.3)]"
 						{/* ==================== BACK FACE ==================== */}
 						<motion.div
 							data-card-back
-							className="absolute w-full h-full rounded-[2.5rem] overflow-hidden shadow-2xl"
+							className={`absolute w-full h-full rounded-[2.5rem] overflow-hidden shadow-2xl ${isFlipped ? "pointer-events-auto" : "pointer-events-none"
+								}`}
 							style={{
-								transform: "rotateY(180deg)",
+								transform: isFlipped ? "rotateY(180deg) translateZ(1px)" : "rotateY(180deg) translateZ(-1px)",
 								backfaceVisibility: "hidden",
 								WebkitBackfaceVisibility: "hidden",
 								boxShadow: `
@@ -711,7 +714,10 @@ hover:shadow-[0_0_30px_rgba(252,84,17,0.3)]"
 								</div>
 
 								{/* Scrollable Content */}
-								<div className="flex-1 min-h-0 overflow-y-auto pr-2 space-y-6 custom-scrollbar">
+								<div
+									className="flex-1 min-h-0 overflow-y-auto pr-2 space-y-6 custom-scrollbar"
+									onClick={(e) => e.stopPropagation()}
+								>
 									{/* Detailed Reading */}
 									<motion.div
 										animate={{ opacity: 1, y: 0 }}
@@ -771,43 +777,6 @@ hover:shadow-[0_0_30px_rgba(252,84,17,0.3)]"
 										</p>
 									</motion.div>
 
-									{/* Lucky Assets */}
-									<motion.div
-										animate={{ opacity: 1, y: 0 }}
-										className="space-y-3"
-										initial={{ opacity: 0, y: 10 }}
-										transition={{ delay: 0.5 }}
-									>
-										<h4 className="text-xs font-black uppercase tracking-widest text-white/40">
-											Lucky Assets
-										</h4>
-										<div className="grid grid-cols-3 gap-3">
-											<div className="bg-white/5 rounded-xl p-3 text-center border border-white/5 hover:border-white/10 transition-colors backdrop-blur-sm">
-												<div className="text-[10px] text-white/40 uppercase mb-2 tracking-wider font-medium">
-													Number
-												</div>
-												<div className="text-xl font-black text-white">
-													{card.back.lucky_assets.number}
-												</div>
-											</div>
-											<div className="bg-white/5 rounded-xl p-3 text-center border border-white/5 hover:border-white/10 transition-colors backdrop-blur-sm">
-												<div className="text-[10px] text-white/40 uppercase mb-2 tracking-wider font-medium">
-													Color
-												</div>
-												<div className="text-sm font-black text-white">
-													{card.back.lucky_assets.color}
-												</div>
-											</div>
-											<div className="bg-white/5 rounded-xl p-3 text-center border border-white/5 hover:border-white/10 transition-colors backdrop-blur-sm">
-												<div className="text-[10px] text-white/40 uppercase mb-2 tracking-wider font-medium">
-													Power Hour
-												</div>
-												<div className="text-xs font-black text-white">
-													{card.back.lucky_assets.power_hour}
-												</div>
-											</div>
-										</div>
-									</motion.div>
 								</div>
 							</div>
 						</motion.div>

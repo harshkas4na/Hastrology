@@ -15,6 +15,7 @@ export const BirthDetailsForm: FC = () => {
     dob: "",
     birthTime: "",
     birthPlace: "",
+    username: "",
   });
   const [error, setError] = useState<string | null>(null);
   const [isGeocoding, setIsGeocoding] = useState(false);
@@ -37,7 +38,7 @@ export const BirthDetailsForm: FC = () => {
       if (!geoResult.success) {
         setError(
           geoResult.error ||
-            'Could not find location. Please try a more specific place name (e.g., "New Delhi, India")'
+          'Could not find location. Please try a more specific place name (e.g., "New Delhi, India")'
         );
         setIsGeocoding(false);
         return;
@@ -52,6 +53,7 @@ export const BirthDetailsForm: FC = () => {
       // Step 3: Register user with geocoded coordinates
       const result = await api.registerUser({
         walletAddress: publicKey.toBase58(),
+        username: formData.username,
         dob: formData.dob,
         birthTime: formData.birthTime,
         birthPlace: formData.birthPlace,
@@ -72,7 +74,7 @@ export const BirthDetailsForm: FC = () => {
     }
   };
 
-  const isFormValid = formData.dob && formData.birthTime && formData.birthPlace;
+  const isFormValid = formData.dob && formData.birthTime && formData.birthPlace && formData.username;
   const isSubmitting = isGeocoding;
 
   return (
@@ -102,6 +104,25 @@ export const BirthDetailsForm: FC = () => {
           </p>
 
           <form className="space-y-8" onSubmit={handleSubmit}>
+            {/* Username */}
+            <div className="group">
+              <label
+                className="block text-sm font-medium text-purple-300 mb-2 ml-1 group-focus-within:text-purple-400 transition-colors"
+                htmlFor="username"
+              >
+                Username
+              </label>
+              <input
+                className="w-full px-5 py-4 bg-slate-900/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-600 focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all outline-none hover:bg-slate-900/70"
+                id="username"
+                onChange={(e) => setFormData((prev) => ({ ...prev, username: e.target.value }))}
+                placeholder="e.g., CosmicTraveler"
+                required
+                type="text"
+                value={formData.username}
+              />
+            </div>
+
             {/* Date of Birth */}
             <div className="group">
               <label

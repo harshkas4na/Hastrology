@@ -34,9 +34,9 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({ onBack }) => {
 	// Calculate prize pool
 	const prizePool = state
 		? (
-				(Number(state.ticketPrice) * Number(state.totalParticipants)) /
-				1e9
-			).toFixed(2)
+			(Number(state.ticketPrice) * Number(state.totalParticipants)) /
+			1e9
+		).toFixed(2)
 		: "0.00";
 
 	useEffect(() => {
@@ -103,6 +103,7 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({ onBack }) => {
 			}
 
 			let idToCheck = state.currentLotteryId;
+			console.log("idToCheck", idToCheck);
 			if (state.totalParticipants.eqn(0)) {
 				idToCheck = state.currentLotteryId.subn(1);
 			}
@@ -113,11 +114,13 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({ onBack }) => {
 				idToCheck,
 				pdaWinnerIndex,
 			);
+			console.log("winningTicket", winningTicket);
 
 			if (winningTicket) {
 				setWinnerAddress(winningTicket.user.toBase58());
 				setPrize((winningTicket.prizeAmount.toNumber() / 1e9).toFixed(2));
-
+				console.log("winningTicket.user", winningTicket.user);
+				console.log("publicKey", publicKey);
 				if (winningTicket.user.equals(publicKey)) {
 					setResult("won");
 				} else {
@@ -265,19 +268,11 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({ onBack }) => {
 
 							<button
 								onClick={handleCheckResult}
-								disabled={status === ("checking" as typeof status)}
 								className="w-full group relative py-4 px-10  border border-[#FC5411] rounded-xl font-bold text-lg text-white shadow-xl hover:scale-102 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 hover:shadow-[0_0_30px_rgba(252,84,17,0.3)]"
 								type="button"
 							>
 								<span className="relative z-10 flex items-center gap-2 justify-center">
-									{status === "checking" ? (
-										<>
-											<div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-											Checking...
-										</>
-									) : (
-										<>Check If You Won 🏆</>
-									)}
+									<>Check If You Won 🏆</>
 								</span>
 							</button>
 
