@@ -1,12 +1,10 @@
 # Core dependencies
 fastapi==0.115.6
-uvicorn[standard]==0.34.0
 pydantic==2.10.4
 pydantic-settings==2.7.0
 python-dotenv==1.0.1
 
 # LangChain and AI
-langchain==0.3.13
 langchain-google-genai==2.0.8
 langchain-core==0.3.28
 
@@ -18,7 +16,3 @@ python-multipart==0.0.20
 
 # Astronomical Engine
 pyswisseph==2.10.3.2
-
-# Optional: Redis for distributed caching (not required for basic setup)
-# redis==5.2.1
-# hiredis==3.1.0

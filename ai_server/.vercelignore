@@ -1,0 +1,14 @@
+# Vercel Ignore File
+*.pyc
+__pycache__/
+venv/
+env/
+.env
+.env.*
+.git/
+.gitignore
+.vscode/
+tests/
+# Exclude ephemeris files if not strictly needed (though they are used)
+# ephe/*.se1  <-- These are needed according to code, but they are large-ish (2.5MB each, total 10MB).
+# If the error persists, we might need to rely entirely on Moshier method and exclude these.
