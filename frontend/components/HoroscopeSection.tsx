@@ -252,7 +252,7 @@ export const HoroscopeSection: FC = () => {
 											initial={{ opacity: 0, y: 20 }}
 											animate={{ opacity: 1, y: 0 }}
 											transition={{ delay: 0.5 }}
-											className="max-w-md mx-auto"
+											className="max-w-md mx-auto flex flex-col gap-4"
 										>
 											<button
 												onClick={handlePayment}
@@ -346,6 +346,15 @@ export const HoroscopeSection: FC = () => {
 														</div>
 													</div>
 												</div>
+											</button>
+
+											<button
+												onClick={() => router.push("/lottery")}
+												className="w-full py-3 px-6 rounded-xl border border-white/10 text-slate-400 hover:text-white hover:border-white/20 transition-all text-sm font-medium flex items-center justify-center gap-2"
+												type="button"
+											>
+												<span>Already waiting for result? Check Lottery</span>
+												<span>→</span>
 											</button>
 										</motion.div>
 									</div>

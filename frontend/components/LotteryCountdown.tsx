@@ -11,6 +11,7 @@ import {
 	hasUserEnteredSpecificLottery,
 	LotteryState,
 } from "@/lib/hastrology_program";
+import Link from "next/link";
 
 interface LotteryCountdownProps {
 	onBack?: () => void;
@@ -38,6 +39,13 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({ onBack, onStatusCh
 	const [prize, setPrize] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
 
+	// New state for "Last Winner" when not entered
+	const [lastWinnerInfo, setLastWinnerInfo] = useState<{
+		address: string;
+		prize: string;
+		lotteryId: string;
+	} | null>(null);
+
 	// Track which lottery the result is for
 	const [resultLotteryId, setResultLotteryId] = useState<BN | null>(null);
 
@@ -59,6 +67,29 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({ onBack, onStatusCh
 		).toFixed(2)
 		: "0.00";
 
+	// Helper to find winner of a lottery
+	const findWinnerForLottery = async (lotteryId: BN, totalParticipants: number) => {
+		// Use a reasonable limit to search for winner, or track it better if possible
+		// Since we don't have an indexer, we scan tickets. In prod, use an indexer.
+		const limit = Math.min(totalParticipants, 50); // Cap at 50 for performance
+
+		for (let i = 0; i < limit; i++) {
+			try {
+				const ticket = await fetchUserTicket(connection, lotteryId, new BN(i));
+				if (ticket && ticket.isWinner) {
+					return {
+						address: ticket.user.toBase58(),
+						prize: (ticket.prizeAmount.toNumber() / 1e9).toFixed(2),
+					};
+				}
+			} catch (e) {
+				console.error("Error fetching ticket:", e);
+				// Continue searching
+			}
+		}
+		return null;
+	};
+
 	// Main initialization logic
 	const initializeLotteryView = useCallback(async () => {
 		if (!publicKey) {
@@ -79,97 +110,91 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({ onBack, onStatusCh
 			const now = Math.floor(Date.now() / 1000);
 			const end = lotteryState.lotteryEndtime.toNumber();
 
-			// Check if user entered the PREVIOUS lottery
-			const enteredPrevLottery = prevLotteryId.gtn(0)
-				? await hasUserEnteredSpecificLottery(connection, publicKey, prevLotteryId)
-				: false;
-
-			// Check if user entered the CURRENT lottery
+			// 1. Check if user entered current lottery
 			const enteredCurrentLottery = await hasUserEnteredSpecificLottery(
 				connection,
 				publicKey,
 				currentLotteryId
 			);
 
-			// LOGIC:
-			// 1. If user was in previous lottery AND that lottery is done (we're now on a new one)
-			//    → Show result for previous lottery
-			// 2. Else if user is in current lottery
-			//    → If lottery ended → show drawing state
-			//    → If lottery ongoing → show countdown
-			// 3. Else (user not in current lottery)
-			//    → Show "not_entered" state
-
-			if (enteredPrevLottery && prevLotteryId.gtn(0)) {
-				// User was in prev lottery, fetch their result
-				const prevReceipt = await fetchUserReceipt(connection, publicKey, prevLotteryId);
-
-				if (prevReceipt) {
-					// Try to fetch winner info from prev lottery
-					// We need to find the winning ticket for the previous lottery
-					// The winner was stored in the state before reset, but we can check if user's ticket won
-					const userTicket = await fetchUserTicket(
-						connection,
-						prevLotteryId,
-						prevReceipt.ticketNumber
-					);
-
-					if (userTicket && userTicket.isWinner) {
-						// User won!
-						setResult("won");
-						setWinnerAddress(publicKey.toBase58());
-						setPrize((userTicket.prizeAmount.toNumber() / 1e9).toFixed(2));
-						setResultLotteryId(prevLotteryId);
-						setStatus("result");
-						return;
-					} else if (userTicket) {
-						// User lost - find the actual winner by searching through tickets
-						setResult("lost");
-						let foundWinnerAddress = null;
-						let foundPrize = "0.00";
-
-						// Search for winner by checking tickets with isWinner flag
-						for (let i = 0; i < 50; i++) {
-							try {
-								const ticket = await fetchUserTicket(connection, prevLotteryId, new BN(i));
-								if (ticket && ticket.isWinner) {
-									foundWinnerAddress = ticket.user.toBase58();
-									foundPrize = (ticket.prizeAmount.toNumber() / 1e9).toFixed(2);
-									break;
-								}
-							} catch {
-								break; // No more tickets
-							}
-						}
-
-						if (foundWinnerAddress) {
-							setWinnerAddress(foundWinnerAddress);
-							setPrize(foundPrize);
-						} else {
-							// Fallback: calculate prize and show generic message
-							const calculatedPrize = ((Number(lotteryState.ticketPrice) * Number(lotteryState.totalParticipants)) / 1e9).toFixed(2);
-							setPrize(calculatedPrize);
-							setWinnerAddress(null);
-						}
-
-						setResultLotteryId(prevLotteryId);
-						setStatus("result");
-						return;
-					}
-				}
-			}
-
-			// If we get here, either user wasn't in prev lottery or result was already seen
-			// Now check current lottery status
 			if (enteredCurrentLottery) {
 				if (now >= end) {
 					setStatus("drawing");
 				} else {
 					setStatus("countdown");
 				}
-			} else {
-				setStatus("not_entered");
+				return; // Priority exit: if in current, show current status
 			}
+
+			// 2. Check if user entered previous lottery (for results)
+			// Only check this if they haven't explicitly acknowledged the result yet?
+			// Ideally, we show result, they click "OK", then we show countdown for next.
+			// For now, if they haven't entered current, we check previous result.
+			const enteredPrevLottery = prevLotteryId.gtn(0)
+				? await hasUserEnteredSpecificLottery(connection, publicKey, prevLotteryId)
+				: false;
+
+			if (enteredPrevLottery && prevLotteryId.gtn(0)) {
+				// User was in prev lottery, fetch their result
+				const prevReceipt = await fetchUserReceipt(connection, publicKey, prevLotteryId);
+
+				if (prevReceipt) {
+					const userTicket = await fetchUserTicket(
+						connection,
+						prevLotteryId,
+						prevReceipt.ticketNumber
+					);
+
+					if (userTicket) {
+						if (userTicket.isWinner) {
+							// User won!
+							setResult("won");
+							setWinnerAddress(publicKey.toBase58());
+							setPrize((userTicket.prizeAmount.toNumber() / 1e9).toFixed(2));
+							setResultLotteryId(prevLotteryId);
+							setStatus("result");
+							return;
+						} else {
+							// User lost
+							setResult("lost");
+							// Try to find the winner to display
+							// Note: This matches original logic but we should optimize in future
+							const winnerInfo = await findWinnerForLottery(prevLotteryId, 100); // 100 is heuristic
+
+							if (winnerInfo) {
+								setWinnerAddress(winnerInfo.address);
+								setPrize(winnerInfo.prize);
+							} else {
+								// Fallback estimate
+								const estimatedPrize = ((Number(lotteryState.ticketPrice) * Number(lotteryState.totalParticipants)) / 1e9).toFixed(2);
+								setPrize(estimatedPrize);
+								setWinnerAddress(null);
+							}
+
+							setResultLotteryId(prevLotteryId);
+							setStatus("result");
+							return;
+						}
+					}
+				}
+			}
+
+			// 3. User is not in current, and either wasn't in previous or already saw result
+			setStatus("not_entered");
+
+			// Fetch last winner info for display
+			if (prevLotteryId.gtn(0)) {
+				// Try to get winner of previous lottery
+				const winnerInfo = await findWinnerForLottery(prevLotteryId, 50);
+				if (winnerInfo) {
+					setLastWinnerInfo({
+						address: winnerInfo.address,
+						prize: winnerInfo.prize,
+						lotteryId: prevLotteryId.toString()
+					});
+				}
+			}
+
 		} catch (err) {
 			console.error("Error fetching state:", err);
 			setError("Failed to load lottery data");
@@ -301,12 +326,23 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({ onBack, onStatusCh
 				} else {
 					setResult("lost");
 					setPrize((userTicket.prizeAmount.toNumber() / 1e9).toFixed(2));
-					// Find winner address
-					const winnerIndex = currentState.winner.subn(1);
-					const winningTicket = await fetchUserTicket(connection, lotteryIdToCheck, winnerIndex);
-					if (winningTicket) {
-						setWinnerAddress(winningTicket.user.toBase58());
-						setPrize((winningTicket.prizeAmount.toNumber() / 1e9).toFixed(2));
+
+					// Find winner directly from winner index if available (efficient)
+					if (!currentState.winner.eqn(0)) {
+						// Winner index is 1-based, convert to 0-based ticket index
+						const winnerIndex = currentState.winner.subn(1);
+						const winningTicket = await fetchUserTicket(connection, lotteryIdToCheck, winnerIndex);
+						if (winningTicket) {
+							setWinnerAddress(winningTicket.user.toBase58());
+							setPrize((winningTicket.prizeAmount.toNumber() / 1e9).toFixed(2));
+						}
+					} else {
+						// Fallback if needed
+						const w = await findWinnerForLottery(lotteryIdToCheck, 50);
+						if (w) {
+							setWinnerAddress(w.address);
+							setPrize(w.prize);
+						}
 					}
 				}
 				setStatus("result");
@@ -322,7 +358,7 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({ onBack, onStatusCh
 	};
 
 	const handleNextLottery = async () => {
-		// After viewing result, check if user entered current lottery
+		// Clear result view and re-initialize
 		setResult(null);
 		setResultLotteryId(null);
 		await initializeLotteryView();
@@ -357,7 +393,7 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({ onBack, onStatusCh
 						</motion.div>
 					)}
 
-					{/* NOT ENTERED STATE - User hasn't generated horoscope for current lottery */}
+					{/* NOT ENTERED STATE - User hasn't entered */}
 					{status === "not_entered" && (
 						<motion.div
 							key="not_entered"
@@ -388,6 +424,27 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({ onBack, onStatusCh
 									{state.totalParticipants.toString()} cosmic tickets entered
 								</p>
 							</div>
+
+							{/* LAST WINNER DISPLAY */}
+							{lastWinnerInfo && (
+								<motion.div
+									initial={{ opacity: 0, scale: 0.9 }}
+									animate={{ opacity: 1, scale: 1 }}
+									transition={{ delay: 0.2 }}
+									className="py-4 px-6 bg-yellow-500/10 border border-yellow-500/20 rounded-xl"
+								>
+									<p className="text-yellow-400 text-sm font-bold uppercase tracking-wide mb-1">
+										🏆 Last Draw Winner
+									</p>
+									<div className="flex items-center justify-center gap-2">
+										<p className="text-white font-mono text-lg">
+											{lastWinnerInfo.address.slice(0, 4)}...{lastWinnerInfo.address.slice(-4)}
+										</p>
+										<span className="text-slate-500">•</span>
+										<p className="text-white font-bold text-lg">{lastWinnerInfo.prize} SOL</p>
+									</div>
+								</motion.div>
+							)}
 
 							<div className="space-y-4">
 								<p className="text-slate-400">
@@ -629,26 +686,27 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({ onBack, onStatusCh
 								</p>
 							)}
 
-							{/* Only show Check Again for pending status */}
-							{result === "pending" && (
-								<button
-									onClick={handleNextLottery}
-									className="group relative w-full px-8 py-4 mt-6
-border border-[#FC5411]
-rounded-2xl transition-all
-hover:scale-102
-hover:shadow-[0_0_30px_rgba(252,84,17,0.3)]"
-									type="button"
-								>
-									Check Again
-								</button>
-							)}
+							{/* Button to proceed to next lottery or check pending again */}
+							<button
+								onClick={handleNextLottery}
+								className="group relative w-full px-8 py-4 mt-6
+								border border-[#FC5411]
+								text-white font-bold
+								rounded-2xl transition-all
+								hover:scale-102
+								hover:shadow-[0_0_30px_rgba(252,84,17,0.3)]"
+								type="button"
+							>
+								<Link href="/cards">
+									{result === "pending" ? "Check Again" : "Join Next Lottery 🔮"}
+								</Link>
+							</button>
 						</motion.div>
 					)}
 				</AnimatePresence>
 
-				{/* Back Button - Always visible */}
-				{onBack && status !== "not_entered" && (
+				{/* Back Button - Always visible except in some states if needed */}
+				{onBack && status !== "not_entered" && result !== "won" && result !== "lost" && (
 					<motion.button
 						initial={{ opacity: 0 }}
 						animate={{ opacity: 1 }}
