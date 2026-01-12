@@ -37,6 +37,7 @@ export const TwitterSignInButton: React.FC<TwitterSignInButtonProps> = ({
 			disabled={disabled || isLoading}
 			className={`
         w-full
+		text-sm md:text-lg
         flex
         items-center
         justify-center
@@ -45,11 +46,7 @@ export const TwitterSignInButton: React.FC<TwitterSignInButtonProps> = ({
        px-8 py-4
         transition-all
         border border-[#fc5411]
-        ${
-					disabled || isLoading
-						? "bg-white/5 text-gray-500 border-[#2A2A2A] cursor-not-allowed opacity-60"
-						: "bg-white/5 text-white border-[#2A2A2A] hover:bg-[#262626] hover:border-[#3A3A3A]"
-				}
+        
       `}
 			type="button"
 		>

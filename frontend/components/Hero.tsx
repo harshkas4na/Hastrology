@@ -94,7 +94,6 @@ export const Hero: FC = () => {
 				className="hidden md:block absolute left-0 top-0 h-full w-auto object-contain object-left z-10"
 				src="/ellipse-black.png"
 			/>
-
 			{/* CONTENT */}
 			<motion.div
 				animate={{ opacity: 1, y: 0 }}
@@ -107,7 +106,7 @@ export const Hero: FC = () => {
 					alt="Hastrology Logo"
 					animate={{ scale: 1, opacity: 1 }}
 					className="-mt-4 md:-mt-25
-            w-96 md:w-72 lg:w-166
+            w-85 md:w-120 lg:w-166
             mx-auto
             drop-shadow-[0_0_20px_rgba(251,146,60,0.35)]
           "
@@ -133,7 +132,7 @@ export const Hero: FC = () => {
 				{/* CTA */}
 				<motion.div
 					animate={{ opacity: 1, y: 0 }}
-					className="mt-10 flex flex-col items-center gap-4"
+					className="hidden md:flex mt-10 flex-col items-center gap-4"
 					initial={{ opacity: 0, y: 20 }}
 					transition={{ delay: 0.7, duration: 0.8 }}
 				>
@@ -152,7 +151,6 @@ export const Hero: FC = () => {
 					)}
 				</motion.div>
 			</motion.div>
-
 			<div className="absolute bottom-0 left-0 w-full h-32 bg-linear-to-t from-black to-transparent" />
 			<img
 				alt="Orange Planet"
@@ -164,13 +162,54 @@ export const Hero: FC = () => {
 				className="hidden md:block absolute right-0 top-0 h-full w-auto object-contain object-left z-10"
 				src="/ellipse-black-right.png"
 			/>
+			{/* Small bottom ellipses (card-style accent) */}
+			<div className="md:hidden pointer-events-none absolute bottom-0 left-0 w-full flex justify-center z-20">
+				<div className="relative w-full max-w-md h-40">
+					{/* Orange ellipse */}
+					<img
+						src="/small-ellipse.png"
+						alt="Orange Ellipse"
+						className="absolute bottom-10 left-1/2 -translate-x-1/2 w-full object-contain blur-sm"
+					/>
+
+					{/* Black ellipse (softer) */}
+					<img
+						src="/small-black-ellipse.png"
+						alt="Black Ellipse"
+						className="absolute bottom-7 left-1/2 -translate-x-1/2 w-full object-contain"
+					/>
+				</div>
+			</div>
+
 			<div className="absolute bottom-4 md:bottom-11 left-0 w-full z-30 px-4 md:px-6">
+				<motion.div
+					animate={{ opacity: 1, y: 0 }}
+					className="w-full flex md:hidden mt-10 mb-10 flex-col items-center gap-4"
+					initial={{ opacity: 0, y: 20 }}
+					transition={{ delay: 0.7, duration: 0.8 }}
+				>
+					{isChecking ? (
+						<button
+							disabled
+							type="button"
+							className="bg-[#1f1f1f] text-white h-12 px-8 py-6 border border-[#fc5411] pt-2.5 rounded-xl opacity-50 cursor-not-allowed"
+						>
+							Locating Your Stars...
+						</button>
+					) : (
+						<WalletMultiButton className="!bg-[#1f1f1f]  hover:!bg-[#121212] !text-white !h-12 !px-8 !py-6 !border !border-[#fc5411] !pt-2.5 !rounded-xl !transition-all">
+							Connect Wallet
+						</WalletMultiButton>
+					)}
+				</motion.div>
 				<div className="font-display max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2 md:gap-0 text-xs md:text-md text-[#8A8A8A]">
 					<span className="font-display">
 						©2025 <span className="text-white">Hastrology</span>
 					</span>
 					<div className="flex flex-wrap justify-center gap-3 md:gap-6">
-						<span className="text-white hidden sm:inline">Your cosmic journey on Solana.</span>
+						<span className="text-white hidden sm:inline">
+							Your cosmic journey on Solana.
+						</span>
 						<a className="hover:text-white transition" href="/abc">
 							About us
 						</a>

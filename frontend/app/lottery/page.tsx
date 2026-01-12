@@ -1,13 +1,13 @@
 "use client";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 import { type FC, useCallback, useEffect, useState } from "react";
 import { AstroCard } from "@/components/AstroCard";
 import { LotteryCountdown } from "@/components/LotteryCountdown";
 import { UserXDetails } from "@/components/TwitterDetails";
 import { api } from "@/lib/api";
 import { useStore } from "@/store/useStore";
-import { useRouter } from "next/navigation";
 
 const LotteryPage: FC = () => {
 	const { user, card, setCard, setUser, setWallet, reset } = useStore();
@@ -62,7 +62,6 @@ const LotteryPage: FC = () => {
 	}, [publicKey, setCard]);
 
 	console.log(card);
-
 
 	useEffect(() => {
 		if (!user && publicKey && connected) {
@@ -128,7 +127,7 @@ const LotteryPage: FC = () => {
 	}
 
 	return (
-		<section className="relative min-h-screen overflow-y-auto pb-24 md:pb-40">
+		<section className="relative min-h-screen overflow-y-auto pb-40 md:pb-40">
 			{user?.twitterId && <UserXDetails />}
 			<div className="fixed inset-0 z-0">
 				<div className="relative h-1/2 w-full">
@@ -148,7 +147,7 @@ const LotteryPage: FC = () => {
 				<div className="absolute inset-0 bg-linear-to-b from-transparent via-transparent to-transparent" />
 			</div>
 
-			<div className="absolute top-6 right-6 z-100">
+			<div className="hidden md:block absolute top-6 right-6 z-100">
 				<button
 					onClick={handleDisconnect}
 					className="flex flex-row gap-2 items-center
@@ -229,13 +228,45 @@ const LotteryPage: FC = () => {
 			<div className="fixed bottom-0 left-0 w-full h-32 bg-linear-to-t from-black to-transparent pointer-events-none z-20" />
 
 			{/* Footer */}
-			<div className="fixed bottom-4 left-0 w-full z-30 px-6">
-				<div className="font-display max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-[#8A8A8A]">
+			<div className="block absolute bottom-4 md:bottom-11 left-0 w-full z-30 px-6">
+				<div className="w-full flex md:hidden mt-0 mb-5 flex-col items-center gap-4">
+					<button
+						onClick={() => {
+							if (!publicKey) return;
+							disconnect();
+						}}
+						className="flex flex-row gap-2 items-center
+      bg-[#1F1F1F]
+      border border-[#FC5411]
+      text-white
+      px-4
+      py-2
+      rounded-xl
+      font-medium
+      hover:bg-[#262626]
+      hover:shadow-[0_0_20px_rgba(252,84,17,0.35)]
+      transition
+    "
+						type="button"
+					>
+						<img
+							alt="Solana Logo"
+							className="w-4 h-5"
+							src="https://solana.com/src/img/branding/solanaLogoMark.svg"
+						/>
+						{publicKey?.toBase58().slice(0, 4)}...
+						{publicKey?.toBase58().slice(-4)}
+					</button>
+				</div>
+
+				<div className="font-display max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2 md:gap-0 text-xs md:text-md text-[#8A8A8A]">
 					<span className="font-display">
 						©2025 <span className="text-white">Hastrology</span>
 					</span>
-					<div className="flex flex-wrap gap-4 md:gap-6 items-center justify-center">
-						<span className="text-white">Your cosmic journey on Solana.</span>
+					<div className="flex flex-wrap justify-center gap-3 md:gap-6">
+						<span className="text-white hidden sm:inline">
+							Your cosmic journey on Solana.
+						</span>
 						<a className="hover:text-white transition" href="/abc">
 							About us
 						</a>

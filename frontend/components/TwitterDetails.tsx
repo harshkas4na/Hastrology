@@ -11,7 +11,15 @@ export const UserXDetails: FC = () => {
 	const profileUrl = `https://x.com/${user.twitterUsername}`;
 
 	return (
-		<div className="absolute top-6 left-5 z-50">
+		<div
+			className="
+    absolute z-50
+    inset-x-0 top-6
+    flex justify-center
+    md:inset-auto md:top-6 md:left-5
+    md:justify-start
+  "
+		>
 			<a
 				href={profileUrl}
 				target="_blank"
@@ -34,7 +42,7 @@ export const UserXDetails: FC = () => {
 				<svg
 					viewBox="0 0 24 24"
 					aria-hidden="true"
-					className="w-5 h-5 fill-current"
+					className="hidden md:block w-5 h-5 fill-current"
 				>
 					<path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
 				</svg>
@@ -47,7 +55,7 @@ export const UserXDetails: FC = () => {
 					/>
 				)}
 
-				<span>@{user.twitterUsername}</span>
+				<span className="text-sm md:text-lg">@{user.twitterUsername}</span>
 			</a>
 		</div>
 	);
