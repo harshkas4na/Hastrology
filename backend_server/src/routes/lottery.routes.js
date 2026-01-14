@@ -75,7 +75,7 @@ router.post('/trigger-draw', async (req, res) => {
 
         // Trigger the draw
         logger.info('Public lottery draw triggered via API');
-        
+
         // Start draw asynchronously so we don't timeout
         lotteryScheduler.triggerManualDraw().catch(err => {
             logger.error('Public draw failed:', err);
@@ -110,6 +110,31 @@ router.get('/status', async (req, res) => {
         });
     } catch (error) {
         logger.error('Failed to get lottery status:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * Get lottery health status (public endpoint)
+ * @route GET /api/lottery/health
+ * 
+ * Returns detailed health information about the lottery system,
+ * including any detected issues and their severity.
+ */
+router.get('/health', async (req, res) => {
+    try {
+        const health = await lotteryScheduler.getHealthStatus();
+        const statusCode = health.healthy ? 200 : 503;
+        res.status(statusCode).json({
+            success: health.healthy,
+            timestamp: new Date().toISOString(),
+            data: health
+        });
+    } catch (error) {
+        logger.error('Failed to get lottery health:', error);
         res.status(500).json({
             success: false,
             error: error.message

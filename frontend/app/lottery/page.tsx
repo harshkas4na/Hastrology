@@ -7,6 +7,7 @@ import { AstroCard } from "@/components/AstroCard";
 import { LotteryCountdown } from "@/components/LotteryCountdown";
 import { UserXDetails } from "@/components/TwitterDetails";
 import { api } from "@/lib/api";
+import { useOnboardingStatus } from "@/lib/useOnboardingStatus";
 import { useStore } from "@/store/useStore";
 
 const LotteryPage: FC = () => {
@@ -14,7 +15,28 @@ const LotteryPage: FC = () => {
 	const { publicKey, connected, disconnect } = useWallet();
 	const [isPaid, setIsPaid] = useState(false);
 	const [isLoading, setIsLoading] = useState(true);
+	const [isCheckingAccess, setIsCheckingAccess] = useState(true);
 	const router = useRouter();
+	const onboarding = useOnboardingStatus();
+
+	// Route guard: Check if user can access this page
+	useEffect(() => {
+		// Wait for user data to load if wallet is connected
+		if (connected && !user && onboarding.isLoading) {
+			return; // Still loading
+		}
+
+		// If user data is loaded or no wallet, check access
+		if (!onboarding.canAccess("lottery")) {
+			const redirectUrl = onboarding.getRedirectUrl();
+			if (redirectUrl) {
+				router.push(redirectUrl);
+				return;
+			}
+		}
+
+		setIsCheckingAccess(false);
+	}, [connected, user, onboarding, router]);
 
 	const checkUserProfile = useCallback(async () => {
 		if (!connected || !publicKey) {
@@ -90,7 +112,7 @@ const LotteryPage: FC = () => {
 		}
 	};
 
-	if (isLoading) {
+	if (isLoading || isCheckingAccess || onboarding.isLoading) {
 		return (
 			<section className="relative min-h-screen flex items-center justify-center overflow-y-auto">
 				<div className="absolute inset-0 z-0 flex flex-col">

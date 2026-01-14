@@ -111,6 +111,7 @@ class LotterySchedulerService {
             return;
         }
 
+        // Start midnight draw cron job
         const job = cron.schedule('0 0 * * *', async () => {
             logger.info('🎰 Midnight IST - Starting automatic lottery draw...');
             await this.executeDraw();
@@ -118,8 +119,158 @@ class LotterySchedulerService {
             timezone: 'Asia/Kolkata'
         });
 
+        // Start health check cron job (every 5 minutes)
+        cron.schedule('*/5 * * * *', async () => {
+            await this.runHealthCheck();
+        }, {
+            timezone: 'Asia/Kolkata'
+        });
+
+        // Run initial health check on startup
+        setTimeout(() => this.runHealthCheck(), 5000);
+
         logger.info('✅ Lottery scheduler started. Will run at midnight IST (00:00 Asia/Kolkata)');
+        logger.info('✅ Health check scheduler started. Will run every 5 minutes.');
         return job;
+    }
+
+    /**
+     * Run a health check on the lottery state
+     * Detects and recovers from stuck lotteries
+     */
+    async runHealthCheck() {
+        if (!this.isInitialized) return;
+
+        try {
+            const state = await this.fetchLotteryState();
+            const now = Math.floor(Date.now() / 1000);
+            const endtime = Number(state.lotteryEndtime);
+            const participants = Number(state.totalParticipants);
+            const winner = Number(state.winner);
+            const isDrawing = state.isDrawing;
+
+            // Calculate time since lottery ended
+            const timeSinceEnd = now - endtime;
+            const hoursSinceEnd = timeSinceEnd / 3600;
+
+            // Health check conditions
+            const issues = [];
+
+            // Issue 1: Lottery ended but no winner selected and not drawing
+            if (timeSinceEnd > 0 && participants > 0 && winner === 0 && !isDrawing) {
+                issues.push({
+                    type: 'EXPIRED_NO_DRAW',
+                    message: `Lottery #${state.currentLotteryId} expired ${hoursSinceEnd.toFixed(1)} hours ago with ${participants} participants but no draw initiated`,
+                    severity: 'HIGH',
+                    autoRecover: true
+                });
+            }
+
+            // Issue 2: Lottery stuck in drawing state for too long (> 1 hour)
+            if (isDrawing && timeSinceEnd > 3600) {
+                issues.push({
+                    type: 'STUCK_DRAWING',
+                    message: `Lottery #${state.currentLotteryId} has been in drawing state for over ${hoursSinceEnd.toFixed(1)} hours`,
+                    severity: 'CRITICAL',
+                    autoRecover: true
+                });
+            }
+
+            // Issue 3: Winner selected but not paid out (lottery not reset)
+            if (winner > 0 && participants > 0 && timeSinceEnd > 300) {
+                issues.push({
+                    type: 'UNPAID_WINNER',
+                    message: `Lottery #${state.currentLotteryId} has winner #${winner} but payout not completed`,
+                    severity: 'HIGH',
+                    autoRecover: true
+                });
+            }
+
+            // Log and handle issues
+            if (issues.length > 0) {
+                logger.warn('⚠️ Lottery Health Check Issues Detected:');
+                for (const issue of issues) {
+                    logger.warn(`  [${issue.severity}] ${issue.type}: ${issue.message}`);
+                }
+
+                // Attempt auto-recovery
+                await this.attemptRecovery(issues, state);
+            } else {
+                logger.debug('✓ Lottery health check passed');
+            }
+
+            return { healthy: issues.length === 0, issues };
+        } catch (error) {
+            logger.error('Health check failed:', error.message);
+            return { healthy: false, error: error.message };
+        }
+    }
+
+    /**
+     * Attempt to recover from detected issues
+     */
+    async attemptRecovery(issues, state) {
+        for (const issue of issues) {
+            if (!issue.autoRecover) continue;
+
+            try {
+                switch (issue.type) {
+                    case 'EXPIRED_NO_DRAW':
+                        // Try to trigger a draw
+                        logger.info('🔧 Auto-recovery: Attempting to trigger draw...');
+                        if (!this.isRunning) {
+                            await this.executeDraw();
+                        }
+                        break;
+
+                    case 'STUCK_DRAWING':
+                        // Log for manual intervention - can't safely reset isDrawing without Solana tx
+                        logger.warn('🔧 Auto-recovery: isDrawing stuck. Manual intervention may be needed.');
+                        logger.warn('   Use update_config to reset isDrawing flag if VRF callback failed.');
+                        // Attempt draw anyway - might recover if VRF callback eventually arrives
+                        if (!this.isRunning) {
+                            await this.executeDraw();
+                        }
+                        break;
+
+                    case 'UNPAID_WINNER':
+                        // Try to complete payout
+                        logger.info('🔧 Auto-recovery: Attempting to complete payout...');
+                        if (!this.isRunning) {
+                            await this.executeDraw(); // executeDraw will handle payout if winner exists
+                        }
+                        break;
+
+                    default:
+                        logger.warn(`No auto-recovery available for ${issue.type}`);
+                }
+            } catch (error) {
+                logger.error(`Recovery for ${issue.type} failed:`, error.message);
+            }
+        }
+    }
+
+    /**
+     * Get detailed health status
+     */
+    async getHealthStatus() {
+        if (!this.isInitialized) {
+            return {
+                initialized: false,
+                healthy: false,
+                message: 'Scheduler not initialized'
+            };
+        }
+
+        const healthCheck = await this.runHealthCheck();
+        const status = await this.getStatus();
+
+        return {
+            initialized: true,
+            running: !this.isRunning,
+            ...status,
+            ...healthCheck
+        };
     }
 
     /**

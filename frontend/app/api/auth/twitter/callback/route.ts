@@ -68,8 +68,9 @@ export async function GET(request: NextRequest) {
 		return response;
 	} catch (error) {
 		console.error("Twitter callback error:", error);
+		const errorMessage = error instanceof Error ? error.message : "Authentication failed";
 		return NextResponse.redirect(
-			new URL("/link-x?error=auth_processing_failed", request.url),
+			new URL(`/link-x?error=auth_processing_failed&details=${encodeURIComponent(errorMessage)}`, request.url),
 		);
 	}
 }

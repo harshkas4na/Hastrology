@@ -1,19 +1,41 @@
 "use client";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/navigation";
-import { type FC, useEffect, useRef } from "react";
+import { type FC, useEffect, useRef, useState } from "react";
 import { HoroscopeSection } from "@/components/HoroscopeSection";
 import { UserXDetails } from "@/components/TwitterDetails";
 import { api } from "@/lib/api";
+import { useOnboardingStatus } from "@/lib/useOnboardingStatus";
 import { useStore } from "@/store/useStore";
 
 const CardsPage: FC = () => {
 	const { publicKey, disconnect, connected } = useWallet();
 	const { user } = useStore();
 	const { setWallet, setUser, reset } = useStore();
+	const onboarding = useOnboardingStatus();
 
 	const router = useRouter();
 	const wasConnected = useRef(false);
+	const [isCheckingAccess, setIsCheckingAccess] = useState(true);
+
+	// Route guard: Check if user can access this page
+	useEffect(() => {
+		// Wait for user data to load if wallet is connected
+		if (connected && !user && onboarding.isLoading) {
+			return; // Still loading
+		}
+
+		// If user data is loaded or no wallet, check access
+		if (!onboarding.canAccess("cards")) {
+			const redirectUrl = onboarding.getRedirectUrl();
+			if (redirectUrl) {
+				router.push(redirectUrl);
+				return;
+			}
+		}
+
+		setIsCheckingAccess(false);
+	}, [connected, user, onboarding, router]);
 
 	useEffect(() => {
 		const checkUserProfile = async () => {
@@ -58,6 +80,16 @@ const CardsPage: FC = () => {
 			console.error("Error disconnecting:", error);
 		}
 	};
+
+	// Show loading while checking access
+	if (isCheckingAccess || onboarding.isLoading) {
+		return (
+			<section className="relative min-h-screen flex flex-col items-center justify-center bg-black">
+				<div className="w-16 h-16 border-4 border-black border-t-[#FC5411] rounded-full animate-spin" />
+				<p className="mt-4 text-slate-400">Loading your cosmic journey...</p>
+			</section>
+		);
+	}
 
 	return (
 		<section className="relative min-h-screen flex flex-col bg-black pb-24">

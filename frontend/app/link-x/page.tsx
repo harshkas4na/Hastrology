@@ -32,21 +32,38 @@ const XLoginContent: FC = () => {
 			const successParam = searchParams.get("twitter_success");
 
 			if (errorParam) {
+				const details = searchParams.get("details");
+				let decodedDetails = details ? decodeURIComponent(details) : null;
+
+				// Map technical errors to user-friendly messages
+				if (decodedDetails) {
+					if (decodedDetails.includes("already linked")) {
+						setError("Reason: This X account is already connected to another wallet. \nAction: Please use a different X account or connect with the original wallet.");
+						return;
+					}
+					if (decodedDetails.includes("User id") && decodedDetails.includes("required")) {
+						setError("Reason: Session session lost during authentication. \nAction: Please disconnect your wallet and reconnect, then try again.");
+						return;
+					}
+				}
+
 				switch (errorParam) {
 					case "twitter_auth_failed":
-						setError("Twitter authentication failed. Please try again.");
+						setError("Reason: X authentication failed. \nAction: Please try again or check your X account status.");
 						break;
 					case "invalid_callback":
-						setError("Invalid callback received. Please try again.");
+						setError("Reason: Invalid response from X. \nAction: Please restart the process.");
 						break;
 					case "auth_processing_failed":
-						setError("Authentication processing failed. Please try again.");
+						setError(decodedDetails
+							? `Reason: ${decodedDetails} \nAction: Please try again.`
+							: "Reason: Unable to process X account data. \nAction: Please try again later.");
 						break;
 					case "account_exisits":
-						setError("This X account is already linked to another user.");
+						setError("Reason: This X account is already linked. \nAction: Please use a different account.");
 						break;
 					default:
-						setError("An error occurred during authentication.");
+						setError("Reason: An unexpected error occurred. \nAction: Please try again.");
 				}
 			}
 
@@ -213,8 +230,12 @@ const XLoginContent: FC = () => {
 
 					{/* Error Message */}
 					{error && !success && (
-						<div className="mb-6 p-4 rounded-lg  border border-red-700">
-							<p className="text-white text-center">{error}</p>
+						<div className="mb-6 p-4 rounded-lg border border-red-700 bg-red-900/20 backdrop-blur-sm">
+							{error.split('\n').map((line, i) => (
+								<p key={i} className={`text-white text-center ${i > 0 ? 'mt-2 text-sm text-red-200' : 'font-medium'}`}>
+									{line}
+								</p>
+							))}
 						</div>
 					)}
 

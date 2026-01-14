@@ -1,16 +1,25 @@
 "use client";
 
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { Transaction } from "@solana/web3.js";
 import { AnimatePresence, motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { FC, useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { buildEnterLotteryInstruction } from "@/lib/hastrology_program";
+import { useOnboardingStatus } from "@/lib/useOnboardingStatus";
 import { useStore } from "@/store/useStore";
 import { AstroCard } from "./AstroCard";
 import { LotteryCountdown } from "./LotteryCountdown";
 import { Toast } from "./toast";
+
+const WalletMultiButtonDynamic = dynamic(
+	async () =>
+		(await import("@solana/wallet-adapter-react-ui")).WalletMultiButton,
+	{ ssr: false },
+);
 
 const PAYMENT_AMOUNT = 0.01; // SOL
 
@@ -84,14 +93,16 @@ export const getPlanetaryTheme = (planet: string) => {
 };
 
 export const HoroscopeSection: FC = () => {
-	const { publicKey, sendTransaction } = useWallet();
+	const { publicKey, sendTransaction, connected } = useWallet();
 	const { connection } = useConnection();
 	const { user, card, setCard, loading, setLoading } = useStore();
+	const onboarding = useOnboardingStatus();
 
 	const [status, setStatus] = useState<
 		"checking" | "ready" | "paying" | "generating" | "complete" | "lottery"
 	>("checking");
 	const [error, setError] = useState<string | null>(null);
+	const [walletWarning, setWalletWarning] = useState<string | null>(null);
 	const [isPaid, setIsPaid] = useState(false);
 	const router = useRouter();
 
@@ -128,17 +139,35 @@ export const HoroscopeSection: FC = () => {
 	}, [publicKey, user, checkStatus]);
 
 	const handlePayment = async () => {
-		if (!publicKey) return;
+		// Clear any previous warnings
+		setWalletWarning(null);
+		setError(null);
+
+		// Check if user can pay using the onboarding hook
+		const paymentCheck = onboarding.canPay();
+		if (!paymentCheck.allowed) {
+			setWalletWarning(paymentCheck.reason);
+			return;
+		}
+
+		if (!publicKey) {
+			setWalletWarning("Please connect your wallet to continue");
+			return;
+		}
+
+		if (!sendTransaction) {
+			setWalletWarning(
+				"Unable to send transaction. Please unlock your wallet and try again."
+			);
+			return;
+		}
 
 		setLoading(true);
-		setError(null);
 
 		let signature = "";
 
 		try {
 			if (!isPaid) {
-				if (!sendTransaction) return;
-
 				setStatus("paying");
 				const instruction = await buildEnterLotteryInstruction(
 					publicKey,
@@ -146,7 +175,28 @@ export const HoroscopeSection: FC = () => {
 				);
 				const transaction = new Transaction().add(instruction);
 
-				signature = await sendTransaction(transaction, connection);
+				try {
+					signature = await sendTransaction(transaction, connection);
+				} catch (txError: unknown) {
+					// Handle specific wallet errors with user-friendly messages
+					const errorMessage = txError instanceof Error ? txError.message : String(txError);
+
+					if (errorMessage.includes("User rejected") || errorMessage.includes("rejected")) {
+						setWalletWarning("Transaction was cancelled. Please approve the transaction in your wallet.");
+					} else if (errorMessage.includes("insufficient") || errorMessage.includes("Insufficient")) {
+						setWalletWarning("Insufficient SOL balance. Please add funds to your wallet.");
+					} else if (errorMessage.includes("not connected") || errorMessage.includes("disconnected")) {
+						setWalletWarning("Wallet disconnected. Please reconnect your wallet.");
+					} else if (errorMessage.includes("locked") || errorMessage.includes("unlock")) {
+						setWalletWarning("Please unlock your wallet and try again.");
+					} else {
+						setWalletWarning(`Wallet error: ${errorMessage}`);
+					}
+					setStatus("ready");
+					setLoading(false);
+					return;
+				}
+
 				await connection.confirmTransaction(signature, "confirmed");
 			}
 
@@ -161,9 +211,16 @@ export const HoroscopeSection: FC = () => {
 			setIsPaid(false);
 		} catch (err) {
 			console.error("Payment/Generation error:", err);
-			setError(
-				err instanceof Error ? err.message : "Failed to process request",
-			);
+			const errorMessage = err instanceof Error ? err.message : "Failed to process request";
+
+			// Convert technical errors to user-friendly messages
+			if (errorMessage.includes("0x1") || errorMessage.includes("insufficient")) {
+				setError("Insufficient SOL balance. Please add funds to your wallet.");
+			} else if (errorMessage.includes("timeout") || errorMessage.includes("Timeout")) {
+				setError("Transaction timed out. Please try again.");
+			} else {
+				setError(errorMessage);
+			}
 			setStatus("ready");
 		} finally {
 			setLoading(false);
@@ -254,6 +311,40 @@ export const HoroscopeSection: FC = () => {
 											transition={{ delay: 0.5 }}
 											className="max-w-md mx-auto flex flex-col gap-4"
 										>
+											{/* Wallet Warning Banner */}
+											{walletWarning && (
+												<motion.div
+													initial={{ opacity: 0, y: -10 }}
+													animate={{ opacity: 1, y: 0 }}
+													className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl"
+												>
+													<div className="flex items-start gap-3">
+														<span className="text-amber-400 text-xl">⚠️</span>
+														<div className="flex-1">
+															<p className="text-amber-200 text-sm font-medium">
+																{walletWarning}
+															</p>
+															{!connected && (
+																<div className="mt-3">
+																	<WalletMultiButtonDynamic
+																		className="!bg-[#1f1f1f] !text-white !h-10 !px-4 !border !border-amber-500/50 !rounded-lg !text-sm"
+																	>
+																		Connect Wallet
+																	</WalletMultiButtonDynamic>
+																</div>
+															)}
+														</div>
+														<button
+															onClick={() => setWalletWarning(null)}
+															className="text-amber-400/50 hover:text-amber-400 transition-colors"
+															type="button"
+														>
+															✕
+														</button>
+													</div>
+												</motion.div>
+											)}
+
 											<button
 												onClick={handlePayment}
 												disabled={loading}
