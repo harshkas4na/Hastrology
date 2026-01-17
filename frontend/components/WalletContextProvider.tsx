@@ -1,39 +1,60 @@
-'use client';
+"use client";
+import { PrivyProvider } from "@privy-io/react-auth";
+import { createSolanaRpc, createSolanaRpcSubscriptions } from "@solana/kit";
+import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react";
+import {
+	PhantomWalletAdapter,
+	SolflareWalletAdapter,
+} from "@solana/wallet-adapter-wallets";
+import { clusterApiUrl } from "@solana/web3.js";
+import { useMemo } from "react";
 
-import { FC, ReactNode, useMemo } from 'react';
-import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
-import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
-import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
-import { clusterApiUrl } from '@solana/web3.js';
-
-// Import wallet adapter CSS
-import '@solana/wallet-adapter-react-ui/styles.css';
-
-interface Props {
-    children: ReactNode;
-}
-
-export const WalletContextProvider: FC<Props> = ({ children }) => {
-    // Get network from environment
-    const network = (process.env.NEXT_PUBLIC_SOLANA_NETWORK as 'devnet' | 'mainnet-beta') || 'devnet';
-    const endpoint = useMemo(() => clusterApiUrl(network), [network]);
-
-    // Configure supported wallets
-    const wallets = useMemo(
-        () => [
-            new PhantomWalletAdapter(),
-            new SolflareWalletAdapter(),
-        ],
-        []
-    );
-
-    return (
-        <ConnectionProvider endpoint={endpoint}>
-            <WalletProvider wallets={wallets} autoConnect>
-                <WalletModalProvider>
-                    {children}
-                </WalletModalProvider>
-            </WalletProvider>
-        </ConnectionProvider>
-    );
+export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
+	const network =
+		(process.env.NEXT_PUBLIC_SOLANA_NETWORK as "devnet" | "mainnet-beta") ||
+		"devnet";
+	const endpoint = useMemo(() => clusterApiUrl(network), [network]);
+	const wallets = useMemo(
+		() => [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
+		[],
+	);
+	return (
+		<ConnectionProvider endpoint={endpoint}>
+			<WalletProvider wallets={wallets} autoConnect>
+				<PrivyProvider
+					appId={"cmkh4lge402kpl80bi94aepac"}
+					config={{
+						solana: {
+							rpcs: {
+								"solana:mainnet": {
+									rpc: createSolanaRpc("https://api.mainnet-beta.solana.com"),
+									rpcSubscriptions: createSolanaRpcSubscriptions(
+										"wss://api.mainnet-beta.solana.com",
+									),
+								},
+								"solana:devnet": {
+									rpc: createSolanaRpc("https://api.devnet.solana.com"),
+									rpcSubscriptions: createSolanaRpcSubscriptions(
+										"wss://api.devnet.solana.com",
+									),
+								},
+							},
+						},
+						appearance: {
+							showWalletLoginFirst: false,
+							walletChainType: "solana-only",
+						},
+						loginMethods: ["email", "twitter"],
+						embeddedWallets: {
+							solana: {
+								createOnLogin: "all-users",
+							},
+						},
+					}}
+				>
+					{children}
+				</PrivyProvider>
+			</WalletProvider>
+		</ConnectionProvider>
+	);
 };

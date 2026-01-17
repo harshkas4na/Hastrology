@@ -1,5 +1,4 @@
 "use client";
-import { useWallet } from "@solana/wallet-adapter-react";
 import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -8,17 +7,13 @@ import { type FC, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { geocodePlace, getTimezoneOffset } from "@/lib/geocoding";
 import { useStore } from "@/store/useStore";
-
-const WalletMultiButtonDynamic = dynamic(
-	async () =>
-		(await import("@solana/wallet-adapter-react-ui")).WalletMultiButton,
-	{ ssr: false },
-);
+import { usePrivyWallet } from "../hooks/use-privy-wallet";
 
 type FormStep = "initial" | "birth-details";
 
 const LoginPage: FC = () => {
-	const { publicKey, connected, disconnect } = useWallet();
+	const { publicKey, connected, disconnect } = usePrivyWallet();
+	console.log(publicKey);
 	const [name, setName] = useState("");
 	const [formStep, setFormStep] = useState<FormStep>("birth-details");
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -36,13 +31,6 @@ const LoginPage: FC = () => {
 	const wasConnected = useRef(false);
 
 	useEffect(() => {
-		if (wasConnected.current && !publicKey) {
-			router.push("/");
-		}
-		wasConnected.current = !!publicKey;
-	}, [publicKey, router]);
-
-	useEffect(() => {
 		const checkExistingUser = async () => {
 			if (!connected || !publicKey) {
 				reset();
@@ -55,7 +43,7 @@ const LoginPage: FC = () => {
 			if (hasCheckedProfileRef.current) return;
 			hasCheckedProfileRef.current = true;
 
-			const address = publicKey.toBase58();
+			const address = publicKey;
 			setWallet(address);
 			setError(null);
 
@@ -91,55 +79,10 @@ const LoginPage: FC = () => {
 		checkExistingUser();
 	}, [connected, publicKey, reset, setUser, setWallet, router]);
 
-	const handleInitialSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
-		if (userState !== "new") return;
-
-		if (!connected || !publicKey || !name.trim() || isSubmitting) {
-			return;
-		}
-
-		setIsSubmitting(true);
-		setError(null);
-
-		try {
-			const address = publicKey.toBase58();
-
-			const createdUser = await api.registerUser({
-				username: name.trim(),
-				walletAddress: address,
-				dob: null,
-				birthTime: null,
-				birthPlace: null,
-				latitude: null,
-				longitude: null,
-			});
-
-			if (!createdUser?.user) {
-				throw new Error("User creation failed");
-			}
-
-			setUser(createdUser.user);
-			setFormStep("birth-details");
-			setIsSubmitting(false);
-		} catch (err) {
-			console.error("Registration failed:", err);
-			setError("Registration failed. Please try again.");
-			setIsSubmitting(false);
-		}
-	};
-
 	const handleBirthDetailsSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 
-		if (
-			!connected ||
-			!publicKey ||
-			!birthDate ||
-			!birthTime ||
-			!birthPlace ||
-			isSubmitting
-		) {
+		if (!birthDate || !birthTime || !birthPlace || !publicKey) {
 			setError("Please fill in all birth details");
 			return;
 		}
@@ -163,10 +106,9 @@ const LoginPage: FC = () => {
 			setLoading(true);
 
 			const timezoneOffset = getTimezoneOffset(birthPlace, geoResult.longitude);
-			const address = publicKey.toBase58();
+			const address = publicKey;
 
-			const updatedUser = await api.registerUser({
-				username: name.trim(),
+			const updatedUser = await api.updateBirthDetails({
 				walletAddress: address,
 				dob: birthDate,
 				birthTime: birthTime,
@@ -190,6 +132,16 @@ const LoginPage: FC = () => {
 	};
 
 	const isSubmittingForm = isSubmitting || isGeocoding;
+
+	const handleDisconnect = async () => {
+		try {
+			await disconnect();
+			reset();
+			router.push("/");
+		} catch (error) {
+			console.error("Error disconnecting:", error);
+		}
+	};
 
 	return (
 		<section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-black">
@@ -278,97 +230,6 @@ const LoginPage: FC = () => {
 									</span>
 									<span className="text-gray-500">⌄</span>
 								</div>
-							</div>
-
-							<form onSubmit={handleInitialSubmit}>
-								{userState === "new" && (
-									<div className="mb-6">
-										<input
-											className="
-											w-full px-4 py-3 rounded-lg
-											bg-[#1F1F1F]
-											border border-[#2A2A2A]
-											text-white
-											placeholder:text-gray-500
-											focus:outline-none
-											focus:border-[#FC5411]
-											disabled:opacity-50
-											disabled:cursor-not-allowed
-										"
-											disabled={isSubmitting}
-											onChange={(e) => setName(e.target.value)}
-											placeholder="Enter Name"
-											value={name}
-										/>
-									</div>
-								)}
-
-								<div className="w-full text-center mt-8">
-									{!connected ? (
-										<WalletMultiButtonDynamic
-											className={`
-												!w-full
-												!flex
-												!justify-center
-												!rounded-lg
-												!h-12
-												!border
-												transition-all
-												${
-													name.trim()
-														? "!bg-[#1F1F1F] !text-white !border-[#FC5411] hover:!bg-[#262626]"
-														: "!bg-[#141414] !text-gray-500 !border-[#2A2A2A] cursor-not-allowed opacity-60"
-												}
-											`}
-											disabled={userState === "new" && !name.trim()}
-										>
-											Connect Wallet
-										</WalletMultiButtonDynamic>
-									) : (
-										<button
-											className={`
-												w-full
-												flex
-												justify-center
-												items-center
-												rounded-lg
-												h-12
-												border
-												transition-all
-												${
-													name.trim() && !isSubmitting
-														? "bg-[#1F1F1F] text-white border-[#FC5411] hover:bg-[#262626]"
-														: "bg-[#141414] text-gray-500 border-[#2A2A2A] cursor-not-allowed opacity-60"
-												}
-											`}
-											disabled={userState === "new" && !name.trim()}
-											type="submit"
-										>
-											{isSubmitting ? "Submitting..." : "Submit"}
-										</button>
-									)}
-								</div>
-							</form>
-							<div className="w-full text-center mt-8">
-								{user && (
-									<WalletMultiButtonDynamic
-										className={`
-												!w-full
-												!flex
-												!justify-center
-												!rounded-lg
-												!h-12
-												!border
-												transition-all
-												${
-													name.trim()
-														? "!bg-[#1F1F1F] !text-white !border-[#FC5411] hover:!bg-[#262626]"
-														: "!bg-[#141414] !text-gray-500 !border-[#2A2A2A] cursor-not-allowed opacity-60"
-												}
-											`}
-										disabled={!name.trim()}
-									/>
-								)}
 							</div>
 
 							<div className="flex flex-row justify-center items-center gap-2 mt-6 text-center">
@@ -504,28 +365,6 @@ const LoginPage: FC = () => {
 										: "Continue Journey →"}
 								</button>
 							</form>
-
-							<div className="w-full text-center mt-8">
-								{user && (
-									<WalletMultiButtonDynamic
-										className={`
-												!w-full
-												!flex
-												!justify-center
-												!rounded-lg
-												!h-12
-												!border
-												transition-all
-												${
-													name.trim()
-														? "!bg-[#1F1F1F] !text-white !border-[#FC5411] hover:!bg-[#262626]"
-														: "!bg-[#141414] !text-gray-500 !border-[#2A2A2A] cursor-not-allowed opacity-60"
-												}
-											`}
-										disabled={!name.trim()}
-									/>
-								)}
-							</div>
 						</>
 					)}
 
@@ -582,10 +421,7 @@ const LoginPage: FC = () => {
 			<div className="block absolute bottom-4 md:bottom-11 left-0 w-full z-30 px-6">
 				<div className="w-full flex md:hidden mt-0 mb-5 flex-col items-center gap-4">
 					<button
-						onClick={() => {
-							if (!publicKey) return;
-							disconnect();
-						}}
+						onClick={handleDisconnect}
 						className="flex flex-row gap-2 items-center
       bg-[#1F1F1F]
       border border-[#FC5411]
@@ -605,8 +441,8 @@ const LoginPage: FC = () => {
 							className="w-4 h-5"
 							src="https://solana.com/src/img/branding/solanaLogoMark.svg"
 						/>
-						{publicKey?.toBase58().slice(0, 4)}...
-						{publicKey?.toBase58().slice(-4)}
+						{publicKey?.slice(0, 4)}...
+						{publicKey?.slice(-4)}
 					</button>
 				</div>
 

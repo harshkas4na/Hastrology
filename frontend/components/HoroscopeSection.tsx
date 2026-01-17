@@ -2,11 +2,13 @@
 
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { Transaction } from "@solana/web3.js";
+import { PublicKey, Transaction } from "@solana/web3.js";
+import bs58 from "bs58";
 import { AnimatePresence, motion } from "framer-motion";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { FC, useCallback, useEffect, useState } from "react";
+import { usePrivyWallet } from "@/app/hooks/use-privy-wallet";
 import { api } from "@/lib/api";
 import { buildEnterLotteryInstruction } from "@/lib/hastrology_program";
 import { useOnboardingStatus } from "@/lib/useOnboardingStatus";
@@ -93,7 +95,7 @@ export const getPlanetaryTheme = (planet: string) => {
 };
 
 export const HoroscopeSection: FC = () => {
-	const { publicKey, sendTransaction, connected } = useWallet();
+	const { publicKey, sendTransaction, connected, isReady } = usePrivyWallet();
 	const { connection } = useConnection();
 	const { user, card, setCard, loading, setLoading } = useStore();
 	const onboarding = useOnboardingStatus();
@@ -106,15 +108,28 @@ export const HoroscopeSection: FC = () => {
 	const [isPaid, setIsPaid] = useState(false);
 	const router = useRouter();
 
+	const [isWalletLoading, setIsWalletLoading] = useState(true);
 	const theme = card
 		? getPlanetaryTheme(card.ruling_planet_theme || "mars")
 		: getPlanetaryTheme("mars");
+
+	console.log(publicKey);
+
+	useEffect(() => {
+		if (isReady) {
+			// Give a small delay to ensure publicKey is available
+			const timer = setTimeout(() => {
+				setIsWalletLoading(false);
+			}, 500);
+			return () => clearTimeout(timer);
+		}
+	}, [isReady]);
 
 	const checkStatus = useCallback(async () => {
 		if (!publicKey) return;
 
 		try {
-			const result = await api.getStatus(publicKey.toBase58());
+			const result = await api.getStatus(publicKey);
 
 			if (result.status === "exists" && result.card) {
 				setCard(result.card);
@@ -133,22 +148,23 @@ export const HoroscopeSection: FC = () => {
 	}, [publicKey, setCard]);
 
 	useEffect(() => {
-		if (publicKey && user) {
+		if (publicKey && user && !isWalletLoading) {
 			checkStatus();
 		}
-	}, [publicKey, user, checkStatus]);
+	}, [publicKey, user, checkStatus, isWalletLoading]);
 
 	const handlePayment = async () => {
-		// Clear any previous warnings
 		setWalletWarning(null);
 		setError(null);
 
-		// Check if user can pay using the onboarding hook
 		const paymentCheck = onboarding.canPay();
+		console.log(paymentCheck);
 		if (!paymentCheck.allowed) {
 			setWalletWarning(paymentCheck.reason);
 			return;
 		}
+
+		console.log("public", publicKey);
 
 		if (!publicKey) {
 			setWalletWarning("Please connect your wallet to continue");
@@ -157,52 +173,187 @@ export const HoroscopeSection: FC = () => {
 
 		if (!sendTransaction) {
 			setWalletWarning(
-				"Unable to send transaction. Please unlock your wallet and try again."
+				"Unable to send transaction. Please unlock your wallet and try again.",
 			);
 			return;
 		}
 
 		setLoading(true);
 
-		let signature = "";
+		let signature: string = "";
 
 		try {
 			if (!isPaid) {
 				setStatus("paying");
-				const instruction = await buildEnterLotteryInstruction(
-					publicKey,
-					connection,
-				);
+				const key = new PublicKey(publicKey);
+				console.log("key", key);
+				console.log(connection);
+
+				// Check if connection is available
+				if (!connection) {
+					throw new Error("Connection to Solana network is not available");
+				}
+
+				const instruction = await buildEnterLotteryInstruction(key, connection);
 				const transaction = new Transaction().add(instruction);
 
+				// Set the fee payer
+				transaction.feePayer = key;
+
+				// Get recent blockhash and set it on the transaction
 				try {
-					signature = await sendTransaction(transaction, connection);
+					const { blockhash } = await connection.getLatestBlockhash();
+					transaction.recentBlockhash = blockhash;
+				} catch (blockhashError) {
+					console.error("Failed to get blockhash:", blockhashError);
+					throw new Error(
+						"Failed to connect to Solana network. Please try again.",
+					);
+				}
+
+				// Serialize the transaction to Uint8Array
+				const transactionBytes = transaction.serialize({
+					requireAllSignatures: false,
+					verifySignatures: false,
+				});
+
+				try {
+					// sendTransaction should now return a base58 string
+					signature = await sendTransaction(transactionBytes);
+
+					console.log("Transaction sent with signature:", signature);
+					console.log("Signature length:", signature.length);
+
+					// Validate it's a proper base58 string
+					try {
+						bs58.decode(signature);
+						console.log("Signature is valid base58");
+					} catch (base58Error) {
+						console.error("Invalid base58 signature:", signature);
+						throw new Error("Invalid transaction signature format");
+					}
 				} catch (txError: unknown) {
 					// Handle specific wallet errors with user-friendly messages
-					const errorMessage = txError instanceof Error ? txError.message : String(txError);
+					const errorMessage =
+						txError instanceof Error ? txError.message : String(txError);
 
-					if (errorMessage.includes("User rejected") || errorMessage.includes("rejected")) {
-						setWalletWarning("Transaction was cancelled. Please approve the transaction in your wallet.");
-					} else if (errorMessage.includes("insufficient") || errorMessage.includes("Insufficient")) {
-						setWalletWarning("Insufficient SOL balance. Please add funds to your wallet.");
-					} else if (errorMessage.includes("not connected") || errorMessage.includes("disconnected")) {
-						setWalletWarning("Wallet disconnected. Please reconnect your wallet.");
-					} else if (errorMessage.includes("locked") || errorMessage.includes("unlock")) {
+					console.error("Transaction sending error:", errorMessage);
+
+					if (
+						errorMessage.includes("User rejected") ||
+						errorMessage.includes("rejected") ||
+						errorMessage.includes("cancelled")
+					) {
+						setWalletWarning(
+							"Transaction was cancelled. Please approve the transaction in your wallet.",
+						);
+					} else if (
+						errorMessage.includes("insufficient") ||
+						errorMessage.includes("Insufficient")
+					) {
+						setWalletWarning(
+							"Insufficient SOL balance. Please add funds to your wallet.",
+						);
+					} else if (
+						errorMessage.includes("not connected") ||
+						errorMessage.includes("disconnected")
+					) {
+						setWalletWarning(
+							"Wallet disconnected. Please reconnect your wallet.",
+						);
+					} else if (
+						errorMessage.includes("locked") ||
+						errorMessage.includes("unlock")
+					) {
 						setWalletWarning("Please unlock your wallet and try again.");
 					} else {
-						setWalletWarning(`Wallet error: ${errorMessage}`);
+						setWalletWarning(`Transaction failed: ${errorMessage}`);
 					}
 					setStatus("ready");
 					setLoading(false);
 					return;
 				}
 
-				await connection.confirmTransaction(signature, "confirmed");
+				// Wait for confirmation using getSignatureStatuses
+				try {
+					console.log("Checking transaction status for signature:", signature);
+
+					// Poll for confirmation with timeout
+					const timeout = 30000; // 30 seconds
+					const startTime = Date.now();
+					let isConfirmed = false;
+
+					while (Date.now() - startTime < timeout) {
+						try {
+							// Use getSignatureStatuses with searchTransactionHistory
+							const statuses = await connection.getSignatureStatuses(
+								[signature],
+								{ searchTransactionHistory: true },
+							);
+
+							console.log("Signature status:", statuses);
+
+							if (statuses && statuses.value && statuses.value[0]) {
+								const status = statuses.value[0];
+
+								if (status.err) {
+									// Transaction failed
+									throw new Error(
+										`Transaction failed: ${JSON.stringify(status.err)}`,
+									);
+								}
+
+								if (
+									status.confirmationStatus === "confirmed" ||
+									status.confirmationStatus === "finalized"
+								) {
+									console.log("Transaction confirmed!");
+									isConfirmed = true;
+									break;
+								}
+							}
+
+							// Wait 1 second before checking again
+							await new Promise((resolve) => setTimeout(resolve, 1000));
+						} catch (statusError) {
+							console.error("Error checking status:", statusError);
+							// Continue polling
+						}
+					}
+
+					if (!isConfirmed) {
+						throw new Error("Transaction confirmation timeout");
+					}
+				} catch (confirmationError) {
+					console.error("Transaction confirmation error:", confirmationError);
+
+					// Try one more check with just getSignatureStatus
+					try {
+						const status = await connection.getSignatureStatus(signature);
+						console.log("Final signature status check:", status);
+
+						if (status && !status.value?.err) {
+							console.log("Transaction appears to be successful despite error");
+							// Continue anyway
+						} else {
+							throw new Error(
+								"Transaction confirmation failed. Please try again.",
+							);
+						}
+					} catch (finalError) {
+						console.error("Final status check failed:", finalError);
+						throw new Error(
+							"Transaction confirmation failed. Please check Solana Explorer and try again.",
+						);
+					}
+				}
 			}
 
 			setStatus("generating");
+			console.log("Calling confirmHoroscope with:", { publicKey, signature });
+
 			const result = await api.confirmHoroscope(
-				publicKey.toBase58(),
+				publicKey,
 				signature || "ALREADY_PAID",
 			);
 
@@ -211,13 +362,32 @@ export const HoroscopeSection: FC = () => {
 			setIsPaid(false);
 		} catch (err) {
 			console.error("Payment/Generation error:", err);
-			const errorMessage = err instanceof Error ? err.message : "Failed to process request";
+			const errorMessage =
+				err instanceof Error ? err.message : "Failed to process request";
 
 			// Convert technical errors to user-friendly messages
-			if (errorMessage.includes("0x1") || errorMessage.includes("insufficient")) {
+			if (
+				errorMessage.includes("0x1") ||
+				errorMessage.includes("insufficient")
+			) {
 				setError("Insufficient SOL balance. Please add funds to your wallet.");
-			} else if (errorMessage.includes("timeout") || errorMessage.includes("Timeout")) {
+			} else if (
+				errorMessage.includes("timeout") ||
+				errorMessage.includes("Timeout")
+			) {
 				setError("Transaction timed out. Please try again.");
+			} else if (errorMessage.includes("recentBlockhash")) {
+				setError("Network connection issue. Please try again.");
+			} else if (
+				errorMessage.includes("base58") ||
+				errorMessage.includes("signature")
+			) {
+				setError("Transaction signature error. Please try again.");
+			} else if (
+				errorMessage.includes("cancelled") ||
+				errorMessage.includes("rejected")
+			) {
+				setError("Transaction was cancelled. Please try again.");
 			} else {
 				setError(errorMessage);
 			}
@@ -232,7 +402,7 @@ export const HoroscopeSection: FC = () => {
 		setStatus("ready");
 	};
 
-	if (!publicKey) {
+	if (isWalletLoading || !isReady) {
 		return (
 			<section className="min-h-screen flex flex-col items-center justify-center bg-transparent text-white">
 				<motion.div
@@ -250,6 +420,29 @@ export const HoroscopeSection: FC = () => {
 				<p className="animate-pulse text-3xl text-[#CCCCCC]">
 					Connecting to the cosmos…
 				</p>
+			</section>
+		);
+	}
+
+	if (!publicKey && isReady) {
+		return (
+			<section className="min-h-screen flex flex-col items-center justify-center bg-transparent text-white">
+				<div className="text-center">
+					<div className="w-24 h-24 mx-auto mb-8 relative">
+						<div className="absolute inset-0 rounded-full border-4 border-[#FC5411] animate-pulse"></div>
+					</div>
+					<h2 className="text-3xl font-bold mb-4">Wallet Not Connected</h2>
+					<p className="text-slate-400 mb-8">
+						Please connect your wallet to access your cosmic reading
+					</p>
+					<button
+						onClick={() => router.push("/")}
+						className="px-6 py-3 bg-[#FC5411] text-white rounded-lg hover:bg-orange-600 transition-colors"
+						type="button"
+					>
+						Go to Home to Connect
+					</button>
+				</div>
 			</section>
 		);
 	}
@@ -326,9 +519,7 @@ export const HoroscopeSection: FC = () => {
 															</p>
 															{!connected && (
 																<div className="mt-3">
-																	<WalletMultiButtonDynamic
-																		className="!bg-[#1f1f1f] !text-white !h-10 !px-4 !border !border-amber-500/50 !rounded-lg !text-sm"
-																	>
+																	<WalletMultiButtonDynamic className="!bg-[#1f1f1f] !text-white !h-10 !px-4 !border !border-amber-500/50 !rounded-lg !text-sm">
 																		Connect Wallet
 																	</WalletMultiButtonDynamic>
 																</div>

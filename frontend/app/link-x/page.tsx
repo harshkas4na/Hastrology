@@ -7,9 +7,11 @@ import { type FC, Suspense, useEffect, useRef, useState } from "react";
 import { TwitterSignInButton } from "@/components/TwitterButton";
 import { api } from "@/lib/api";
 import { useStore } from "@/store/useStore";
+import { usePrivyWallet } from "../hooks/use-privy-wallet";
 
 const XLoginContent: FC = () => {
-	const { publicKey, connected, disconnect } = useWallet();
+	const { publicKey, connected, disconnect } = usePrivyWallet();
+	console.log(publicKey, connected);
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const { setWallet, setUser, reset, user } = useStore();
@@ -38,32 +40,49 @@ const XLoginContent: FC = () => {
 				// Map technical errors to user-friendly messages
 				if (decodedDetails) {
 					if (decodedDetails.includes("already linked")) {
-						setError("Reason: This X account is already connected to another wallet. \nAction: Please use a different X account or connect with the original wallet.");
+						setError(
+							"Reason: This X account is already connected to another wallet. \nAction: Please use a different X account or connect with the original wallet.",
+						);
 						return;
 					}
-					if (decodedDetails.includes("User id") && decodedDetails.includes("required")) {
-						setError("Reason: Session session lost during authentication. \nAction: Please disconnect your wallet and reconnect, then try again.");
+					if (
+						decodedDetails.includes("User id") &&
+						decodedDetails.includes("required")
+					) {
+						setError(
+							"Reason: Session session lost during authentication. \nAction: Please disconnect your wallet and reconnect, then try again.",
+						);
 						return;
 					}
 				}
 
 				switch (errorParam) {
 					case "twitter_auth_failed":
-						setError("Reason: X authentication failed. \nAction: Please try again or check your X account status.");
+						setError(
+							"Reason: X authentication failed. \nAction: Please try again or check your X account status.",
+						);
 						break;
 					case "invalid_callback":
-						setError("Reason: Invalid response from X. \nAction: Please restart the process.");
+						setError(
+							"Reason: Invalid response from X. \nAction: Please restart the process.",
+						);
 						break;
 					case "auth_processing_failed":
-						setError(decodedDetails
-							? `Reason: ${decodedDetails} \nAction: Please try again.`
-							: "Reason: Unable to process X account data. \nAction: Please try again later.");
+						setError(
+							decodedDetails
+								? `Reason: ${decodedDetails} \nAction: Please try again.`
+								: "Reason: Unable to process X account data. \nAction: Please try again later.",
+						);
 						break;
 					case "account_exisits":
-						setError("Reason: This X account is already linked. \nAction: Please use a different account.");
+						setError(
+							"Reason: This X account is already linked. \nAction: Please use a different account.",
+						);
 						break;
 					default:
-						setError("Reason: An unexpected error occurred. \nAction: Please try again.");
+						setError(
+							"Reason: An unexpected error occurred. \nAction: Please try again.",
+						);
 				}
 			}
 
@@ -72,9 +91,7 @@ const XLoginContent: FC = () => {
 				setSuccess("X account successfully connected!");
 
 				try {
-					const profileResponse = await api.getUserProfile(
-						publicKey.toBase58(),
-					);
+					const profileResponse = await api.getUserProfile(publicKey);
 
 					if (profileResponse?.user) {
 						setUser(profileResponse.user);
@@ -128,7 +145,7 @@ const XLoginContent: FC = () => {
 			if (hasCheckedProfileRef.current) return;
 			hasCheckedProfileRef.current = true;
 
-			const address = publicKey.toBase58();
+			const address = publicKey;
 			setWallet(address);
 			setError(null);
 
@@ -228,11 +245,42 @@ const XLoginContent: FC = () => {
 						Link your X account for personalized cosmic insights ✨
 					</p>
 
+					<button
+						onClick={() => {
+							if (!publicKey) return;
+							disconnect();
+						}}
+						className="flex flex-row gap-2 items-center
+      bg-[#1F1F1F]
+      border border-[#FC5411]
+      text-white
+      px-4
+      py-2
+      rounded-xl
+      font-medium
+      hover:bg-[#262626]
+      hover:shadow-[0_0_20px_rgba(252,84,17,0.35)]
+      transition
+    "
+						type="button"
+					>
+						<img
+							alt="Solana Logo"
+							className="w-4 h-5"
+							src="https://solana.com/src/img/branding/solanaLogoMark.svg"
+						/>
+						{publicKey?.slice(0, 4)}...
+						{publicKey?.slice(-4)}
+					</button>
+
 					{/* Error Message */}
 					{error && !success && (
 						<div className="mb-6 p-4 rounded-lg border border-red-700 bg-red-900/20 backdrop-blur-sm">
-							{error.split('\n').map((line, i) => (
-								<p key={i} className={`text-white text-center ${i > 0 ? 'mt-2 text-sm text-red-200' : 'font-medium'}`}>
+							{error.split("\n").map((line, i) => (
+								<p
+									key={i}
+									className={`text-white text-center ${i > 0 ? "mt-2 text-sm text-red-200" : "font-medium"}`}
+								>
 									{line}
 								</p>
 							))}
@@ -303,7 +351,7 @@ const XLoginContent: FC = () => {
 			</motion.div>
 
 			<div className="block absolute bottom-4 md:bottom-11 left-0 w-full z-30 px-6">
-				<div className="w-full flex md:hidden mt-0 mb-5 flex-col items-center gap-4">
+				<div className="w-full hidden mt-0 mb-5 flex-col items-center gap-4">
 					<button
 						onClick={() => {
 							if (!publicKey) return;
@@ -328,8 +376,8 @@ const XLoginContent: FC = () => {
 							className="w-4 h-5"
 							src="https://solana.com/src/img/branding/solanaLogoMark.svg"
 						/>
-						{publicKey?.toBase58().slice(0, 4)}...
-						{publicKey?.toBase58().slice(-4)}
+						{publicKey?.slice(0, 4)}...
+						{publicKey?.slice(-4)}
 					</button>
 				</div>
 

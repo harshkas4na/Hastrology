@@ -1,26 +1,31 @@
 "use client";
 
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { AnimatePresence, motion } from "framer-motion";
-import { FC, useEffect, useState, useCallback } from "react";
+import { PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
+import { AnimatePresence, motion } from "framer-motion";
+import Link from "next/link";
+import { FC, useCallback, useEffect, useState } from "react";
+import { usePrivyWallet } from "@/app/hooks/use-privy-wallet";
 import {
 	fetchLotteryState,
-	fetchUserTicket,
 	fetchUserReceipt,
+	fetchUserTicket,
 	hasUserEnteredSpecificLottery,
 	LotteryState,
 } from "@/lib/hastrology_program";
-import Link from "next/link";
 
 interface LotteryCountdownProps {
 	onBack?: () => void;
 	onStatusChange?: (status: string) => void;
 }
 
-export const LotteryCountdown: FC<LotteryCountdownProps> = ({ onBack, onStatusChange }) => {
+export const LotteryCountdown: FC<LotteryCountdownProps> = ({
+	onBack,
+	onStatusChange,
+}) => {
 	const { connection } = useConnection();
-	const { publicKey } = useWallet();
+	const { address } = usePrivyWallet();
 
 	const [state, setState] = useState<LotteryState | null>(null);
 	const [timeLeft, setTimeLeft] = useState<{
@@ -51,24 +56,30 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({ onBack, onStatusCh
 
 	// Calculate IST Time for display
 	const istTime = state
-		? new Date(state.lotteryEndtime.toNumber() * 1000).toLocaleTimeString("en-IN", {
-			timeZone: "Asia/Kolkata",
-			hour: "2-digit",
-			minute: "2-digit",
-			hour12: true,
-		})
+		? new Date(state.lotteryEndtime.toNumber() * 1000).toLocaleTimeString(
+				"en-IN",
+				{
+					timeZone: "Asia/Kolkata",
+					hour: "2-digit",
+					minute: "2-digit",
+					hour12: true,
+				},
+			)
 		: "";
 
 	// Calculate prize pool
 	const prizePool = state
 		? (
-			(Number(state.ticketPrice) * Number(state.totalParticipants)) /
-			1e9
-		).toFixed(2)
+				(Number(state.ticketPrice) * Number(state.totalParticipants)) /
+				1e9
+			).toFixed(2)
 		: "0.00";
 
 	// Helper to find winner of a lottery
-	const findWinnerForLottery = async (lotteryId: BN, totalParticipants: number) => {
+	const findWinnerForLottery = async (
+		lotteryId: BN,
+		totalParticipants: number,
+	) => {
 		// Use a reasonable limit to search for winner, or track it better if possible
 		// Since we don't have an indexer, we scan tickets. In prod, use an indexer.
 		const limit = Math.min(totalParticipants, 50); // Cap at 50 for performance
@@ -92,6 +103,13 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({ onBack, onStatusCh
 
 	// Main initialization logic
 	const initializeLotteryView = useCallback(async () => {
+		if (!address) {
+			setStatus("loading");
+			return;
+		}
+
+		const publicKey = new PublicKey(address);
+
 		if (!publicKey) {
 			setStatus("loading");
 			return;
@@ -114,7 +132,7 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({ onBack, onStatusCh
 			const enteredCurrentLottery = await hasUserEnteredSpecificLottery(
 				connection,
 				publicKey,
-				currentLotteryId
+				currentLotteryId,
 			);
 
 			if (enteredCurrentLottery) {
@@ -131,18 +149,26 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({ onBack, onStatusCh
 			// Ideally, we show result, they click "OK", then we show countdown for next.
 			// For now, if they haven't entered current, we check previous result.
 			const enteredPrevLottery = prevLotteryId.gtn(0)
-				? await hasUserEnteredSpecificLottery(connection, publicKey, prevLotteryId)
+				? await hasUserEnteredSpecificLottery(
+						connection,
+						publicKey,
+						prevLotteryId,
+					)
 				: false;
 
 			if (enteredPrevLottery && prevLotteryId.gtn(0)) {
 				// User was in prev lottery, fetch their result
-				const prevReceipt = await fetchUserReceipt(connection, publicKey, prevLotteryId);
+				const prevReceipt = await fetchUserReceipt(
+					connection,
+					publicKey,
+					prevLotteryId,
+				);
 
 				if (prevReceipt) {
 					const userTicket = await fetchUserTicket(
 						connection,
 						prevLotteryId,
-						prevReceipt.ticketNumber
+						prevReceipt.ticketNumber,
 					);
 
 					if (userTicket) {
@@ -166,7 +192,11 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({ onBack, onStatusCh
 								setPrize(winnerInfo.prize);
 							} else {
 								// Fallback estimate
-								const estimatedPrize = ((Number(lotteryState.ticketPrice) * Number(lotteryState.totalParticipants)) / 1e9).toFixed(2);
+								const estimatedPrize = (
+									(Number(lotteryState.ticketPrice) *
+										Number(lotteryState.totalParticipants)) /
+									1e9
+								).toFixed(2);
 								setPrize(estimatedPrize);
 								setWinnerAddress(null);
 							}
@@ -190,16 +220,15 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({ onBack, onStatusCh
 					setLastWinnerInfo({
 						address: winnerInfo.address,
 						prize: winnerInfo.prize,
-						lotteryId: prevLotteryId.toString()
+						lotteryId: prevLotteryId.toString(),
 					});
 				}
 			}
-
 		} catch (err) {
 			console.error("Error fetching state:", err);
 			setError("Failed to load lottery data");
 		}
-	}, [connection, publicKey]);
+	}, [connection, address]);
 
 	useEffect(() => {
 		initializeLotteryView();
@@ -238,6 +267,7 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({ onBack, onStatusCh
 	}, [state, status]);
 
 	const handleCheckResult = async () => {
+		const publicKey = new PublicKey(address ?? "");
 		if (!state || !publicKey) return;
 
 		setStatus("checking");
@@ -257,7 +287,8 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({ onBack, onStatusCh
 				setError(null);
 
 				// Call backend to trigger the draw
-				const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api";
+				const apiUrl =
+					process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api";
 				const triggerResponse = await fetch(`${apiUrl}/lottery/trigger-draw`, {
 					method: "POST",
 					headers: { "Content-Type": "application/json" },
@@ -265,7 +296,11 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({ onBack, onStatusCh
 
 				const triggerData = await triggerResponse.json();
 
-				if (!triggerResponse.ok && triggerData.code !== "DRAW_IN_PROGRESS" && triggerData.code !== "WINNER_ALREADY_SELECTED") {
+				if (
+					!triggerResponse.ok &&
+					triggerData.code !== "DRAW_IN_PROGRESS" &&
+					triggerData.code !== "WINNER_ALREADY_SELECTED"
+				) {
 					setError(triggerData.error || "Failed to trigger draw");
 					setStatus("drawing");
 					return;
@@ -283,7 +318,9 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({ onBack, onStatusCh
 				}
 
 				if (!winnerFound) {
-					setError("Draw is taking longer than expected. Please try again in a moment.");
+					setError(
+						"Draw is taking longer than expected. Please try again in a moment.",
+					);
 					setStatus("drawing");
 					return;
 				}
@@ -303,7 +340,11 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({ onBack, onStatusCh
 				lotteryIdToCheck = currentState.currentLotteryId.subn(1);
 			}
 
-			const userReceipt = await fetchUserReceipt(connection, publicKey, lotteryIdToCheck);
+			const userReceipt = await fetchUserReceipt(
+				connection,
+				publicKey,
+				lotteryIdToCheck,
+			);
 
 			if (!userReceipt) {
 				setError("Could not find your ticket for this lottery");
@@ -314,7 +355,7 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({ onBack, onStatusCh
 			const userTicket = await fetchUserTicket(
 				connection,
 				lotteryIdToCheck,
-				userReceipt.ticketNumber
+				userReceipt.ticketNumber,
 			);
 
 			if (userTicket) {
@@ -331,7 +372,11 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({ onBack, onStatusCh
 					if (!currentState.winner.eqn(0)) {
 						// Winner index is 1-based, convert to 0-based ticket index
 						const winnerIndex = currentState.winner.subn(1);
-						const winningTicket = await fetchUserTicket(connection, lotteryIdToCheck, winnerIndex);
+						const winningTicket = await fetchUserTicket(
+							connection,
+							lotteryIdToCheck,
+							winnerIndex,
+						);
 						if (winningTicket) {
 							setWinnerAddress(winningTicket.user.toBase58());
 							setPrize((winningTicket.prizeAmount.toNumber() / 1e9).toFixed(2));
@@ -416,9 +461,12 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({ onBack, onStatusCh
 							</div>
 
 							<div className="p-6 bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-white/10 rounded-2xl">
-								<p className="text-slate-300 text-lg mb-2">Current Prize Pool</p>
+								<p className="text-slate-300 text-lg mb-2">
+									Current Prize Pool
+								</p>
 								<p className="text-4xl font-bold text-white">
-									{prizePool} <span className="text-2xl text-slate-400">SOL</span>
+									{prizePool}{" "}
+									<span className="text-2xl text-slate-400">SOL</span>
 								</p>
 								<p className="text-slate-500 text-sm mt-2">
 									{state.totalParticipants.toString()} cosmic tickets entered
@@ -438,10 +486,13 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({ onBack, onStatusCh
 									</p>
 									<div className="flex items-center justify-center gap-2">
 										<p className="text-white font-mono text-lg">
-											{lastWinnerInfo.address.slice(0, 4)}...{lastWinnerInfo.address.slice(-4)}
+											{lastWinnerInfo.address.slice(0, 4)}...
+											{lastWinnerInfo.address.slice(-4)}
 										</p>
 										<span className="text-slate-500">•</span>
-										<p className="text-white font-bold text-lg">{lastWinnerInfo.prize} SOL</p>
+										<p className="text-white font-bold text-lg">
+											{lastWinnerInfo.prize} SOL
+										</p>
 									</div>
 								</motion.div>
 							)}
@@ -698,7 +749,9 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({ onBack, onStatusCh
 								type="button"
 							>
 								<Link href="/cards">
-									{result === "pending" ? "Check Again" : "Join Next Lottery 🔮"}
+									{result === "pending"
+										? "Check Again"
+										: "Join Next Lottery 🔮"}
 								</Link>
 							</button>
 						</motion.div>
@@ -706,17 +759,20 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({ onBack, onStatusCh
 				</AnimatePresence>
 
 				{/* Back Button - Always visible except in some states if needed */}
-				{onBack && status !== "not_entered" && result !== "won" && result !== "lost" && (
-					<motion.button
-						initial={{ opacity: 0 }}
-						animate={{ opacity: 1 }}
-						transition={{ delay: 0.3 }}
-						onClick={onBack}
-						className="mt-8 text-slate-500 hover:text-white text-sm transition-colors flex items-center gap-2 mx-auto"
-					>
-						<span>←</span> Back to Horoscope
-					</motion.button>
-				)}
+				{onBack &&
+					status !== "not_entered" &&
+					result !== "won" &&
+					result !== "lost" && (
+						<motion.button
+							initial={{ opacity: 0 }}
+							animate={{ opacity: 1 }}
+							transition={{ delay: 0.3 }}
+							onClick={onBack}
+							className="mt-8 text-slate-500 hover:text-white text-sm transition-colors flex items-center gap-2 mx-auto"
+						>
+							<span>←</span> Back to Horoscope
+						</motion.button>
+					)}
 			</div>
 		</section>
 	);

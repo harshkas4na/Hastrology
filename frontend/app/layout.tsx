@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Outfit, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
-import { WalletContextProvider } from "@/components/WalletContextProvider";
+import { Web3Provider } from "@/components/WalletContextProvider";
 
 const outfit = Outfit({
 	subsets: ["latin"],
@@ -43,7 +43,7 @@ export default function RootLayout({
 			<body
 				className={`${outfit.variable} ${jakarta.variable} font-sans bg-black text-white antialiased`}
 			>
-				<WalletContextProvider>{children}</WalletContextProvider>
+				<Web3Provider>{children}</Web3Provider>
 			</body>
 		</html>
 	);

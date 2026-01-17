@@ -15,25 +15,19 @@ class UserController {
     try {
       const {
         walletAddress,
-        dob,
-        birthTime,
-        birthPlace,
+        twitterId,
         username,
-        latitude,
-        longitude,
-        timezoneOffset,
+        twitterUsername,
+        twitterProfileUrl,
       } = req.body;
 
       // Register/update user
       const user = await userService.registerUser({
         walletAddress,
-        dob,
-        birthTime,
-        birthPlace,
         username,
-        latitude,
-        longitude,
-        timezoneOffset,
+        twitterId,
+        twitterUsername,
+        twitterProfileUrl,
       });
 
       // Generate JWT token for the user
@@ -50,14 +44,11 @@ class UserController {
           user: {
             id: user.id,
             walletAddress: user.wallet_address,
-            dob: user.dob,
-            birthTime: user.birth_time,
-            birthPlace: user.birth_place,
-            latitude: user.latitude,
-            longitude: user.longitude,
-            timezoneOffset: user.timezone_offset,
             createdAt: user.created_at,
             username: user.username,
+            twitterId: user.twitter_id,
+            twitterUsername: user.twitter_username,
+            twitterProfileUrl: user.twitter_profile_url,
           },
           token,
         },
@@ -219,6 +210,104 @@ class UserController {
       );
     } catch (error) {
       logger.error("Update Twitter tokens controller error:", error);
+      next(error);
+    }
+  }
+
+  /**
+   * Register user's birth details
+   * @route POST /api/user/birth-details
+   */
+  async registerBirth(req, res, next) {
+    try {
+      const {
+        walletAddress,
+        dob,
+        birthTime,
+        birthPlace,
+        latitude,
+        longitude,
+        timezoneOffset,
+      } = req.body;
+
+      const existingUser = await userService.findUserByWallet(walletAddress);
+      if (!existingUser) {
+        return errorResponse(
+          res,
+          "User not found. Please register first.",
+          404
+        );
+      }
+
+      if (
+        existingUser.dob &&
+        existingUser.birth_time &&
+        existingUser.birth_place
+      ) {
+        return errorResponse(
+          res,
+          "Birth details are already registered for this user. Use update endpoint instead.",
+          409
+        );
+      }
+
+      const birthDate = new Date(dob);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (birthDate > today) {
+        return errorResponse(res, "Date of birth cannot be in the future", 400);
+      }
+
+      let formattedBirthTime = birthTime;
+      if (!/^([01]\d|2[0-3]):([0-5]\d)$/.test(birthTime)) {
+        return errorResponse(
+          res,
+          "Birth time must be in HH:MM format (24-hour)",
+          400
+        );
+      }
+
+      if ((latitude && !longitude) || (!latitude && longitude)) {
+        return errorResponse(
+          res,
+          "Both latitude and longitude must be provided together",
+          400
+        );
+      }
+
+      const birthDetails = {
+        walletAddress,
+        dob,
+        birthTime: formattedBirthTime,
+        birthPlace,
+        latitude: latitude || null,
+        longitude: longitude || null,
+        timezoneOffset: timezoneOffset || null,
+      };
+
+      const updatedUser = await userService.registerBirthDetails(birthDetails);
+
+      return successResponse(
+        res,
+        {
+          message: "Birth details registered successfully",
+          user: {
+            id: updatedUser.id,
+            walletAddress: updatedUser.wallet_address,
+            username: updatedUser.username,
+            dob: updatedUser.dob,
+            birthTime: updatedUser.birth_time,
+            birthPlace: updatedUser.birth_place,
+            latitude: updatedUser.latitude,
+            longitude: updatedUser.longitude,
+            timezoneOffset: updatedUser.timezone_offset,
+          },
+        },
+        201
+      );
+    } catch (error) {
+      logger.error("Register birth details controller error:", error);
       next(error);
     }
   }
