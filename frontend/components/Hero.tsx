@@ -134,7 +134,7 @@ export const Hero: FC = () => {
 					</span>
 				</motion.p>
 
-				<div className="relative inline-block">
+				<div className="hidden md:inline-block relative ">
 					<button
 						className="mt-5 !bg-[#1f1f1f] hover:!bg-[#121212] !text-white !h-12 !px-8 !py-6 !border !border-[#fc5411] !pt-2.5 !rounded-xl !transition-all"
 						disabled={isLoadingWallet}
@@ -230,9 +230,19 @@ export const Hero: FC = () => {
 							Locating Your Stars...
 						</button>
 					) : (
-						<WalletMultiButton className="!bg-[#1f1f1f]  hover:!bg-[#121212] !text-white !h-12 !px-8 !py-6 !border !border-[#fc5411] !pt-2.5 !rounded-xl !transition-all">
+						<button
+							onClick={() => {
+								if (!address && !isLoadingWallet) {
+									login();
+								} else {
+									setOpen((v) => !v);
+								}
+							}}
+							type="button"
+							className="!bg-[#1f1f1f]  hover:!bg-[#121212] !text-white !h-12 !px-8 !py-6 !border !border-[#fc5411] !pt-2.5 !rounded-xl !transition-all"
+						>
 							Connect Wallet
-						</WalletMultiButton>
+						</button>
 					)}
 				</motion.div>
 				<div className="font-display max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2 md:gap-0 text-xs md:text-md text-[#8A8A8A]">

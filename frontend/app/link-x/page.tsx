@@ -11,7 +11,6 @@ import { usePrivyWallet } from "../hooks/use-privy-wallet";
 
 const XLoginContent: FC = () => {
 	const { publicKey, connected, disconnect } = usePrivyWallet();
-	console.log(publicKey, connected);
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const { setWallet, setUser, reset, user } = useStore();

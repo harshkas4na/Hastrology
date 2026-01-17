@@ -13,7 +13,6 @@ type FormStep = "initial" | "birth-details";
 
 const LoginPage: FC = () => {
 	const { publicKey, connected, disconnect } = usePrivyWallet();
-	console.log(publicKey);
 	const [name, setName] = useState("");
 	const [formStep, setFormStep] = useState<FormStep>("birth-details");
 	const [isSubmitting, setIsSubmitting] = useState(false);

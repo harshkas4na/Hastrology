@@ -109,6 +109,7 @@ export async function POST(request: NextRequest) {
 			throw new Error("No media ID returned from upload");
 		}
 
+		const cardUrl = `https://hastrology.vercel.app`;
 
 		const tweetResponse = await fetch(TWITTER_TWEET_URL, {
 			method: "POST",
@@ -117,7 +118,7 @@ export async function POST(request: NextRequest) {
 				"Content-Type": "application/json",
 			},
 			body: JSON.stringify({
-				text: text,
+				text: `${text}\n\n${cardUrl}`,
 				media: {
 					media_ids: [mediaId],
 				},

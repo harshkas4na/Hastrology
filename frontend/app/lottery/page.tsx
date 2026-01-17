@@ -72,7 +72,6 @@ const LotteryPage: FC = () => {
 
 		try {
 			const result = await api.getStatus(publicKey);
-			console.log(result);
 			if (result.status === "exists" && result.card) {
 				setCard(result.card);
 			} else if (result.status === "paid") {
@@ -86,8 +85,6 @@ const LotteryPage: FC = () => {
 			setIsLoading(false);
 		}
 	}, [publicKey, setCard]);
-
-	console.log(card);
 
 	useEffect(() => {
 		if (!user && publicKey && connected) {
