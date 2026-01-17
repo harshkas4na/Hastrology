@@ -19,6 +19,12 @@ class UserController {
         username,
         twitterUsername,
         twitterProfileUrl,
+        dob,
+        birthTime,
+        birthPlace,
+        latitude,
+        longitude,
+        timezoneOffset,
       } = req.body;
 
       // Register/update user
@@ -28,6 +34,12 @@ class UserController {
         twitterId,
         twitterUsername,
         twitterProfileUrl,
+        dob,
+        birthTime,
+        birthPlace,
+        latitude,
+        longitude,
+        timezoneOffset,
       });
 
       // Generate JWT token for the user

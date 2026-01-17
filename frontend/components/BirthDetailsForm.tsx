@@ -2,7 +2,7 @@
 
 import { useWallet } from "@solana/wallet-adapter-react";
 import { motion } from "framer-motion";
-import { type FC, useState } from "react";
+import React, { FC, useState } from "react";
 import { api } from "@/lib/api";
 import { geocodePlace, getTimezoneOffset } from "@/lib/geocoding";
 import { useStore } from "@/store/useStore";
@@ -65,9 +65,13 @@ export const BirthDetailsForm: FC = () => {
       setUser(result.user);
 
       // Scroll to next section
-      document.getElementById("horoscope-section")?.scrollIntoView({ behavior: "smooth" });
-    } catch (err: any) {
-      setError(err.message || "Failed to register. Please try again.");
+      const horoscopeSection = document.getElementById("horoscope-section");
+      if (horoscopeSection) {
+        horoscopeSection.scrollIntoView({ behavior: "smooth" });
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to register. Please try again.";
+      setError(errorMessage);
     } finally {
       setIsGeocoding(false);
       setLoading(false);

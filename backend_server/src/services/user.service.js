@@ -20,6 +20,12 @@ class UserService {
     twitterId,
     twitterUsername,
     twitterProfileUrl,
+    dob,
+    birthTime,
+    birthPlace,
+    latitude,
+    longitude,
+    timezoneOffset,
   }) {
     try {
       logger.info("Registering user:", { walletAddress });
@@ -35,6 +41,12 @@ class UserService {
             twitter_id: twitterId,
             twitter_username: twitterUsername,
             twitter_profile_url: twitterProfileUrl,
+            dob: dob,
+            birth_time: birthTime,
+            birth_place: birthPlace,
+            latitude: latitude,
+            longitude: longitude,
+            timezone_offset: timezoneOffset,
           },
           {
             onConflict: "wallet_address",

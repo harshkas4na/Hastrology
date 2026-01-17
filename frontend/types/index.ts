@@ -1,9 +1,15 @@
 export interface BirthDetails {
 	walletAddress: string;
-	twitterId: string;
 	username: string;
-	twitterUsername: string;
-	twitterProfileUrl: string;
+	dob?: string;
+	birthTime?: string;
+	birthPlace?: string;
+	latitude?: number;
+	longitude?: number;
+	timezoneOffset?: number;
+	twitterId?: string;
+	twitterUsername?: string;
+	twitterProfileUrl?: string;
 }
 
 export interface UpdateBirth {
