@@ -4,6 +4,7 @@ import {
 	CardType,
 	HoroscopeResponse,
 	HoroscopeStatus,
+	UpdateBirth,
 	XDetails,
 } from "@/types";
 
@@ -131,6 +132,24 @@ export const api = {
 		if (!res.ok) {
 			const error = await res.json();
 			throw new Error(error.message || "Failed to update Twitter tokens");
+		}
+
+		return res.json();
+	},
+
+	/**
+	 * Update birth details for a user
+	 */
+	async updateBirthDetails(data: UpdateBirth) {
+		const res = await fetch(`${API_BASE}/user/birth-details`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(data),
+		});
+
+		if (!res.ok) {
+			const error = await res.json();
+			throw new Error(error.message || "Failed to update Birth details");
 		}
 
 		return res.json();

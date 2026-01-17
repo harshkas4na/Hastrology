@@ -1,9 +1,16 @@
 export interface BirthDetails {
 	walletAddress: string;
-	dob: string | null;
-	birthTime: string | null;
-	username: string | null;
-	birthPlace: string | null;
+	twitterId: string;
+	username: string;
+	twitterUsername: string;
+	twitterProfileUrl: string;
+}
+
+export interface UpdateBirth {
+	walletAddress: string;
+	dob: string;
+	birthTime: string;
+	birthPlace: string;
 	latitude: number | null;
 	longitude: number | null;
 	timezoneOffset?: number | null;

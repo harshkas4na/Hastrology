@@ -1,18 +1,41 @@
 "use client";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useLogin } from "@privy-io/react-auth";
+import { useFundWallet } from "@privy-io/react-auth/solana";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { type FC, useEffect, useRef, useState } from "react";
+import { usePrivyWallet } from "@/app/hooks/use-privy-wallet";
 import { api } from "@/lib/api";
 import { useStore } from "@/store/useStore";
 
 export const Hero: FC = () => {
-	const { publicKey, connected } = useWallet();
+	const {
+		publicKey,
+		connected,
+		address,
+		disconnect: logout,
+		isLoadingWallet,
+	} = usePrivyWallet();
 	const router = useRouter();
 	const { setUser, setWallet } = useStore();
 	const [isChecking, setIsChecking] = useState(false);
 	const hasCheckedRef = useRef(false);
+	const { login } = useLogin({
+		onComplete(user) {
+			if (user?.user?.twitter?.username && user?.user?.wallet) {
+				api.registerUser({
+					username: user.user.twitter.name ?? "",
+					walletAddress: user.user.wallet.address,
+					twitterId: user.user.twitter.subject,
+					twitterProfileUrl: user.user.twitter.profilePictureUrl ?? "",
+					twitterUsername: user.user.twitter.username,
+				});
+				router.push("/login");
+			}
+		},
+	});
+	const [open, setOpen] = useState(false);
 
 	useEffect(() => {
 		const checkUserStatus = async () => {
@@ -26,37 +49,19 @@ export const Hero: FC = () => {
 
 			setIsChecking(true);
 			try {
-				const address = publicKey.toBase58();
+				const address = publicKey;
 				setWallet(address);
 
 				const profileResponse = await api.getUserProfile(address);
 
 				if (profileResponse?.user) {
 					setUser(profileResponse.user);
-					router.push("/cards");
-				} else {
-					setUser(null);
-					try {
-						await api.registerUser({
-							username: null,
-							walletAddress: address,
-							dob: null,
-							birthTime: null,
-							birthPlace: null,
-							latitude: null,
-							longitude: null,
-						});
-					} catch (createError) {
-						console.error("Error creating account:", createError);
-					}
-
-					router.push("/link-x");
 				}
 			} catch (error) {
 				console.error("Error checking user:", error);
 				setUser(null);
 
-				router.push("/link-x");
+				router.push("/login");
 			} finally {
 				setIsChecking(false);
 			}
@@ -129,27 +134,55 @@ export const Hero: FC = () => {
 					</span>
 				</motion.p>
 
-				{/* CTA */}
-				<motion.div
-					animate={{ opacity: 1, y: 0 }}
-					className="hidden md:flex mt-10 flex-col items-center gap-4"
-					initial={{ opacity: 0, y: 20 }}
-					transition={{ delay: 0.7, duration: 0.8 }}
-				>
-					{isChecking ? (
-						<button
-							disabled
-							type="button"
-							className="bg-[#1f1f1f] text-white h-12 px-8 py-6 border border-[#fc5411] pt-2.5 rounded-xl opacity-50 cursor-not-allowed"
+				<div className="relative inline-block">
+					<button
+						className="mt-5 !bg-[#1f1f1f] hover:!bg-[#121212] !text-white !h-12 !px-8 !py-6 !border !border-[#fc5411] !pt-2.5 !rounded-xl !transition-all"
+						disabled={isLoadingWallet}
+						onClick={() => {
+							if (!address && !isLoadingWallet) {
+								login();
+							} else {
+								setOpen((v) => !v);
+							}
+						}}
+						type="button"
+					>
+						{isLoadingWallet
+							? "Loading..."
+							: address
+								? `${address.slice(0, 6)}...${address.slice(-4)}`
+								: "Connect Wallet"}
+					</button>
+
+					{open && address && (
+						<div
+							className="absolute right-0 mt-2 min-w-[200px]
+      bg-[#06141a] border border-[#194758] text-white shadow-lg z-50"
 						>
-							Locating Your Stars...
-						</button>
-					) : (
-						<WalletMultiButton className="!bg-[#1f1f1f] hover:!bg-[#121212] !text-white !h-12 !px-8 !py-6 !border !border-[#fc5411] !pt-2.5 !rounded-xl !transition-all">
-							Connect Wallet
-						</WalletMultiButton>
+							{/* Address */}
+							<div className="px-3 py-2 border-b border-[#194758]">
+								<div className="flex items-center gap-2">
+									<span className="text-sm font-mono flex-1 truncate">
+										{`${address.slice(0, 10)}...${address.slice(-6)}`}
+									</span>
+								</div>
+							</div>
+
+							{/* Logout */}
+							<button
+								className="w-full text-left px-3 py-2 text-sm
+        hover:bg-[#2596be] hover:text-black transition-colors"
+								onClick={() => {
+									logout();
+									setOpen(false);
+								}}
+								type="button"
+							>
+								Logout
+							</button>
+						</div>
 					)}
-				</motion.div>
+				</div>
 			</motion.div>
 			<div className="absolute bottom-0 left-0 w-full h-32 bg-linear-to-t from-black to-transparent" />
 			<img

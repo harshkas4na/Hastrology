@@ -357,6 +357,8 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 		!user?.twitterTokenExpiresAt ||
 		new Date(user.twitterTokenExpiresAt).getTime() <= Date.now();
 
+	console.log("user", user);
+
 	return (
 		<div
 			className={`mt-10 md:mt-10 w-full h-full flex flex-col ${showShare ? "lg:grid lg:grid-cols-2" : ""} gap-6 lg:gap-16 items-center`}
@@ -382,8 +384,8 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 									Share Your Card On X
 								</h1>
 								<p className="text-slate-400 text-base lg:text-lg md:text-xl max-w-lg">
-									Get your personalized daily horoscope cards. A card for your vibe,
-									health, wealth, love & more.
+									Get your personalized daily horoscope cards. A card for your
+									vibe, health, wealth, love & more.
 								</p>
 							</div>
 

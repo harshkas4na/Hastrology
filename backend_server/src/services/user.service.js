@@ -16,13 +16,10 @@ class UserService {
    */
   async registerUser({
     walletAddress,
-    dob,
-    birthTime,
-    birthPlace,
     username,
-    latitude,
-    longitude,
-    timezoneOffset,
+    twitterId,
+    twitterUsername,
+    twitterProfileUrl,
   }) {
     try {
       logger.info("Registering user:", { walletAddress });
@@ -33,14 +30,11 @@ class UserService {
         .upsert(
           {
             wallet_address: walletAddress,
-            dob: dob,
-            birth_time: birthTime,
-            birth_place: birthPlace,
-            latitude: latitude || null,
-            longitude: longitude || null,
-            timezone_offset: timezoneOffset || null,
             updated_at: new Date().toISOString(),
             username: username,
+            twitter_id: twitterId,
+            twitter_username: twitterUsername,
+            twitter_profile_url: twitterProfileUrl,
           },
           {
             onConflict: "wallet_address",
@@ -56,6 +50,54 @@ class UserService {
       }
 
       logger.info("User registered successfully:", { userId: data.id });
+      return data;
+    } catch (error) {
+      logger.error("User service error:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update a user birth details
+   * @param {Object} userData - User birth data
+   * @returns {Promise<Object>} Updated user data
+   */
+  async registerBirthDetails({
+    walletAddress,
+    dob,
+    birthTime,
+    birthPlace,
+    latitude,
+    longitude,
+    timezoneOffset,
+  }) {
+    try {
+      logger.info("Registering user birth details:", { walletAddress });
+
+      // Use upsert to create or update user birth details
+      const { data, error } = await this.supabase
+        .from("users")
+        .update({
+          dob: dob,
+          birth_time: birthTime,
+          birth_place: birthPlace,
+          latitude: latitude || null,
+          longitude: longitude || null,
+          timezone_offset: timezoneOffset || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("wallet_address", walletAddress)
+        .select()
+        .single();
+
+      if (error) {
+        logger.error("User birth registration error:", error);
+        throw error;
+      }
+
+      logger.info("User birth details registered successfully:", {
+        userId: data.id,
+      });
       return data;
     } catch (error) {
       logger.error("User service error:", error);

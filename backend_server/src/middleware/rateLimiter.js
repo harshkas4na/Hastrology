@@ -53,7 +53,7 @@ const strictLimiter = createRateLimiter({
  * 5 requests per 15 minutes
  */
 const authLimiter = createRateLimiter({
-  max: 10,
+  max: 20,
   message: "Too many authentication attempts, please try again later",
 });
 

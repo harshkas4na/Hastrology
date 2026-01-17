@@ -4,6 +4,7 @@ const {
   validateUserRegistration,
   validateTwitterConfirm,
   validateTwitterTokensUpdate,
+  validateBirthDetailsConfirm,
 } = require("../middleware/validation");
 const { authLimiter } = require("../middleware/rateLimiter");
 
@@ -51,5 +52,17 @@ router.patch(
  * @access  Public
  */
 router.get("/profile/:walletAddress", userController.getProfile);
+
+/**
+ * @route   POST /api/user/birth-details
+ * @desc    Add birth details to an existing user
+ * @access  Private
+ */
+router.post(
+  "/birth-details",
+  authLimiter,
+  validateBirthDetailsConfirm,
+  userController.registerBirth
+);
 
 module.exports = router;

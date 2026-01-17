@@ -38,25 +38,59 @@ const userRegistrationSchema = Joi.object({
     "any.required": "Wallet address is required",
   }),
 
-  username: Joi.string().optional().allow("", null).trim(),
+  twitterId: Joi.string().required().min(1).messages({
+    "string.empty": "Twitter id is required",
+    "any.required": "Twitter Id is required",
+  }),
+
+  username: Joi.string().required().min(1).messages({
+    "string.empty": "Username is required",
+    "any.required": "Username is required",
+  }),
+
+  twitterUsername: Joi.string().required().min(1).messages({
+    "string.empty": "Twitter Username is required",
+    "any.required": "Twitter Username is required",
+  }),
+
+  twitterProfileUrl: Joi.string().required().min(1).messages({
+    "string.empty": "Twitter Profile Url is required",
+    "any.required": "Twitter Profile Url is required",
+  }),
+}).options({ stripUnknown: true });
+
+/**
+ * User birth details updation validation schema
+ */
+const birthDetailsUpdateSchema = Joi.object({
+  walletAddress: Joi.string().required().trim().messages({
+    "string.empty": "Wallet address is required",
+    "any.required": "Wallet address is required",
+  }),
 
   dob: Joi.string()
-    .optional()
-    .allow("", null)
+    .required()
     .pattern(/^\d{4}-\d{2}-\d{2}$/)
     .messages({
+      "string.empty": "Date of birth is required",
+      "any.required": "Date of birth is required",
       "string.pattern.base": "Date of birth must be in YYYY-MM-DD format",
     }),
 
   birthTime: Joi.string()
-    .optional()
-    .allow("", null)
+    .required()
     .pattern(/^([01]\d|2[0-3]):([0-5]\d)$/)
     .messages({
-      "string.pattern.base": "Birth time must be in HH:MM format",
+      "string.empty": "Birth time is required",
+      "any.required": "Birth time is required",
+      "string.pattern.base": "Birth time must be in HH:MM format (24-hour)",
     }),
 
-  birthPlace: Joi.string().optional().allow("", null).trim(),
+  birthPlace: Joi.string().required().trim().messages({
+    "string.empty": "Birth place is required",
+    "any.required": "Birth place is required",
+  }),
+
   latitude: Joi.number().optional().allow(null).min(-90).max(90).messages({
     "number.min": "Latitude must be between -90 and 90",
     "number.max": "Latitude must be between -90 and 90",
@@ -176,4 +210,5 @@ module.exports = {
   validateHoroscopeConfirm: validate(horoscopeConfirmSchema),
   validateTwitterConfirm: validate(xAccountCreationSchema),
   validateTwitterTokensUpdate: validate(twitterTokensUpdateSchema),
+  validateBirthDetailsConfirm: validate(birthDetailsUpdateSchema),
 };

@@ -1,24 +1,22 @@
 "use client";
 
-import { useWallet } from "@solana/wallet-adapter-react";
 import { useEffect } from "react";
 import { Hero } from "@/components/Hero";
 import { api } from "@/lib/api";
 import { useStore } from "@/store/useStore";
+import { usePrivyWallet } from "./hooks/use-privy-wallet";
 
 export default function Home() {
-	const { publicKey, connected } = useWallet();
+	const { publicKey, connected } = usePrivyWallet();
 	const { setWallet, setUser, reset } = useStore();
 
 	useEffect(() => {
 		const checkUserProfile = async () => {
 			if (connected && publicKey) {
-				setWallet(publicKey.toBase58());
+				setWallet(publicKey);
 
 				try {
-					const profileResponse = await api.getUserProfile(
-						publicKey.toBase58(),
-					);
+					const profileResponse = await api.getUserProfile(publicKey);
 
 					if (profileResponse?.user) {
 						setUser(profileResponse.user);
