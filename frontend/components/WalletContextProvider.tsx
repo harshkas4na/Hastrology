@@ -1,7 +1,10 @@
 "use client";
 import { PrivyProvider } from "@privy-io/react-auth";
 import { createSolanaRpc, createSolanaRpcSubscriptions } from "@solana/kit";
-import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react";
+import {
+	ConnectionProvider,
+	WalletProvider,
+} from "@solana/wallet-adapter-react";
 import {
 	PhantomWalletAdapter,
 	SolflareWalletAdapter,
@@ -22,7 +25,7 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
 		<ConnectionProvider endpoint={endpoint}>
 			<WalletProvider wallets={wallets} autoConnect>
 				<PrivyProvider
-					appId={"cmkh4lge402kpl80bi94aepac"}
+					appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID ?? ""}
 					config={{
 						solana: {
 							rpcs: {
