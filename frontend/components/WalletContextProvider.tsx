@@ -47,7 +47,7 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
 							showWalletLoginFirst: false,
 							walletChainType: "solana-only",
 						},
-						loginMethods: ["email", "twitter"],
+						loginMethods: ["twitter"],
 						embeddedWallets: {
 							solana: {
 								createOnLogin: "all-users",

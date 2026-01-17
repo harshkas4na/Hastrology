@@ -16,7 +16,6 @@ export function usePrivyWallet() {
 	const { signTransaction: signPrivyTransaction } = useSignTransaction();
 	const { signAndSendTransaction } = useSignAndSendTransaction();
 
-	console.log(wallets, user);
 	const wallet = useMemo(() => {
 		if (!authenticated || !walletsReady || !wallets.length) return undefined;
 
@@ -123,8 +122,6 @@ export function usePrivyWallet() {
 				const signatureBytes = result.signature;
 
 				const signature = bs58.encode(signatureBytes);
-
-				console.log("Transaction signature (base58):", signature);
 				return signature;
 			} catch (error) {
 				console.error("Failed to send transaction:", error);

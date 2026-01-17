@@ -178,12 +178,17 @@ export interface AppState {
 	card: AstroCard | null; // New format: single card
 	cards: Record<CardType, AstroCard> | null; // Old format: backwards compatibility
 	loading: boolean;
+	showFundWallet: boolean;
 	setWallet: (wallet: string | null) => void;
 	setUser: (user: User | null) => void;
 	setCard: (card: AstroCard | null) => void; // New setter for single card
 	setCards: (cards: Record<CardType, AstroCard> | null) => void; // Old setter: backwards compatibility
 	setLoading: (loading: boolean) => void;
+	setShowFundWallet: (value: boolean) => void;
 	reset: () => void;
+	balance: number | null;
+	setBalance: (balance: number | null) => void;
+	refreshBalance: (wallet: string) => Promise<void>;
 }
 
 export interface XDetails {

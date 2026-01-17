@@ -1,66 +1,72 @@
+// components/balance.tsx
 "use client";
 
 import { useFundWallet } from "@privy-io/react-auth/solana";
 import { useConnection } from "@solana/wallet-adapter-react";
 import { Connection, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
-import { FC, useEffect, useState } from "react";
+import { FC, useCallback, useEffect, useState } from "react";
 import { usePrivyWallet } from "@/app/hooks/use-privy-wallet";
 import { useStore } from "@/store/useStore";
 
 export const WalletBalance: FC = () => {
 	const { publicKey } = usePrivyWallet();
 	const { connection: walletConnection } = useConnection();
-	const { user } = useStore();
-	const { fundWallet } = useFundWallet();
+	const { balance, setBalance } = useStore();
 
-	const [balance, setBalance] = useState<number | null>(null);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [isFunding, setIsFunding] = useState(false);
 	const [showConfirm, setShowConfirm] = useState(false);
 
+	const { fundWallet } = useFundWallet({
+		onUserExited(params) {
+			if (publicKey) {
+				setTimeout(() => {
+					fetchBalance();
+				}, 2000);
+			}
+		},
+	});
+
+	const fetchBalance = useCallback(async () => {
+		if (!publicKey) {
+			setBalance(null);
+			return;
+		}
+
+		setLoading(true);
+		setError(null);
+
+		try {
+			let connection: Connection;
+
+			if (walletConnection) {
+				connection = walletConnection;
+			} else {
+				const endpoint =
+					process.env.NEXT_PUBLIC_SOLANA_RPC_URL ||
+					"https://api.devnet.solana.com";
+				connection = new Connection(endpoint, "confirmed");
+			}
+
+			const pubKey = new PublicKey(publicKey);
+			const lamports = await connection.getBalance(pubKey);
+			const solBalance = lamports / LAMPORTS_PER_SOL;
+
+			setBalance(solBalance);
+		} catch (err) {
+			console.error("Error fetching balance:", err);
+			setError("Failed to load balance");
+		} finally {
+			setLoading(false);
+		}
+	}, [publicKey, setBalance, walletConnection]);
+
 	useEffect(() => {
-		const fetchBalance = async () => {
-			if (!publicKey) {
-				setBalance(null);
-				return;
-			}
-
-			setLoading(true);
-			setError(null);
-
-			try {
-				let connection: Connection;
-
-				if (walletConnection) {
-					connection = walletConnection;
-				} else {
-					const endpoint =
-						process.env.NEXT_PUBLIC_SOLANA_RPC_URL ||
-						"https://api.devnet.solana.com";
-					connection = new Connection(endpoint, "confirmed");
-				}
-
-				const pubKey = new PublicKey(publicKey);
-				const lamports = await connection.getBalance(pubKey);
-				const solBalance = lamports / LAMPORTS_PER_SOL;
-
-				setBalance(solBalance);
-			} catch (err) {
-				console.error("Error fetching balance:", err);
-				setError("Failed to load balance");
-			} finally {
-				setLoading(false);
-			}
-		};
-
 		fetchBalance();
-
-		// Optional: Poll for balance updates
-		const intervalId = setInterval(fetchBalance, 30000);
-
+		const intervalId = setInterval(fetchBalance, 10000);
 		return () => clearInterval(intervalId);
-	}, [publicKey, walletConnection]);
+	}, [fetchBalance]);
 
 	const handleFundWalletClick = () => {
 		if (balance !== null && balance < 0.01) {
@@ -82,48 +88,13 @@ export const WalletBalance: FC = () => {
 					chain: "solana:devnet",
 				},
 			});
-			console.log("Fund wallet triggered");
 
-			// Refresh balance after funding
-			setTimeout(() => {
-				if (publicKey) {
-					fetchBalance();
-				}
-			}, 5000);
+			// Refresh balance immediately after funding
+			await fetchBalance();
 		} catch (error) {
 			console.error("Error funding wallet:", error);
 		} finally {
 			setIsFunding(false);
-		}
-	};
-
-	const fetchBalance = async () => {
-		if (!publicKey) return;
-
-		setLoading(true);
-		try {
-			let connection: Connection;
-
-			if (walletConnection) {
-				connection = walletConnection;
-			} else {
-				const endpoint =
-					process.env.NEXT_PUBLIC_SOLANA_RPC_URL ||
-					"https://api.devnet.solana.com";
-				connection = new Connection(endpoint, "confirmed");
-			}
-
-			const pubKey = new PublicKey(publicKey);
-			const lamports = await connection.getBalance(pubKey);
-			const solBalance = lamports / LAMPORTS_PER_SOL;
-
-			setBalance(solBalance);
-			setError(null);
-		} catch (err) {
-			console.error("Error refetching balance:", err);
-			setError("Failed to refresh balance");
-		} finally {
-			setLoading(false);
 		}
 	};
 

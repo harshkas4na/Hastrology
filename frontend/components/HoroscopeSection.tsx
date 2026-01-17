@@ -1,8 +1,14 @@
 "use client";
 
+import { useFundWallet } from "@privy-io/react-auth/solana";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { PublicKey, Transaction } from "@solana/web3.js";
+import {
+	Connection,
+	LAMPORTS_PER_SOL,
+	PublicKey,
+	Transaction,
+} from "@solana/web3.js";
 import bs58 from "bs58";
 import { AnimatePresence, motion } from "framer-motion";
 import dynamic from "next/dynamic";
@@ -97,9 +103,18 @@ export const getPlanetaryTheme = (planet: string) => {
 export const HoroscopeSection: FC = () => {
 	const { publicKey, sendTransaction, connected, isReady } = usePrivyWallet();
 	const { connection } = useConnection();
-	const { user, card, setCard, loading, setLoading } = useStore();
+	const {
+		user,
+		card,
+		setCard,
+		loading,
+		setLoading,
+		showFundWallet,
+		setShowFundWallet,
+	} = useStore();
 	const onboarding = useOnboardingStatus();
-
+	const [balance, setBalance] = useState<number | null>(null);
+	const { connection: walletConnection } = useConnection();
 	const [status, setStatus] = useState<
 		"checking" | "ready" | "paying" | "generating" | "complete" | "lottery"
 	>("checking");
@@ -107,13 +122,59 @@ export const HoroscopeSection: FC = () => {
 	const [walletWarning, setWalletWarning] = useState<string | null>(null);
 	const [isPaid, setIsPaid] = useState(false);
 	const router = useRouter();
-
 	const [isWalletLoading, setIsWalletLoading] = useState(true);
 	const theme = card
 		? getPlanetaryTheme(card.ruling_planet_theme || "mars")
 		: getPlanetaryTheme("mars");
+	const [showConfirm, setShowConfirm] = useState(false);
 
-	console.log(publicKey);
+	const fetchBalance = async () => {
+		if (!publicKey) {
+			setBalance(null);
+			return;
+		}
+
+		setLoading(true);
+		setError(null);
+
+		try {
+			let connection: Connection;
+
+			if (walletConnection) {
+				connection = walletConnection;
+			} else {
+				const endpoint =
+					process.env.NEXT_PUBLIC_SOLANA_RPC_URL ||
+					"https://api.devnet.solana.com";
+				connection = new Connection(endpoint, "confirmed");
+			}
+
+			const pubKey = new PublicKey(publicKey);
+			const lamports = await connection.getBalance(pubKey);
+			const solBalance = lamports / LAMPORTS_PER_SOL;
+
+			setBalance(solBalance);
+		} catch (err) {
+			console.error("Error fetching balance:", err);
+			setError("Failed to load balance");
+		} finally {
+			setLoading(false);
+		}
+	};
+	const { fundWallet } = useFundWallet({
+		onUserExited(params) {
+			if (publicKey) {
+				fetchBalance();
+			}
+		},
+	});
+
+	useEffect(() => {
+		if (showFundWallet) {
+			setShowConfirm(true);
+			setShowFundWallet(false);
+		}
+	}, [showFundWallet, setShowFundWallet]);
 
 	useEffect(() => {
 		if (isReady) {
@@ -124,6 +185,48 @@ export const HoroscopeSection: FC = () => {
 			return () => clearTimeout(timer);
 		}
 	}, [isReady]);
+
+	useEffect(() => {
+		const fetchBalance = async () => {
+			if (!publicKey) {
+				setBalance(null);
+				return;
+			}
+
+			setLoading(true);
+			setError(null);
+
+			try {
+				let connection: Connection;
+
+				if (walletConnection) {
+					connection = walletConnection;
+				} else {
+					const endpoint =
+						process.env.NEXT_PUBLIC_SOLANA_RPC_URL ||
+						"https://api.devnet.solana.com";
+					connection = new Connection(endpoint, "confirmed");
+				}
+
+				const pubKey = new PublicKey(publicKey);
+				const lamports = await connection.getBalance(pubKey);
+				const solBalance = lamports / LAMPORTS_PER_SOL;
+
+				setBalance(solBalance);
+			} catch (err) {
+				console.error("Error fetching balance:", err);
+				setError("Failed to load balance");
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		fetchBalance();
+
+		const intervalId = setInterval(fetchBalance, 30000);
+
+		return () => clearInterval(intervalId);
+	}, [publicKey, walletConnection, setLoading]);
 
 	const checkStatus = useCallback(async () => {
 		if (!publicKey) return;
@@ -158,16 +261,29 @@ export const HoroscopeSection: FC = () => {
 		setError(null);
 
 		const paymentCheck = onboarding.canPay();
-		console.log(paymentCheck);
 		if (!paymentCheck.allowed) {
 			setWalletWarning(paymentCheck.reason);
 			return;
 		}
 
-		console.log("public", publicKey);
-
 		if (!publicKey) {
 			setWalletWarning("Please connect your wallet to continue");
+			return;
+		}
+
+		if (balance === null) {
+			setWalletWarning("Fetching wallet balance, please wait...");
+			return;
+		}
+
+		if (balance < PAYMENT_AMOUNT) {
+			setWalletWarning("Insufficient balance. Please fund your wallet.");
+			await fundWallet({
+				address: publicKey,
+				options: {
+					chain: "solana:devnet",
+				},
+			});
 			return;
 		}
 
@@ -186,10 +302,6 @@ export const HoroscopeSection: FC = () => {
 			if (!isPaid) {
 				setStatus("paying");
 				const key = new PublicKey(publicKey);
-				console.log("key", key);
-				console.log(connection);
-
-				// Check if connection is available
 				if (!connection) {
 					throw new Error("Connection to Solana network is not available");
 				}
@@ -221,13 +333,9 @@ export const HoroscopeSection: FC = () => {
 					// sendTransaction should now return a base58 string
 					signature = await sendTransaction(transactionBytes);
 
-					console.log("Transaction sent with signature:", signature);
-					console.log("Signature length:", signature.length);
-
 					// Validate it's a proper base58 string
 					try {
 						bs58.decode(signature);
-						console.log("Signature is valid base58");
 					} catch (base58Error) {
 						console.error("Invalid base58 signature:", signature);
 						throw new Error("Invalid transaction signature format");
@@ -276,8 +384,6 @@ export const HoroscopeSection: FC = () => {
 
 				// Wait for confirmation using getSignatureStatuses
 				try {
-					console.log("Checking transaction status for signature:", signature);
-
 					// Poll for confirmation with timeout
 					const timeout = 30000; // 30 seconds
 					const startTime = Date.now();
@@ -290,8 +396,6 @@ export const HoroscopeSection: FC = () => {
 								[signature],
 								{ searchTransactionHistory: true },
 							);
-
-							console.log("Signature status:", statuses);
 
 							if (statuses && statuses.value && statuses.value[0]) {
 								const status = statuses.value[0];
@@ -307,7 +411,6 @@ export const HoroscopeSection: FC = () => {
 									status.confirmationStatus === "confirmed" ||
 									status.confirmationStatus === "finalized"
 								) {
-									console.log("Transaction confirmed!");
 									isConfirmed = true;
 									break;
 								}
@@ -323,6 +426,8 @@ export const HoroscopeSection: FC = () => {
 
 					if (!isConfirmed) {
 						throw new Error("Transaction confirmation timeout");
+					} else {
+						await fetchBalance();
 					}
 				} catch (confirmationError) {
 					console.error("Transaction confirmation error:", confirmationError);
@@ -330,11 +435,8 @@ export const HoroscopeSection: FC = () => {
 					// Try one more check with just getSignatureStatus
 					try {
 						const status = await connection.getSignatureStatus(signature);
-						console.log("Final signature status check:", status);
 
 						if (status && !status.value?.err) {
-							console.log("Transaction appears to be successful despite error");
-							// Continue anyway
 						} else {
 							throw new Error(
 								"Transaction confirmation failed. Please try again.",
@@ -350,12 +452,13 @@ export const HoroscopeSection: FC = () => {
 			}
 
 			setStatus("generating");
-			console.log("Calling confirmHoroscope with:", { publicKey, signature });
 
 			const result = await api.confirmHoroscope(
 				publicKey,
 				signature || "ALREADY_PAID",
 			);
+
+			await fetchBalance();
 
 			setCard(result.card);
 			setStatus("complete");

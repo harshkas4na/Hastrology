@@ -142,6 +142,18 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 				pixelRatio: 3,
 				quality: 1,
 				cacheBust: true,
+				filter: (node) => {
+					// Filter out problematic nodes or styles
+					if (node instanceof HTMLElement) {
+						const computedStyle = window.getComputedStyle(node);
+						// Skip nodes with undefined fonts
+						if (!computedStyle.font || computedStyle.font === "") {
+							return true;
+						}
+					}
+					return true;
+				},
+				skipFonts: true,
 			});
 
 			// Restore original border radius
@@ -246,6 +258,18 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 				pixelRatio: 3,
 				cacheBust: true,
 				quality: 1,
+				filter: (node) => {
+					// Filter out problematic nodes or styles
+					if (node instanceof HTMLElement) {
+						const computedStyle = window.getComputedStyle(node);
+						// Skip nodes with undefined fonts
+						if (!computedStyle.font || computedStyle.font === "") {
+							return true;
+						}
+					}
+					return true;
+				},
+				skipFonts: true,
 			});
 
 			if (!frontBlob) {
@@ -266,6 +290,18 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 				pixelRatio: 3,
 				cacheBust: true,
 				quality: 1,
+				filter: (node) => {
+					// Filter out problematic nodes or styles
+					if (node instanceof HTMLElement) {
+						const computedStyle = window.getComputedStyle(node);
+						// Skip nodes with undefined fonts
+						if (!computedStyle.font || computedStyle.font === "") {
+							return true;
+						}
+					}
+					return true;
+				},
+				skipFonts: true,
 			});
 
 			front.style.borderRadius = frontOriginalBorderRadius;
@@ -356,8 +392,6 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 	const isTwitterExpired =
 		!user?.twitterTokenExpiresAt ||
 		new Date(user.twitterTokenExpiresAt).getTime() <= Date.now();
-
-	console.log("user", user);
 
 	return (
 		<div
