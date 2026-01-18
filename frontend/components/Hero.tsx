@@ -115,8 +115,8 @@ export const Hero: FC = () => {
 				<motion.img
 					alt="Hastrology Logo"
 					animate={{ scale: 1, opacity: 1 }}
-					className="-mt-0 md:-mt-25
-            w-85 md:w-120 lg:w-166
+					className="-mt-35 md:-mt-25
+            w-65 md:w-120 lg:w-166
             mx-auto
             drop-shadow-[0_0_20px_rgba(251,146,60,0.35)]
           "
@@ -128,7 +128,7 @@ export const Hero: FC = () => {
 				{/* SUBTEXT */}
 				<motion.p
 					animate={{ opacity: 1 }}
-					className="mt-6 text-lg md:text-2xl text-[#CCCCCC] leading-relaxed"
+					className="mt-6 text-md md:text-2xl text-[#CCCCCC] leading-relaxed"
 					initial={{ opacity: 0 }}
 					transition={{ delay: 0.4, duration: 0.8 }}
 				>
@@ -212,7 +212,7 @@ export const Hero: FC = () => {
 				src="/ellipse-black-right.png"
 			/>
 			{/* Small bottom ellipses (card-style accent) */}
-			<div className="md:hidden pointer-events-none absolute bottom-0 left-0 w-full flex justify-center z-20">
+			<div className="md:hidden pointer-events-none absolute bottom-12 left-0 w-full flex justify-center z-20">
 				<div className="relative w-full max-w-md h-40">
 					{/* Orange ellipse */}
 					<img
@@ -225,12 +225,12 @@ export const Hero: FC = () => {
 					<img
 						src="/small-black-ellipse.png"
 						alt="Black Ellipse"
-						className="absolute bottom-7 left-1/2 -translate-x-1/2 w-full object-contain"
+						className="absolute bottom-6 left-1/2 -translate-x-1/2 w-full object-contain"
 					/>
 				</div>
 			</div>
 
-			<div className="absolute bottom-4 md:bottom-11 left-0 w-full z-30 px-4 md:px-6">
+			<div className="absolute bottom-14 md:bottom-11 left-0 w-full z-30 px-4 md:px-6">
 				<motion.div
 					animate={{ opacity: 1, y: 0 }}
 					className="w-full flex md:hidden mt-10 mb-10 flex-col items-center gap-4"
@@ -255,14 +255,14 @@ export const Hero: FC = () => {
 								}
 							}}
 							type="button"
-							className="!bg-[#1f1f1f]  hover:!bg-[#121212] !text-white !h-12 !px-8 !py-6 !border !border-[#fc5411] !pt-2.5 !rounded-xl !transition-all cursor-pointer hover:scale-105"
+							className=" hover:!bg-[#121212] !text-white !h-12 !px-8 !py-6 !border !border-[#fc5411] !pt-2.5 !rounded-xl !transition-all cursor-pointer hover:scale-105"
 						>
 							<div className="flex flex-row items-center gap-2">
 								<span>Connect Your</span>
 								<svg
 									viewBox="0 0 24 24"
 									aria-hidden="true"
-									className="block w-5 h-5 fill-current"
+									className="block w-3.5 h-3.5 fill-current"
 								>
 									<path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
 								</svg>

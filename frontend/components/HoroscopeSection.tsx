@@ -377,7 +377,7 @@ export const HoroscopeSection: FC = () => {
 					) {
 						setWalletWarning("Please unlock your wallet and try again.");
 					} else {
-						setWalletWarning(`Transaction failed: ${errorMessage}`);
+						setError(`Transaction failed: ${errorMessage}`);
 					}
 					setStatus("ready");
 					setLoading(false);
@@ -586,7 +586,7 @@ export const HoroscopeSection: FC = () => {
 											initial={{ opacity: 0, y: 20 }}
 											animate={{ opacity: 1, y: 0 }}
 											transition={{ delay: 0.3 }}
-											className="text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-bold mb-4"
+											className="text-xl sm:text-xl md:text-4xl lg:text-6xl font-bold mb-4"
 										>
 											<span>Your Cosmic Reading Awaits</span>
 										</motion.h2>
@@ -654,12 +654,10 @@ export const HoroscopeSection: FC = () => {
 
 													{/* Price */}
 													<div className="flex items-baseline gap-2">
-														<span className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-br from-white to-purple-200">
+														<span className="text-2xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-br from-white to-purple-200">
 															{PAYMENT_AMOUNT}
 														</span>
-														<span className="text-2xl text-slate-400 font-semibold">
-															SOL
-														</span>
+														<span className="text-2xl font-semibold">SOL</span>
 													</div>
 
 													{/* CTA */}
@@ -710,17 +708,27 @@ export const HoroscopeSection: FC = () => {
 																			d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
 																		></path>
 																	</svg>
-																	<span>Processing...</span>
+																	<span className="text-sm md:text-lg">
+																		Processing...
+																	</span>
 																</>
 															) : isPaid ? (
 																<>
-																	<span>Generate My Reading</span>
-																	<span className="text-lg">✨</span>
+																	<span className="text-sm md:text-lg">
+																		Generate My Reading
+																	</span>
+																	<span className="hidden md:inline-block text-lg">
+																		✨
+																	</span>
 																</>
 															) : (
 																<>
-																	<span>Unlock Your Reading</span>
-																	<span className="text-lg">🔮</span>
+																	<span className="text-sm md:text-lg">
+																		Unlock Your Reading
+																	</span>
+																	<span className="hidden md:inline-block text-lg">
+																		🔮
+																	</span>
 																</>
 															)}
 														</div>
@@ -752,7 +760,7 @@ export const HoroscopeSection: FC = () => {
 								transition={{ duration: 0.5, ease: "easeInOut" }}
 								className="relative"
 							>
-								<div className="absolute inset-0 rounded-[3rem] bg-[#FC5411] blur-xl animate-pulse"></div>
+								<div className="absolute inset-0 rounded-[3rem] bg-[#FC5411] blur-sm animate-pulse"></div>
 
 								<div className="relative backdrop-blur-2xl bg-black border border-white/10 rounded-[3rem] p-16 text-center shadow-2xl">
 									{/* Cosmic Loader */}
@@ -772,14 +780,14 @@ export const HoroscopeSection: FC = () => {
 									<motion.h3
 										animate={{ opacity: [0.5, 1, 0.5] }}
 										transition={{ duration: 2, repeat: Infinity }}
-										className="text-3xl md:text-4xl font-bold text-white mb-4"
+										className="text-2xl md:text-4xl font-bold text-white mb-4 mt-10 md:mt-0"
 									>
 										{status === "paying"
 											? "Confirming Transaction"
 											: "Channeling the Cosmos"}
 									</motion.h3>
 
-									<p className="text-slate-400 text-lg">
+									<p className="text-slate-400 text-md md:text-lg">
 										{status === "paying"
 											? "Please approve the transaction in your wallet"
 											: "AI is crafting your personalized reading ✨"}

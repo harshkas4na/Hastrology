@@ -100,7 +100,7 @@ const CardsPage: FC = () => {
 
 	return (
 		<>
-			<section className="relative min-h-screen flex flex-col bg-black pb-24">
+			<section className="relative min-h-screen flex flex-col bg-black pb-8 md:pb-24">
 				{/* Mobile top row */}
 				<div className="relative z-50 flex md:hidden items-center justify-between px-4 pt-4 gap-3">
 					{user?.twitterId && <UserXDetails />}
