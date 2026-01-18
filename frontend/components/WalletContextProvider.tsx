@@ -44,8 +44,11 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
 							},
 						},
 						appearance: {
+							theme: "#000000",
 							showWalletLoginFirst: false,
 							walletChainType: "solana-only",
+							landingHeader:"Log in or sign up",
+							logo:"/Hastrology.svg"
 						},
 						loginMethods: ["twitter"],
 						embeddedWallets: {

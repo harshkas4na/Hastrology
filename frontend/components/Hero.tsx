@@ -55,13 +55,18 @@ export const Hero: FC = () => {
 				const profileResponse = await api.getUserProfile(address);
 
 				if (profileResponse?.user) {
-					setUser(profileResponse.user);
+					const user = profileResponse.user;
+					setUser(user);
+
+					if (user.dob) {
+						router.replace("/cards");
+					} else {
+						router.replace("/login");
+					}
 				}
 			} catch (error) {
 				console.error("Error checking user:", error);
 				setUser(null);
-
-				router.push("/login");
 			} finally {
 				setIsChecking(false);
 			}
@@ -134,9 +139,9 @@ export const Hero: FC = () => {
 					</span>
 				</motion.p>
 
-				<div className="hidden md:inline-block relative mt-3">
+				<div className="hover:scale-105 hidden md:inline-block relative mt-3">
 					<button
-						className="mt-5 !bg-[#1f1f1f] hover:!bg-[#121212] !text-white !h-12 !px-8 !py-6 !border !border-[#fc5411] !pt-2.5 !rounded-xl !transition-all"
+						className="cursor-pointer mt-5 !bg-[#1f1f1f] hover:!bg-[#121212] !text-white !h-12 !px-8 !py-6 !border !border-[#fc5411] !pt-2.5 !rounded-xl !transition-all"
 						disabled={isLoadingWallet}
 						onClick={() => {
 							if (!address && !isLoadingWallet) {
@@ -250,7 +255,7 @@ export const Hero: FC = () => {
 								}
 							}}
 							type="button"
-							className="!bg-[#1f1f1f]  hover:!bg-[#121212] !text-white !h-12 !px-8 !py-6 !border !border-[#fc5411] !pt-2.5 !rounded-xl !transition-all"
+							className="!bg-[#1f1f1f]  hover:!bg-[#121212] !text-white !h-12 !px-8 !py-6 !border !border-[#fc5411] !pt-2.5 !rounded-xl !transition-all cursor-pointer hover:scale-105"
 						>
 							<div className="flex flex-row items-center gap-2">
 								<span>Connect Your</span>

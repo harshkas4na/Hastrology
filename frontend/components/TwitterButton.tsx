@@ -45,6 +45,8 @@ export const TwitterSignInButton: React.FC<TwitterSignInButtonProps> = ({
         rounded-2xl
        px-8 py-4
         transition-all
+		hover:bg-white/10
+		cursor-pointer
         border border-[#fc5411]
         
       `}
