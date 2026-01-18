@@ -108,13 +108,20 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 	const [showTweetSuccess, setShowTweetSuccess] = useState(false);
 	const { user } = useStore();
 
+	// Draft state
+	const [isDrafting, setIsDrafting] = useState(false);
+	const [draftBlob, setDraftBlob] = useState<Blob | null>(null);
+	const [draftText, setDraftText] = useState("");
+	const [isPosting, setIsPosting] = useState(false);
+
 	const gradient = getPlanetaryGradient(card.ruling_planet_theme || "mars");
 	const accent = getPlanetaryAccent(card.ruling_planet_theme || "mars");
 	const vibeColors = getVibeColor(card.front.vibe_status);
 	const zodiacEmoji = getZodiacEmoji(card.front.zodiac_sign);
 	const router = useRouter();
 
-	const shareOnTwitter = async () => {
+	// Step 1: Generate the image and open the draft modal
+	const handleGenerateDraft = async () => {
 		try {
 			const cardElement = document.querySelector("[data-card-front]");
 			if (!cardElement) {
@@ -163,6 +170,7 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 				throw new Error("Failed to generate image");
 			}
 
+			// check auth early
 			if (!user?.id) {
 				setShareStatus({
 					show: true,
@@ -172,19 +180,43 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 				return;
 			}
 
-			const formData = new FormData();
-			formData.append("image", blob, "hastrology-card.png");
-			formData.append(
-				"text",
-				`My cosmic reading: ${card.front.tagline} 🌟\n\nLuck Score: ${card.front.luck_score}%\nZodiac: ${card.front.zodiac_sign}\n\n#Hashtro`,
-			);
-			formData.append("walletAddress", user.walletAddress);
+			// Pre-fill text
+			const defaultText = `My cosmic reading: ${card.front.tagline} 🌟\n\nLuck Score: ${card.front.luck_score}%\nZodiac: ${card.front.zodiac_sign}\n\n#Hashtro`;
 
+			setDraftBlob(blob);
+			setDraftText(defaultText);
+			setIsDrafting(true);
+			setShareStatus({
+				show: false,
+				message: "",
+				type: "info",
+			});
+		} catch (error: any) {
+			console.error("Failed to generate draft:", error);
+			setShareStatus({
+				show: true,
+				message: "Failed to generate card image.",
+				type: "error",
+			});
+		}
+	};
+
+	// Step 2: Actually post to Twitter
+	const handlePostToTwitter = async () => {
+		if (!draftBlob || !user?.walletAddress) return;
+
+		try {
+			setIsPosting(true);
 			setShareStatus({
 				show: true,
 				message: "Posting to Twitter...",
 				type: "info",
 			});
+
+			const formData = new FormData();
+			formData.append("image", draftBlob, "hastrology-card.png");
+			formData.append("text", draftText);
+			formData.append("walletAddress", user.walletAddress);
 
 			const response = await fetch("/api/auth/twitter/share", {
 				method: "POST",
@@ -197,6 +229,8 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 				throw new Error(data.error || "Failed to share on Twitter");
 			}
 
+			// Success!
+			setIsDrafting(false); // Close modal
 			setShareStatus({
 				show: false,
 				message: "",
@@ -213,13 +247,14 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 			}
 		} catch (error: any) {
 			console.error("Failed to share:", error);
-
 			setShareStatus({
 				show: true,
 				message:
 					error.message || "Failed to share on Twitter. Please try again.",
 				type: "error",
 			});
+		} finally {
+			setIsPosting(false);
 		}
 	};
 
@@ -438,7 +473,7 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 									/>
 								) : (
 									<button
-										onClick={shareOnTwitter}
+										onClick={handleGenerateDraft}
 										disabled={shareStatus.show && shareStatus.type === "info"}
 										className="group relative w-full px-8 py-4 border border-[#FC5411]
       bg-white/5 hover:bg-white/10 rounded-2xl transition-all"
@@ -852,6 +887,143 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 					}
 				`}</style>
 			</div>
+
+			{/* Draft Editor Modal */}
+			{/* X-Style Draft Editor Modal */}
+			<AnimatePresence>
+				{isDrafting && draftBlob && (
+					<div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+						{/* Backdrop */}
+						<motion.div
+							initial={{ opacity: 0 }}
+							animate={{ opacity: 1 }}
+							exit={{ opacity: 0 }}
+							onClick={() => !isPosting && setIsDrafting(false)}
+							className="absolute inset-0 bg-black/70"
+						/>
+
+						{/* Modal - X Style */}
+						<motion.div
+							initial={{ opacity: 0, scale: 0.95, y: 20 }}
+							animate={{ opacity: 1, scale: 1, y: 0 }}
+							exit={{ opacity: 0, scale: 0.95, y: 20 }}
+							className="relative w-full max-w-xl bg-black border border-white/20 rounded-2xl overflow-hidden shadow-2xl max-h-[90vh] flex flex-col"
+						>
+							{/* Header */}
+							<div className="flex items-center justify-between px-4 py-3 border-b border-white/10 shrink-0">
+								<button
+									onClick={() => !isPosting && setIsDrafting(false)}
+									disabled={isPosting}
+									className="text-white/90 hover:bg-white/10 rounded-full p-2 transition-colors"
+								>
+									<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+										<path d="M10.59 12L4.54 5.96l1.42-1.42L12 10.59l6.04-6.05 1.42 1.42L13.41 12l6.05 6.04-1.42 1.42L12 13.41l-6.04 6.05-1.42-1.42L10.59 12z"></path>
+									</svg>
+								</button>
+								<button
+									onClick={handlePostToTwitter}
+									disabled={isPosting || !draftText.trim()}
+									className="bg-[#1D9BF0] hover:bg-[#1A8CD8] disabled:opacity-50 disabled:cursor-not-allowed px-5 py-1.5 rounded-full text-white font-bold text-sm transition-all"
+								>
+									{isPosting ? (
+										<div className="flex items-center gap-2">
+											<div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+											Posting
+										</div>
+									) : (
+										'Post'
+									)}
+								</button>
+							</div>
+
+							{/* Content - Scrollable */}
+							<div className="p-4 overflow-y-auto custom-scrollbar flex-1">
+								{/* Profile Row */}
+								<div className="flex gap-3">
+									{user?.twitterProfileUrl && (
+										<img
+											src={`/api/image?url=${encodeURIComponent(
+												user.twitterProfileUrl.replace("_normal", "_400x400"),
+											)}`}
+											alt={user?.username || "Profile"}
+											className="w-10 h-10 rounded-full object-cover shrink-0"
+										/>
+									)}
+									<div className="flex-1 min-w-0">
+										{/* Text Area - Auto-expanding */}
+										<textarea
+											value={draftText}
+											onChange={(e) => setDraftText(e.target.value)}
+											className="w-full bg-transparent border-none text-white text-lg placeholder-white/40 resize-none focus:outline-none"
+											placeholder="What is happening?!"
+											disabled={isPosting}
+											autoFocus
+											rows={Math.max(3, Math.ceil(draftText.length / 50))}
+											style={{
+												minHeight: '80px',
+												maxHeight: 'none'
+											}}
+										/>
+
+										{/* Image Preview */}
+										<div className="mt-3 relative rounded-2xl overflow-hidden border border-white/20">
+											<img
+												src={URL.createObjectURL(draftBlob!)}
+												alt="Card Preview"
+												className="w-full object-cover"
+											/>
+										</div>
+									</div>
+								</div>
+
+								{/* Bottom Bar */}
+								<div className="flex items-center justify-between pt-3 border-t border-white/10 mt-3">
+									{/* Left Icons */}
+									<div className="flex items-center gap-1">
+										<button className="text-white/30 rounded-full p-2 opacity-50 cursor-not-allowed">
+											<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+												<path d="M3 5.5C3 4.119 4.119 3 5.5 3h13C19.881 3 21 4.119 21 5.5v13c0 1.381-1.119 2.5-2.5 2.5h-13C4.119 21 3 19.881 3 18.5v-13zM5.5 5c-.276 0-.5.224-.5.5v9.086l3-3 3 3 5-5 3 3V5.5c0-.276-.224-.5-.5-.5h-13zM8 11.5c0 .828-.672 1.5-1.5 1.5S5 12.328 5 11.5 5.672 10 6.5 10s1.5.672 1.5 1.5z"></path>
+											</svg>
+										</button>
+										<button className="text-white/30 rounded-full p-2 opacity-50 cursor-not-allowed">
+											<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+												<path d="M3 5.5C3 4.119 4.12 3 5.5 3h13C19.88 3 21 4.119 21 5.5v13c0 1.381-1.12 2.5-2.5 2.5h-13C4.12 21 3 19.881 3 18.5v-13zM5.5 5c-.28 0-.5.224-.5.5v13c0 .276.22.5.5.5h13c.28 0 .5-.224.5-.5v-13c0-.276-.22-.5-.5-.5h-13zM18 10.711V9.25h-3.74v5.5h1.44v-1.719h1.7V11.57h-1.7v-.859H18zM11.79 9.25h1.44v5.5h-1.44v-5.5zm-3.07 1.375c.34 0 .77.172 1.02.43l1.03-.86c-.51-.601-1.28-.945-2.05-.945C7.19 9.25 6 10.453 6 12s1.19 2.75 2.72 2.75c.85 0 1.54-.344 2.05-.945v-2.149H8.38v1.032H9.4v.515c-.17.086-.42.172-.68.172-.76 0-1.36-.602-1.36-1.375 0-.688.6-1.375 1.36-1.375z"></path>
+											</svg>
+										</button>
+										<button className="text-white/30 rounded-full p-2 opacity-50 cursor-not-allowed">
+											<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+												<path d="M6 5c-1.1 0-2 .895-2 2s.9 2 2 2 2-.895 2-2-.9-2-2-2zM2 7c0-2.209 1.79-4 4-4s4 1.791 4 4-1.79 4-4 4-4-1.791-4-4zm20 1H12V6h10v2zM6 15c-1.1 0-2 .895-2 2s.9 2 2 2 2-.895 2-2-.9-2-2-2zm-4 2c0-2.209 1.79-4 4-4s4 1.791 4 4-1.79 4-4 4-4-1.791-4-4zm20 1H12v-2h10v2zM7 7c0 .552-.45 1-1 1s-1-.448-1-1 .45-1 1-1 1 .448 1 1z"></path>
+											</svg>
+										</button>
+										<button className="text-white/30 rounded-full p-2 opacity-50 cursor-not-allowed">
+											<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+												<path d="M8 9.5C8 8.119 8.672 7 9.5 7S11 8.119 11 9.5 10.328 12 9.5 12 8 10.881 8 9.5zm6.5 2.5c.828 0 1.5-1.119 1.5-2.5S15.328 7 14.5 7 13 8.119 13 9.5s.672 2.5 1.5 2.5zM12 16c-2.224 0-3.021-2.227-3.051-2.316l-1.897.633c.05.15 1.271 3.684 4.949 3.684s4.898-3.533 4.949-3.684l-1.896-.638c-.033.095-.83 2.322-3.053 2.322zm10.25-4.001c0 5.652-4.598 10.25-10.25 10.25S1.75 17.652 1.75 12 6.348 1.75 12 1.75 22.25 6.348 22.25 12zm-2 0c0-4.549-3.701-8.25-8.25-8.25S3.75 7.451 3.75 12s3.701 8.25 8.25 8.25 8.25-3.701 8.25-8.25z"></path>
+											</svg>
+										</button>
+										<button className="text-white/30 rounded-full p-2 opacity-50 cursor-not-allowed">
+											<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+												<path d="M6 3V2h2v1h6V2h2v1h1.5C18.88 3 20 4.119 20 5.5v2h-2v-2c0-.276-.22-.5-.5-.5H16v1h-2V5H8v1H6V5H4.5c-.28 0-.5.224-.5.5v12c0 .276.22.5.5.5h3v2h-3C3.12 20 2 18.881 2 17.5v-12C2 4.119 3.12 3 4.5 3H6zm9.5 8c-2.49 0-4.5 2.015-4.5 4.5s2.01 4.5 4.5 4.5 4.5-2.015 4.5-4.5-2.01-4.5-4.5-4.5zM9 15.5C9 11.91 11.91 9 15.5 9s6.5 2.91 6.5 6.5-2.91 6.5-6.5 6.5S9 19.09 9 15.5zm5.5-2.5h2v2.086l1.71 1.707-1.42 1.414-2.29-2.293V13z"></path>
+											</svg>
+										</button>
+										<button className="text-white/30 rounded-full p-2 opacity-50 cursor-not-allowed">
+											<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+												<path d="M12 7c-1.93 0-3.5 1.57-3.5 3.5S10.07 14 12 14s3.5-1.57 3.5-3.5S13.93 7 12 7zm0 5c-.827 0-1.5-.673-1.5-1.5S11.173 9 12 9s1.5.673 1.5 1.5S12.827 12 12 12zm0-10c-4.687 0-8.5 3.813-8.5 8.5 0 5.967 7.621 11.116 7.945 11.332l.555.37.555-.37c.324-.216 7.945-5.365 7.945-11.332C20.5 5.813 16.687 2 12 2zm0 17.77c-1.665-1.241-6.5-5.196-6.5-9.27C5.5 6.916 8.416 4 12 4s6.5 2.916 6.5 6.5c0 4.073-4.835 8.028-6.5 9.27z"></path>
+											</svg>
+										</button>
+									</div>
+
+									{/* Right - Character Count */}
+									<div className="flex items-center gap-3">
+										<div className="text-xs text-white/50">
+											{draftText.length}/280
+										</div>
+									</div>
+								</div>
+							</div>
+						</motion.div>
+					</div>
+				)}
+			</AnimatePresence>
 		</div>
 	);
 };
