@@ -13,11 +13,11 @@ export const UserXDetails: FC = () => {
 	return (
 		<div
 			className="
-    absolute z-50
-    inset-x-0 top-6
-    flex justify-center
-    md:inset-auto md:top-6 md:left-5
-    md:justify-start
+   relative md:absolute
+z-50
+flex items-center
+md:top-6 md:left-5
+
   "
 		>
 			<a
@@ -30,7 +30,7 @@ export const UserXDetails: FC = () => {
           border border-[#FC5411]
           text-white
           px-4
-          py-2
+          py-1.5
           rounded-xl
           font-medium
           hover:bg-[#262626]

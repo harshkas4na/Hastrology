@@ -103,13 +103,17 @@ const CardsPage: FC = () => {
 	return (
 		<>
 			<section className="relative min-h-screen flex flex-col bg-black pb-24">
-				{user?.twitterId && (
-					<div className="absolute inset-0 z-10 flex items-center justify-center">
-						<UserXDetails />
-					</div>
-				)}
+				{/* Mobile top row */}
+				<div className="relative z-50 flex md:hidden items-center justify-between px-4 pt-4 gap-3">
+					{user?.twitterId && <UserXDetails />}
+					{publicKey && <WalletBalance />}
+				</div>
 
-				{publicKey && <WalletBalance />}
+				{/* Desktop layout (keep absolute positioning) */}
+				<div className="hidden md:block">
+					{user?.twitterId && <UserXDetails />}
+					{publicKey && <WalletBalance />}
+				</div>
 
 				<div className="fixed inset-0 z-0 flex flex-col pointer-events-none">
 					<div className="relative h-full w-full">
@@ -286,7 +290,7 @@ const CardsPage: FC = () => {
 					</div>
 				</div>
 
-				<div className="relative z-20 flex-1 flex items-center justify-center">
+				<div className="relative z-20 flex-1 flex items-start md:items-center justify-center">
 					<HoroscopeSection />
 				</div>
 

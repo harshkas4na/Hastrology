@@ -395,10 +395,9 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 
 	return (
 		<div
-			className={`mt-10 md:mt-10 w-full h-full flex flex-col ${showShare ? "lg:grid lg:grid-cols-2" : ""} gap-6 lg:gap-16 items-center`}
+			className={`mt-0 md:mt-10 w-full h-full flex flex-col ${showShare ? "lg:grid lg:grid-cols-2" : ""} gap-6 lg:gap-16 items-center`}
 		>
 			{/* LEFT SIDE - Heading & Share Button */}
-			{/* LEFT SIDE */}
 			{showShare && (
 				<motion.div
 					initial={{ opacity: 0, x: -50 }}
@@ -521,7 +520,7 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 
 			{/* RIGHT SIDE - Card Display */}
 			<div
-				className={`w-full h-[705px] md:min-h-[650px] lg:h-[765px] perspective-1000 relative order-1 lg:order-2 ${!showShare ? "mx-auto max-w-xl" : ""}`}
+				className={`w-full h-[765px] md:min-h-[650px] lg:h-[765px] perspective-1000 relative order-1 lg:order-2 ${!showShare ? "mx-auto max-w-xl" : ""}`}
 			>
 				{/* Card Content */}
 				<div

@@ -11,6 +11,7 @@ import { api } from "@/lib/api";
 import { useOnboardingStatus } from "@/lib/useOnboardingStatus";
 import { useStore } from "@/store/useStore";
 import { usePrivyWallet } from "../hooks/use-privy-wallet";
+import { WalletBalance } from "@/components/balance";
 
 const LotteryPage: FC = () => {
 	const { user, card, setCard, setUser, setWallet, reset } = useStore();
@@ -170,7 +171,17 @@ const LotteryPage: FC = () => {
 	return (
 		<>
 			<section className="relative min-h-screen overflow-y-auto pb-40 md:pb-40">
-				{user?.twitterId && <UserXDetails />}
+				<div className="relative z-50 flex md:hidden items-center justify-between px-4 pt-4 gap-3">
+					{user?.twitterId && <UserXDetails />}
+					{publicKey && <WalletBalance />}
+				</div>
+
+				{/* Desktop layout (keep absolute positioning) */}
+				<div className="hidden md:block">
+					{user?.twitterId && <UserXDetails />}
+					{publicKey && <WalletBalance />}
+				</div>
+
 				<div className="fixed inset-0 z-0">
 					<div className="relative h-1/2 w-full">
 						<img

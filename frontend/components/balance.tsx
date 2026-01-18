@@ -137,11 +137,11 @@ export const WalletBalance: FC = () => {
 			{/* Balance Component */}
 			<div
 				className="
-					absolute z-50
-					inset-x-0 top-20 md:top-6
-					flex justify-center
-					md:inset-auto md:top-6 md:right-55
-					md:justify-end
+					relative md:absolute
+z-50
+flex items-center
+md:top-6 md:right-55
+
 				"
 			>
 				<button
@@ -179,7 +179,7 @@ export const WalletBalance: FC = () => {
 					) : loading ? (
 						<div className="flex items-center gap-2">
 							<div className="w-3 h-3 rounded-full border-2 border-white/20 border-t-white animate-spin" />
-							<span className="text-sm md:text-lg">Loading...</span>
+							<span className="text-sm md:text-lg">...</span>
 						</div>
 					) : error ? (
 						<div className="flex items-center gap-2">
