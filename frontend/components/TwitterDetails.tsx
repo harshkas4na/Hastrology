@@ -29,6 +29,7 @@ md:top-6 md:left-5
           bg-[#1F1F1F]
           border border-[#FC5411]
           text-white
+		  cursor-pointer
           px-4
           py-1.5
           rounded-xl
@@ -36,7 +37,7 @@ md:top-6 md:left-5
           hover:bg-[#262626]
           hover:shadow-[0_0_20px_rgba(252,84,17,0.35)]
           transition
-          cursor-pointer
+          hover:scale-105
         "
 			>
 				<svg

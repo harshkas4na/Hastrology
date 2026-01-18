@@ -22,7 +22,13 @@ interface LotteryCountdownProps {
 	onStatusChange?: (status: string) => void;
 }
 
-type Status = "loading" | "countdown" | "drawing" | "checking" | "result" | "not_entered";
+type Status =
+	| "loading"
+	| "countdown"
+	| "drawing"
+	| "checking"
+	| "result"
+	| "not_entered";
 type Result = "won" | "lost" | null;
 
 interface WinnerInfo {
@@ -58,22 +64,22 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({
 	// Calculate IST Time for display
 	const istTime = state
 		? new Date(state.lotteryEndtime.toNumber() * 1000).toLocaleTimeString(
-			"en-IN",
-			{
-				timeZone: "Asia/Kolkata",
-				hour: "2-digit",
-				minute: "2-digit",
-				hour12: true,
-			},
-		)
+				"en-IN",
+				{
+					timeZone: "Asia/Kolkata",
+					hour: "2-digit",
+					minute: "2-digit",
+					hour12: true,
+				},
+			)
 		: "";
 
 	// Calculate prize pool
 	const prizePool = state
 		? (
-			(Number(state.ticketPrice) * Number(state.totalParticipants)) /
-			1e9
-		).toFixed(2)
+				(Number(state.ticketPrice) * Number(state.totalParticipants)) /
+				1e9
+			).toFixed(2)
 		: "0.00";
 
 	/**
@@ -121,8 +127,11 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({
 
 			// PRIORITY 2: Check DB for results (Winner/Loser/New User flows)
 			try {
-				const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api";
-				const response = await fetch(`${apiUrl}/lottery/last-result?address=${address}`);
+				const apiUrl =
+					process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api";
+				const response = await fetch(
+					`${apiUrl}/lottery/last-result?address=${address}`,
+				);
 				const { success, data } = await response.json();
 
 				if (success && data) {
@@ -162,7 +171,6 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({
 				// Fallback to basic not_entered state if API fails
 				setStatus("not_entered");
 			}
-
 		} catch (err) {
 			console.error("Error initializing lottery view:", err);
 			setError("Failed to load lottery data");
@@ -174,13 +182,17 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({
 	 */
 	const showPreviousLotteryResults = async (
 		publicKey: PublicKey,
-		lotteryId: BN
+		lotteryId: BN,
 	) => {
 		try {
 			setViewingLotteryId(lotteryId);
 
 			// Get user's receipt and ticket
-			const userReceipt = await fetchUserReceipt(connection, publicKey, lotteryId);
+			const userReceipt = await fetchUserReceipt(
+				connection,
+				publicKey,
+				lotteryId,
+			);
 
 			if (!userReceipt) {
 				console.error("No receipt found for lottery", lotteryId.toString());
@@ -191,7 +203,7 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({
 			const userTicket = await fetchUserTicket(
 				connection,
 				lotteryId,
-				userReceipt.ticketNumber
+				userReceipt.ticketNumber,
 			);
 
 			if (!userTicket) {
@@ -236,7 +248,6 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({
 			}
 
 			setStatus("result");
-
 		} catch (err) {
 			console.error("Error showing previous lottery results:", err);
 			setStatus("not_entered");
@@ -327,7 +338,8 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({
 
 		try {
 			// Trigger draw via API
-			const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api";
+			const apiUrl =
+				process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api";
 			const triggerResponse = await fetch(`${apiUrl}/lottery/trigger-draw`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
@@ -336,16 +348,17 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({
 			const triggerData = await triggerResponse.json();
 
 			// Handle different response codes
-			if (triggerResponse.ok ||
+			if (
+				triggerResponse.ok ||
 				triggerData.code === "DRAW_IN_PROGRESS" ||
-				triggerData.code === "WINNER_ALREADY_SELECTED") {
+				triggerData.code === "WINNER_ALREADY_SELECTED"
+			) {
 				// Wait for draw to complete
 				await pollForWinner(publicKey, viewingLotteryId);
 			} else {
 				setError(triggerData.error || "Failed to trigger draw");
 				setStatus("drawing");
 			}
-
 		} catch (err) {
 			console.error("Error checking result:", err);
 			setError("Failed to check results. Please try again.");
@@ -359,7 +372,7 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({
 	const pollForWinner = async (publicKey: PublicKey, lotteryId: BN) => {
 		// Poll up to 30 times (60 seconds)
 		for (let i = 0; i < 30; i++) {
-			await new Promise(resolve => setTimeout(resolve, 2000));
+			await new Promise((resolve) => setTimeout(resolve, 2000));
 
 			const currentState = await fetchLotteryState(connection);
 			if (!currentState) continue;
@@ -374,7 +387,9 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({
 		}
 
 		// Timeout - draw taking too long
-		setError("Draw is taking longer than expected. Please try again in a moment.");
+		setError(
+			"Draw is taking longer than expected. Please try again in a moment.",
+		);
 		setStatus("drawing");
 	};
 
@@ -477,7 +492,7 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({
 										</p>
 									</div>
 									<a
-										href={`https://explorer.solana.com/address/${lastWinnerInfo.address}?cluster=devnet`}
+										href={`https://orbmarkets.io/address/${lastWinnerInfo.address}?cluster=devnet&hideSpam=true`}
 										target="_blank"
 										rel="noopener noreferrer"
 										className="text-xs text-slate-500 hover:text-[#fc5411] transition-colors mt-2 inline-block"
@@ -686,7 +701,7 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({
 
 									{winnerInfo?.address && (
 										<a
-											href={`https://explorer.solana.com/address/${winnerInfo.address}?cluster=devnet`}
+											href={`https://orbmarkets.io/address/${winnerInfo.address}?cluster=devnet&hideSpam=true`}
 											target="_blank"
 											rel="noopener noreferrer"
 											className="block text-sm text-slate-500 hover:text-[#fc5411] transition-colors mb-4"
