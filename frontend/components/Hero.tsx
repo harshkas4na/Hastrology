@@ -267,7 +267,7 @@ export const Hero: FC = () => {
 				</motion.div>
 				<div className="font-display max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2 md:gap-0 text-xs md:text-md text-[#8A8A8A]">
 					<span className="font-display">
-						©2025 <span className="text-white">Hastrology</span>
+						©2025 <span className="text-white">Hashtro</span>
 					</span>
 					<div className="flex flex-wrap justify-center gap-3 md:gap-6">
 						<span className="text-white hidden sm:inline">

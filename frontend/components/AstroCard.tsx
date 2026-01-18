@@ -176,7 +176,7 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 			formData.append("image", blob, "hastrology-card.png");
 			formData.append(
 				"text",
-				`My cosmic reading: ${card.front.tagline} 🌟\n\nLuck Score: ${card.front.luck_score}%\nZodiac: ${card.front.zodiac_sign}\n\n#Hastrology`,
+				`My cosmic reading: ${card.front.tagline} 🌟\n\nLuck Score: ${card.front.luck_score}%\nZodiac: ${card.front.zodiac_sign}\n\n#Hashtro`,
 			);
 			formData.append("walletAddress", user.walletAddress);
 
@@ -480,8 +480,8 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 							className="space-y-8"
 						>
 							{/* Copy */}
-							<div className="space-y-3">
-								<h2 className="text-5xl text-white">
+							<div className="text-center space-y-3">
+								<h2 className="text-xl md:text-5xl text-white">
 									Your cosmic signal is live
 								</h2>
 								<p className="text-slate-400 text-lg max-w-xl">
@@ -499,7 +499,7 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 								>
 									View on X
 									<svg
-										className="w-5 h-5 mt-2"
+										className="w-4 h-4 mt-2"
 										fill="none"
 										stroke="currentColor"
 										viewBox="0 0 24 24"
