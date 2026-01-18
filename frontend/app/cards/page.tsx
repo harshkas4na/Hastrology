@@ -137,7 +137,7 @@ const CardsPage: FC = () => {
 					className="hidden md:block absolute top-6 right-6 z-50"
 					ref={dropdownRef}
 				>
-					<div className="relative">
+					<div className="cursor-pointer relative">
 						<button
 							onClick={() => setShowDropdown(!showDropdown)}
 							className="flex flex-row gap-2 items-center
@@ -147,6 +147,7 @@ const CardsPage: FC = () => {
 							px-4
 							py-2
 							rounded-xl
+							hover:scale-105 
 							text-sm md:text-base
 							font-medium
 							hover:bg-[#262626]
@@ -237,7 +238,7 @@ const CardsPage: FC = () => {
 
 									{/* View on Explorer */}
 									<a
-										href={`https://explorer.solana.com/address/${publicKey}?cluster=devnet`}
+										href={`https://orbmarkets.io/address/${publicKey}?advanced=true&cluster=devnet&tab=summary`}
 										target="_blank"
 										rel="noopener noreferrer"
 										className="w-full px-4 py-3 text-left text-white hover:bg-[#262626] transition-colors duration-150 flex items-center gap-2"

@@ -64,17 +64,7 @@ export const WalletBalance: FC = () => {
 
 	useEffect(() => {
 		fetchBalance();
-		const intervalId = setInterval(fetchBalance, 10000);
-		return () => clearInterval(intervalId);
 	}, [fetchBalance]);
-
-	const handleFundWalletClick = () => {
-		if (balance !== null && balance < 0.01) {
-			setShowConfirm(true);
-		} else {
-			initiateFundWallet();
-		}
-	};
 
 	const initiateFundWallet = async () => {
 		if (!publicKey || isFunding) return;
@@ -145,7 +135,6 @@ md:top-6 md:right-55
 				"
 			>
 				<button
-					onClick={handleFundWalletClick}
 					disabled={loading || isFunding}
 					className="
 						flex flex-row gap-2 items-center
@@ -179,7 +168,6 @@ md:top-6 md:right-55
 					) : loading ? (
 						<div className="flex items-center gap-2">
 							<div className="w-3 h-3 rounded-full border-2 border-white/20 border-t-white animate-spin" />
-							<span className="text-sm md:text-lg">...</span>
 						</div>
 					) : error ? (
 						<div className="flex items-center gap-2">

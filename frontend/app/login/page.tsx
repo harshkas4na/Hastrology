@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { geocodePlace, getTimezoneOffset } from "@/lib/geocoding";
 import { useStore } from "@/store/useStore";
 import { usePrivyWallet } from "../hooks/use-privy-wallet";
+import { PlaceAutocomplete } from "@/components/place-autocomplete";
 
 type FormStep = "initial" | "birth-details";
 
@@ -317,23 +318,10 @@ const LoginPage: FC = () => {
 
 								{/* Place of Birth */}
 								<div>
-									<input
-										className="
-											w-full px-4 py-3 rounded-lg
-											bg-[#121212]
-											border border-[#2A2A2A]
-											text-white
-											placeholder:text-gray-500
-											focus:outline-none
-											focus:border-[#FC5411]
-											disabled:opacity-50
-											disabled:cursor-not-allowed
-										"
-										disabled={isSubmitting}
-										onChange={(e) => setBirthPlace(e.target.value)}
-										placeholder="Place of Birth"
-										type="text"
+									<PlaceAutocomplete
 										value={birthPlace}
+										onChange={setBirthPlace}
+										disabled={isSubmitting}
 									/>
 								</div>
 

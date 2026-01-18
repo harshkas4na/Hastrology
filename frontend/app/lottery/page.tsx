@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { type FC, useCallback, useEffect, useRef, useState } from "react";
 import { AstroCard } from "@/components/AstroCard";
+import { WalletBalance } from "@/components/balance";
 import { LotteryCountdown } from "@/components/LotteryCountdown";
 import { UserXDetails } from "@/components/TwitterDetails";
 import { Toast } from "@/components/toast";
@@ -11,7 +12,6 @@ import { api } from "@/lib/api";
 import { useOnboardingStatus } from "@/lib/useOnboardingStatus";
 import { useStore } from "@/store/useStore";
 import { usePrivyWallet } from "../hooks/use-privy-wallet";
-import { WalletBalance } from "@/components/balance";
 
 const LotteryPage: FC = () => {
 	const { user, card, setCard, setUser, setWallet, reset } = useStore();
@@ -204,7 +204,7 @@ const LotteryPage: FC = () => {
 					className="hidden md:block absolute top-6 right-6 z-50"
 					ref={dropdownRef}
 				>
-					<div className="relative">
+					<div className="cursor-pointer relative">
 						<button
 							onClick={() => setShowDropdown(!showDropdown)}
 							className="flex flex-row gap-2 items-center
@@ -275,7 +275,7 @@ const LotteryPage: FC = () => {
 
 									{/* View on Explorer */}
 									<a
-										href={`https://explorer.solana.com/address/${publicKey}?cluster=devnet`}
+										href={`https://orbmarkets.io/address/${publicKey}?cluster=devnet&hideSpam=true`}
 										target="_blank"
 										rel="noopener noreferrer"
 										className="w-full px-4 py-3 text-left text-white hover:bg-[#262626] transition-colors duration-150 flex items-center gap-2"
