@@ -296,7 +296,7 @@ const CardsPage: FC = () => {
 				</div>
 
 				{/* Footer */}
-				<div className="block absolute bottom-4 md:bottom-11 left-0 w-full z-30 px-6">
+				<div className="block absolute bottom-4 md:bottom-11 left-0 w-full z-10 px-6">
 					<div className="w-full flex md:hidden mt-0 mb-5 flex-col items-center gap-4">
 						<button
 							onClick={handleDisconnect}
