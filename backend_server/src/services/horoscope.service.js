@@ -14,7 +14,9 @@ class HoroscopeService {
      * @returns {string} Today's date
      */
     getTodayDateString() {
-        return new Date().toISOString().split('T')[0];
+        // Return date in IST (Asia/Kolkata)
+        // using 'en-CA' locale gives YYYY-MM-DD format
+        return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
     }
 
     /**

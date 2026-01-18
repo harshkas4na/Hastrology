@@ -7,6 +7,7 @@
 
 import { PublicKey, Connection, TransactionInstruction, SystemProgram } from '@solana/web3.js';
 import BN from 'bn.js';
+import bs58 from 'bs58';
 
 // New Program ID (deployed 2025-12-20)
 export const PROGRAM_ID = new PublicKey('A3voJRWMzoy1118ZmTjsoYAGXrM9zPySUPwcgUQ3PV76');
@@ -347,3 +348,49 @@ export async function hasUserEnteredSpecificLottery(
     return accountInfo !== null;
 }
 
+
+/**
+ * Find the winning ticket for a specific lottery directly from the blockchain
+ * Uses getProgramAccounts with filters to find the ticket with isWinner = true
+ */
+export async function getWinningTicket(
+    connection: Connection,
+    lotteryId: BN
+): Promise<UserTicket | null> {
+    try {
+        const lotteryIdBuffer = lotteryId.toArrayLike(Buffer, 'le', 8);
+
+        // Filter for Lottery ID at offset 40 (8 discriminator + 32 user)
+        const lotteryIdFilter = {
+            memcmp: {
+                offset: 40,
+                bytes: bs58.encode(lotteryIdBuffer),
+            },
+        };
+
+        // Filter for isWinner = true at offset 48 (8 disc + 32 user + 8 lotteryId)
+        const isWinnerFilter = {
+            memcmp: {
+                offset: 48,
+                bytes: bs58.encode(Buffer.from([1])),
+            },
+        };
+
+        const accounts = await connection.getProgramAccounts(PROGRAM_ID, {
+            filters: [
+                lotteryIdFilter,
+                isWinnerFilter,
+                { dataSize: 58 } // Ensure it's the correct account type size
+            ],
+        });
+
+        if (accounts.length === 0) {
+            return null;
+        }
+
+        return decodeUserTicket(accounts[0].account.data as Buffer);
+    } catch (error) {
+        console.error("Error finding winning ticket:", error);
+        return null;
+    }
+}
