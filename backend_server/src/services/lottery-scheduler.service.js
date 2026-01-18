@@ -412,6 +412,9 @@ class LotterySchedulerService {
             try {
                 await this.executePayout(state, lotteryStatePDA, potVaultPDA, winnerIndex);
                 logger.info('✅ Payout Successful! Lottery reset.');
+
+                // Save results to DB
+                await this.saveDrawResult(state, winnerIndex, null); // We don't have tx sig easily here without refactoring, passing null for now or could log it if executePayout returned it
             } catch (e) {
                 logger.error('❌ Payout Failed:', e.message);
             }
@@ -421,6 +424,124 @@ class LotterySchedulerService {
         } finally {
             this.isRunning = false;
             logger.info('='.repeat(60));
+        }
+    }
+
+    /**
+     * Save draw results to Supabase
+     */
+    async saveDrawResult(state, winnerIndex, transactionSignature = null) {
+        try {
+            const supabase = getSupabaseClient();
+            if (!supabase) {
+                logger.warn('Supabase client not available. Skipping result save.');
+                return;
+            }
+
+            const lotteryId = state.currentLotteryId.toString();
+            const totalParticipants = Number(state.totalParticipants);
+            const prizeAmount = (Number(state.ticketPrice) * totalParticipants / 1e9).toFixed(4);
+
+            logger.info(`📝 Saving results for Lottery #${lotteryId} to Supabase...`);
+
+            // 1. Fetch winning ticket to get winner address
+            let winnerAddress = null;
+            if (winnerIndex > 0) {
+                try {
+                    const [winningTicketPDA] = this.getUserTicketPDA(
+                        state.currentLotteryId,
+                        new BN(winnerIndex - 1)
+                    );
+                    const ticket = await this.program.account.userTicket.fetch(winningTicketPDA);
+                    winnerAddress = ticket.user.toBase58();
+                } catch (e) {
+                    logger.error(`Failed to fetch winning ticket definition: ${e.message}`);
+                }
+            }
+
+            // 2. Insert into lottery_draws
+            const { error: drawError } = await supabase
+                .from('lottery_draws')
+                .upsert({
+                    lottery_id: lotteryId,
+                    draw_time: new Date().toISOString(),
+                    winner_wallet: winnerAddress,
+                    prize_amount: prizeAmount,
+                    total_participants: totalParticipants,
+                    winning_ticket_index: winnerIndex,
+                    transaction_signature: transactionSignature
+                }, { onConflict: 'lottery_id' });
+
+            if (drawError) {
+                logger.error('Failed to save lottery_draw:', drawError);
+                return;
+            }
+
+            // 3. Batch fetch and save participants
+            if (totalParticipants > 0) {
+                logger.info(`Fetching ${totalParticipants} participants...`);
+
+                // Process in chunks of 50 to avoid RPC limits
+                const CHUNK_SIZE = 50;
+                const participantsToInsert = [];
+
+                for (let i = 0; i < totalParticipants; i += CHUNK_SIZE) {
+                    const chunkPromises = [];
+                    const endIndex = Math.min(i + CHUNK_SIZE, totalParticipants);
+
+                    for (let j = i; j < endIndex; j++) {
+                        const [ticketPDA] = this.getUserTicketPDA(
+                            state.currentLotteryId,
+                            new BN(j)
+                        );
+                        chunkPromises.push(this.program.account.userTicket.fetch(ticketPDA));
+                    }
+
+                    try {
+                        const tickets = await Promise.all(chunkPromises);
+
+                        tickets.forEach((ticket, idx) => {
+                            // actual index is i + idx
+                            // check if this user is the winner
+                            // Note: ticket indices are 0-based, winnerIndex is 1-based usually from smart contract, 
+                            // but let's check how we used it. 
+                            // In executeDraw: winnerIndex = Number(state.winner); which is 1-based (0 = no winner).
+                            // So if (i + idx + 1) === winnerIndex, they are winner.
+
+                            participantsToInsert.push({
+                                lottery_id: lotteryId,
+                                wallet_address: ticket.user.toBase58(),
+                                is_winner: (i + idx + 1) === winnerIndex
+                            });
+                        });
+
+                        process.stdout.write('.');
+                    } catch (err) {
+                        logger.error(`Error fetching chunk ${i}-${endIndex}:`, err.message);
+                    }
+                }
+
+                if (participantsToInsert.length > 0) {
+                    logger.info(`\nSaving ${participantsToInsert.length} participants to DB...`);
+
+                    // Insert into Supabase in chunks
+                    for (let i = 0; i < participantsToInsert.length; i += 1000) {
+                        const batch = participantsToInsert.slice(i, i + 1000);
+                        const { error: partError } = await supabase
+                            .from('lottery_participants')
+                            .upsert(batch, { onConflict: 'lottery_id,wallet_address' });
+
+                        if (partError) {
+                            logger.error('Failed to save batch of participants:', partError);
+                        }
+                    }
+                }
+            }
+
+            logger.info('✅ Lottery results saved to Supabase successfully.');
+
+        } catch (error) {
+            logger.error('Failed to save draw results:', error);
         }
     }
 
@@ -492,5 +613,6 @@ class LotterySchedulerService {
     }
 }
 
+const { getSupabaseClient } = require('../config/supabase');
 const lotteryScheduler = new LotterySchedulerService();
 module.exports = lotteryScheduler;

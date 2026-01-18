@@ -119,32 +119,49 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({
 				return;
 			}
 
-			// PRIORITY 2: Check if user entered PREVIOUS lottery (for results)
-			const prevLotteryId = currentLotteryId.subn(1);
+			// PRIORITY 2: Check DB for results (Winner/Loser/New User flows)
+			try {
+				const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api";
+				const response = await fetch(`${apiUrl}/lottery/last-result?address=${address}`);
+				const { success, data } = await response.json();
 
-			if (prevLotteryId.lten(0)) {
-				// No previous lottery exists, user is new
+				if (success && data) {
+					if (data.userStatus === "won") {
+						setResult("won");
+						setUserPrize(Number(data.userPrize).toFixed(2));
+						setStatus("result");
+						setViewingLotteryId(new BN(data.lotteryId));
+						return;
+					}
+
+					if (data.userStatus === "lost") {
+						setResult("lost");
+						setWinnerInfo({
+							address: data.winner,
+							prize: Number(data.prize).toFixed(2),
+							lotteryId: data.lotteryId,
+							xHandle: undefined, // Could fetch profile here if needed
+						});
+						setStatus("result");
+						setViewingLotteryId(new BN(data.lotteryId));
+						return;
+					}
+
+					// status === 'not_entered'
+					setStatus("not_entered");
+					setLastWinnerInfo({
+						address: data.winner,
+						prize: Number(data.prize).toFixed(2),
+						lotteryId: data.lotteryId,
+						xHandle: undefined,
+					});
+					return;
+				}
+			} catch (apiError) {
+				console.error("Failed to fetch lottery status from API:", apiError);
+				// Fallback to basic not_entered state if API fails
 				setStatus("not_entered");
-				return;
 			}
-
-			const enteredPrev = await hasUserEnteredSpecificLottery(
-				connection,
-				publicKey,
-				prevLotteryId,
-			);
-
-			if (enteredPrev) {
-				// User participated in previous lottery - show results
-				await showPreviousLotteryResults(publicKey, prevLotteryId);
-				return;
-			}
-
-			// PRIORITY 3: User hasn't entered current or previous lottery
-			setStatus("not_entered");
-
-			// Fetch last winner info for display
-			await fetchLastWinnerInfo(prevLotteryId);
 
 		} catch (err) {
 			console.error("Error initializing lottery view:", err);

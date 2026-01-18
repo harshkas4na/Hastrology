@@ -143,4 +143,75 @@ router.get('/health', async (req, res) => {
     }
 });
 
+/**
+ * Get last lottery result and user status
+ * @route GET /api/lottery/last-result
+ * @query address (optional) - Wallet address to check status for
+ */
+router.get('/last-result', async (req, res) => {
+    try {
+        const { getSupabaseClient } = require('../config/supabase');
+        const supabase = getSupabaseClient();
+        const { address } = req.query;
+
+        // 1. Get latest draw
+        const { data: latestDraw, error: drawError } = await supabase
+            .from('lottery_draws')
+            .select('*')
+            .order('lottery_id', { ascending: false })
+            .limit(1)
+            .single();
+
+        if (drawError && drawError.code !== 'PGRST116') {
+            throw drawError;
+        }
+
+        if (!latestDraw) {
+            return res.json({
+                success: true,
+                data: null
+            });
+        }
+
+        let userStatus = 'not_entered';
+        let userPrize = null;
+
+        // 2. Check user status if address provided
+        if (address) {
+            const { data: participant, error: partError } = await supabase
+                .from('lottery_participants')
+                .select('*')
+                .eq('lottery_id', latestDraw.lottery_id)
+                .eq('wallet_address', address)
+                .single();
+
+            if (!partError && participant) {
+                userStatus = participant.is_winner ? 'won' : 'lost';
+                if (participant.is_winner) {
+                    userPrize = latestDraw.prize_amount;
+                }
+            }
+        }
+
+        res.json({
+            success: true,
+            data: {
+                lotteryId: latestDraw.lottery_id,
+                drawTime: latestDraw.draw_time,
+                winner: latestDraw.winner_wallet,
+                prize: latestDraw.prize_amount,
+                userStatus: userStatus, // 'won', 'lost', 'not_entered'
+                userPrize: userPrize
+            }
+        });
+
+    } catch (error) {
+        logger.error('Failed to get last lottery result:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
 module.exports = router;
