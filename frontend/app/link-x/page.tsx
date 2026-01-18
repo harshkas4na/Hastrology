@@ -244,34 +244,6 @@ const XLoginContent: FC = () => {
 						Link your X account for personalized cosmic insights ✨
 					</p>
 
-					<button
-						onClick={() => {
-							if (!publicKey) return;
-							disconnect();
-						}}
-						className="flex flex-row gap-2 items-center
-      bg-[#1F1F1F]
-      border border-[#FC5411]
-      text-white
-      px-4
-      py-2
-      rounded-xl
-      font-medium
-      hover:bg-[#262626]
-      hover:shadow-[0_0_20px_rgba(252,84,17,0.35)]
-      transition
-    "
-						type="button"
-					>
-						<img
-							alt="Solana Logo"
-							className="w-4 h-5"
-							src="https://solana.com/src/img/branding/solanaLogoMark.svg"
-						/>
-						{publicKey?.slice(0, 4)}...
-						{publicKey?.slice(-4)}
-					</button>
-
 					{/* Error Message */}
 					{error && !success && (
 						<div className="mb-6 p-4 rounded-lg border border-red-700 bg-red-900/20 backdrop-blur-sm">
@@ -382,7 +354,7 @@ const XLoginContent: FC = () => {
 
 				<div className="font-display max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2 md:gap-0 text-xs md:text-md text-[#8A8A8A]">
 					<span className="font-display">
-						©2025 <span className="text-white">Hastrology</span>
+						©2025 <span className="text-white">Hashtro</span>
 					</span>
 					<div className="flex flex-wrap justify-center gap-3 md:gap-6">
 						<span className="text-white hidden sm:inline">

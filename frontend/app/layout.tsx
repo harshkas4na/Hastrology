@@ -16,19 +16,19 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-	title: "Hastrology - AI-Powered Horoscopes on Solana",
+	title: "Hashtro - AI-Powered Horoscopes on Solana",
 	description:
 		"Discover your cosmic path with AI-generated horoscopes. Pay with Solana, share on X, and enter daily lottery.",
 	keywords: ["horoscope", "astrology", "solana", "crypto", "AI", "web3"],
-	authors: [{ name: "Hastrology" }],
+	authors: [{ name: "Hashtro" }],
 	openGraph: {
-		title: "Hastrology - Your Cosmic Path On-Chain",
+		title: "Hashtro - Your Cosmic Path On-Chain",
 		description: "AI-Powered Horoscopes on Solana",
 		type: "website",
 	},
 	twitter: {
 		card: "summary_large_image",
-		title: "Hastrology",
+		title: "Hashtro",
 		description: "AI-Powered Horoscopes on Solana",
 	},
 };
