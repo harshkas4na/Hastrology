@@ -110,7 +110,7 @@ export const Hero: FC = () => {
 				<motion.img
 					alt="Hastrology Logo"
 					animate={{ scale: 1, opacity: 1 }}
-					className="-mt-4 md:-mt-25
+					className="-mt-0 md:-mt-25
             w-85 md:w-120 lg:w-166
             mx-auto
             drop-shadow-[0_0_20px_rgba(251,146,60,0.35)]
@@ -134,7 +134,7 @@ export const Hero: FC = () => {
 					</span>
 				</motion.p>
 
-				<div className="hidden md:inline-block relative ">
+				<div className="hidden md:inline-block relative mt-3">
 					<button
 						className="mt-5 !bg-[#1f1f1f] hover:!bg-[#121212] !text-white !h-12 !px-8 !py-6 !border !border-[#fc5411] !pt-2.5 !rounded-xl !transition-all"
 						disabled={isLoadingWallet}
@@ -147,11 +147,22 @@ export const Hero: FC = () => {
 						}}
 						type="button"
 					>
-						{isLoadingWallet
-							? "Loading..."
-							: address
-								? `${address.slice(0, 6)}...${address.slice(-4)}`
-								: "Connect Wallet"}
+						{isLoadingWallet ? (
+							"Loading..."
+						) : address ? (
+							`${address.slice(0, 6)}...${address.slice(-4)}`
+						) : (
+							<div className="flex flex-row items-center gap-2">
+								<span>Connect Your</span>
+								<svg
+									viewBox="0 0 24 24"
+									aria-hidden="true"
+									className="block w-5 h-5 fill-current"
+								>
+									<path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+								</svg>
+							</div>
+						)}
 					</button>
 
 					{open && address && (
@@ -241,7 +252,16 @@ export const Hero: FC = () => {
 							type="button"
 							className="!bg-[#1f1f1f]  hover:!bg-[#121212] !text-white !h-12 !px-8 !py-6 !border !border-[#fc5411] !pt-2.5 !rounded-xl !transition-all"
 						>
-							Connect Wallet
+							<div className="flex flex-row items-center gap-2">
+								<span>Connect Your</span>
+								<svg
+									viewBox="0 0 24 24"
+									aria-hidden="true"
+									className="block w-5 h-5 fill-current"
+								>
+									<path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+								</svg>
+							</div>
 						</button>
 					)}
 				</motion.div>

@@ -164,7 +164,9 @@ export const HoroscopeSection: FC = () => {
 	const { fundWallet } = useFundWallet({
 		onUserExited(params) {
 			if (publicKey) {
-				fetchBalance();
+				setTimeout(() => {
+					fetchBalance();
+				}, 2000);
 			}
 		},
 	});
@@ -515,12 +517,12 @@ export const HoroscopeSection: FC = () => {
 						repeat: Infinity,
 						ease: "linear",
 					}}
-					className="w-24 h-24 mx-auto mb-8 relative"
+					className="w-14 h-14 md:w-24 md:h-24 mx-auto mb-8 relative"
 				>
 					<div className="absolute inset-0 rounded-full border-4 border-black"></div>
 					<div className="absolute inset-0 rounded-full border-4 border-t-[#FC5411] border-r-[#FC5411] border-b-transparent border-l-transparent"></div>
 				</motion.div>
-				<p className="animate-pulse text-3xl text-[#CCCCCC]">
+				<p className="animate-pulse text-xl md:text-3xl text-[#CCCCCC]">
 					Connecting to the cosmos…
 				</p>
 			</section>
@@ -554,7 +556,7 @@ export const HoroscopeSection: FC = () => {
 		<>
 			<section
 				id="horoscope-section"
-				className="min-h-screen flex items-center justify-center py-12 px-4 relative"
+				className="min-h-screen flex items-start md:items-center justify-center pt-10 md:py-12 px-4 relative"
 			>
 				<div className="w-full max-w-8xl relative z-10">
 					<AnimatePresence mode="wait">
@@ -569,8 +571,8 @@ export const HoroscopeSection: FC = () => {
 								className="relative"
 							>
 								{/* Outer Orange Glow */}
-								<div className="absolute inset-0 rounded-[3rem] bg-gradient-to-r from-orange-500/30 via-[#FC5411]/40 to-orange-600/30 blur-xl"></div>
-								<div className="absolute inset-0 rounded-[3rem] bg-gradient-to-br from-[#FC5411]/20 to-orange-500/20 blur-xl"></div>
+								<div className="absolute inset-0 rounded-[2rem] bg-gradient-to-r from-orange-500/30 via-[#FC5411]/40 to-orange-600/30 blur-md"></div>
+								<div className="absolute inset-0 rounded-[2rem] bg-gradient-to-br from-[#FC5411]/20 to-orange-500/20 blur-md"></div>
 
 								<div className="relative backdrop-blur-2xl bg-black/95 rounded-2xl md:rounded-[3rem] p-6 md:p-8 lg:p-12 shadow-2xl">
 									{/* Decorative Elements */}
@@ -620,13 +622,6 @@ export const HoroscopeSection: FC = () => {
 															<p className="text-amber-200 text-sm font-medium">
 																{walletWarning}
 															</p>
-															{!connected && (
-																<div className="mt-3">
-																	<WalletMultiButtonDynamic className="!bg-[#1f1f1f] !text-white !h-10 !px-4 !border !border-amber-500/50 !rounded-lg !text-sm">
-																		Connect Wallet
-																	</WalletMultiButtonDynamic>
-																</div>
-															)}
 														</div>
 														<button
 															onClick={() => setWalletWarning(null)}
