@@ -1,17 +1,12 @@
 import type { Metadata } from "next";
-import { Outfit, Plus_Jakarta_Sans } from "next/font/google";
+import { Montserrat } from "next/font/google";
 import "./globals.css";
 import { Web3Provider } from "@/components/WalletContextProvider";
 
-const outfit = Outfit({
+const montserrat = Montserrat({
 	subsets: ["latin"],
-	variable: "--font-outfit",
-	display: "swap",
-});
-
-const jakarta = Plus_Jakarta_Sans({
-	subsets: ["latin"],
-	variable: "--font-jakarta",
+	variable: "--font-montserrat",
+	weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
 	display: "swap",
 });
 
@@ -41,7 +36,7 @@ export default function RootLayout({
 	return (
 		<html className="scroll-smooth" lang="en">
 			<body
-				className={`${outfit.variable} ${jakarta.variable} font-sans bg-black text-white antialiased`}
+				className={`${montserrat.className} bg-black text-white antialiased`}
 			>
 				<Web3Provider>{children}</Web3Provider>
 			</body>

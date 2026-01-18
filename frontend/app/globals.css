@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
-  --font-heading: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
   --font-display: "SpaceGrotesk", ui-sans-serif, system-ui, sans-serif;
   --font-normal: "Aldrich", ui-sans-serif, system-ui, sans-serif;
 
@@ -23,10 +23,12 @@
   --animate-pulse-slow: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 
   @keyframes float {
+
     0%,
     100% {
       transform: translateY(0px);
     }
+
     50% {
       transform: translateY(-20px);
     }
@@ -36,6 +38,7 @@
     0% {
       box-shadow: 0 0 5px #7c3aed, 0 0 10px #7c3aed;
     }
+
     100% {
       box-shadow: 0 0 20px #7c3aed, 0 0 30px #ec4899;
     }
@@ -65,7 +68,7 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: var(--font-heading);
+  font-family: inherit;
 }
 
 /* Cosmic Background */
@@ -83,17 +86,13 @@ h6 {
 
 .stars {
   z-index: 0;
-  background: #000
-    url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAE0lEQVQImWP4////fwYGBgYGBgYADfQC/SdKU+UAAAAASUVORK5CYII=)
-    repeat top center;
+  background: #000 url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAE0lEQVQImWP4////fwYGBgYGBgYADfQC/SdKU+UAAAAASUVORK5CYII=) repeat top center;
   opacity: 0.8;
 }
 
 .twinkling {
   z-index: 1;
-  background: transparent
-    url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAE0lEQVQImWP4////fwYGBgYGBgYADfQC/SdKU+UAAAAASUVORK5CYII=)
-    repeat top center;
+  background: transparent url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAE0lEQVQImWP4////fwYGBgYGBgYADfQC/SdKU+UAAAAASUVORK5CYII=) repeat top center;
   opacity: 0.4;
   animation: move-twink-back 200s linear infinite;
 }
@@ -102,6 +101,7 @@ h6 {
   from {
     background-position: 0 0;
   }
+
   to {
     background-position: -10000px 5000px;
   }
