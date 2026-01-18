@@ -98,18 +98,8 @@ const startServer = async () => {
       logger.info('✓ Supabase connection successful');
     }
 
-    // Initialize lottery scheduler
-    const lotteryScheduler = require('./src/services/lottery-scheduler.service');
-    const keypairPath = process.env.LOTTERY_AUTHORITY_KEYPAIR;
+    // Lottery scheduler is now initialized globally via initializeServices()
 
-    if (keypairPath) {
-      lotteryScheduler.initialize(keypairPath);
-      lotteryScheduler.startScheduler();
-      logger.info('✓ Lottery scheduler initialized');
-    } else {
-      logger.warn('⚠️ LOTTERY_AUTHORITY_KEYPAIR not set. Automatic lottery draws disabled.');
-      logger.warn('   To enable: set LOTTERY_AUTHORITY_KEYPAIR in .env');
-    }
 
     // Start listening
     const PORT = config.server.port;
@@ -141,9 +131,37 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
+const initializeServices = () => {
+  // Initialize lottery scheduler
+  const lotteryScheduler = require('./src/services/lottery-scheduler.service');
+  const keypairPath = process.env.LOTTERY_AUTHORITY_KEYPAIR;
+
+  if (keypairPath) {
+    // Always initialize the service (loads keypairs, connects to RPC)
+    lotteryScheduler.initialize(keypairPath);
+
+    // Only start the cron scheduler if NOT in a serverless environment (Vercel)
+    if (!process.env.VERCEL) {
+      lotteryScheduler.startScheduler();
+    }
+    logger.info('✓ Lottery scheduler initialized' + (process.env.VERCEL ? ' (Serverless Mode)' : ''));
+  } else {
+    logger.warn('⚠️ LOTTERY_AUTHORITY_KEYPAIR not set. Automatic lottery draws disabled.');
+    logger.warn('   To enable: set LOTTERY_AUTHORITY_KEYPAIR in .env');
+  }
+};
+
+// Initialize services immediately (safe as it is synchronous and depends on loaded env)
+try {
+  initializeServices();
+} catch (error) {
+  logger.error('Failed to initialize services:', error);
+}
+
 // Start the server (skip on Vercel - it uses the exported app directly)
 if (!process.env.VERCEL) {
   startServer();
 }
 
-module.exports = app; // Export for Vercel serverless + testing
+// Export app for Vercel
+module.exports = app;
