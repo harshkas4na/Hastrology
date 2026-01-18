@@ -1,0 +1,882 @@
+{
+  "address": "A3voJRWMzoy1118ZmTjsoYAGXrM9zPySUPwcgUQ3PV76",
+  "metadata": {
+    "name": "hastrology_program",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "enter_lottery",
+      "discriminator": [
+        252,
+        72,
+        239,
+        78,
+        58,
+        56,
+        149,
+        231
+      ],
+      "accounts": [
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "lottery_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  116,
+                  116,
+                  101,
+                  114,
+                  121,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pot_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  116,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_entry_receipt",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114,
+                  45,
+                  114,
+                  101,
+                  99,
+                  101,
+                  105,
+                  112,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              },
+              {
+                "kind": "account",
+                "path": "lottery_state.current_lottery_id",
+                "account": "LotteryState"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_ticket",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114,
+                  45,
+                  116,
+                  105,
+                  99,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lottery_state.current_lottery_id",
+                "account": "LotteryState"
+              },
+              {
+                "kind": "account",
+                "path": "lottery_state.total_participants",
+                "account": "LotteryState"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize",
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "lottery_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  116,
+                  116,
+                  101,
+                  114,
+                  121,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pot_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  116,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "platform_wallet_pubkey",
+          "type": "pubkey"
+        },
+        {
+          "name": "ticket_price",
+          "type": "u64"
+        },
+        {
+          "name": "platform_fee_bps",
+          "type": "u16"
+        },
+        {
+          "name": "first_lottery_endtime",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "payout",
+      "discriminator": [
+        149,
+        140,
+        194,
+        236,
+        174,
+        189,
+        6,
+        239
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "lottery_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  116,
+                  116,
+                  101,
+                  114,
+                  121,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pot_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  116,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "platform_wallet",
+          "writable": true
+        },
+        {
+          "name": "winning_ticket",
+          "writable": true
+        },
+        {
+          "name": "winner",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "request_draw",
+      "discriminator": [
+        22,
+        180,
+        8,
+        81,
+        47,
+        21,
+        86,
+        159
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "lottery_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  116,
+                  116,
+                  101,
+                  114,
+                  121,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "oracle_queue",
+          "writable": true,
+          "address": "Cuj97ggrhhidhbu39TijNVqE74xvKJ69gDervRUXAxGh"
+        },
+        {
+          "name": "program_identity",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  100,
+                  101,
+                  110,
+                  116,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vrf_program",
+          "address": "Vrf1RNUjXmQGjmQrQLvJHs9SNkvDJEsRVFPkfSQUwGz"
+        },
+        {
+          "name": "slot_hashes",
+          "address": "SysvarS1otHashes111111111111111111111111111"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "reset",
+      "discriminator": [
+        23,
+        81,
+        251,
+        84,
+        138,
+        183,
+        240,
+        214
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "lottery_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  116,
+                  116,
+                  101,
+                  114,
+                  121,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "resolve_draw",
+      "discriminator": [
+        115,
+        132,
+        65,
+        125,
+        65,
+        181,
+        26,
+        60
+      ],
+      "accounts": [
+        {
+          "name": "vrf_program",
+          "signer": true,
+          "address": "9irBy75QS2BN81FUgXuHcjqceJJRuc9oDkAe8TKVvvAw"
+        },
+        {
+          "name": "lottery_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  116,
+                  116,
+                  101,
+                  114,
+                  121,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "randomness",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "update_config",
+      "discriminator": [
+        29,
+        158,
+        252,
+        191,
+        10,
+        83,
+        219,
+        99
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "lottery_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  116,
+                  116,
+                  101,
+                  114,
+                  121,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "new_ticket_price",
+          "type": {
+            "option": "u64"
+          }
+        },
+        {
+          "name": "new_platform_fee_bps",
+          "type": {
+            "option": "u16"
+          }
+        },
+        {
+          "name": "new_platform_wallet",
+          "type": {
+            "option": "pubkey"
+          }
+        },
+        {
+          "name": "new_lottery_endtime",
+          "type": {
+            "option": "i64"
+          }
+        },
+        {
+          "name": "reset_winner",
+          "type": {
+            "option": "bool"
+          }
+        },
+        {
+          "name": "reset_drawing",
+          "type": {
+            "option": "bool"
+          }
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "LotteryState",
+      "discriminator": [
+        196,
+        210,
+        202,
+        219,
+        204,
+        63,
+        133,
+        85
+      ]
+    },
+    {
+      "name": "UserEntryReceipt",
+      "discriminator": [
+        143,
+        44,
+        211,
+        19,
+        34,
+        201,
+        23,
+        145
+      ]
+    },
+    {
+      "name": "UserTicket",
+      "discriminator": [
+        180,
+        163,
+        8,
+        176,
+        85,
+        62,
+        213,
+        128
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "Overflow",
+      "msg": "Math Overflow"
+    },
+    {
+      "code": 6001,
+      "name": "InvalidPlatformFee",
+      "msg": "The platform fee must be 10,000 (100%) or less."
+    },
+    {
+      "code": 6002,
+      "name": "InvalidTicketPrice",
+      "msg": "The ticket price cannot be zero."
+    },
+    {
+      "code": 6003,
+      "name": "LotteryIsDrawing",
+      "msg": "The lottery is currently drawing a winner. Please try again later."
+    },
+    {
+      "code": 6004,
+      "name": "LotteryNotOver",
+      "msg": "The lottery is not over yet. Cannot request a draw."
+    },
+    {
+      "code": 6005,
+      "name": "InvalidRandomnessAccount",
+      "msg": "The randomness account is invalid."
+    },
+    {
+      "code": 6006,
+      "name": "InvalidRandomnessSlot",
+      "msg": "The randomness slot is not the previous slot."
+    },
+    {
+      "code": 6007,
+      "name": "DrawAlreadyRequested",
+      "msg": "A draw has already been requested for this lottery."
+    },
+    {
+      "code": 6008,
+      "name": "UnauthorizedAuthority",
+      "msg": "The signer is not the authorized keeper."
+    },
+    {
+      "code": 6009,
+      "name": "InvalidWinner",
+      "msg": "The winning ticket account is invalid."
+    },
+    {
+      "code": 6010,
+      "name": "InvalidVrfAccount",
+      "msg": "The provided VRF account does not match the one in state."
+    },
+    {
+      "code": 6011,
+      "name": "InvalidSwitchboardProgram",
+      "msg": "The provided Switchboard program ID is incorrect."
+    },
+    {
+      "code": 6012,
+      "name": "RandomnessAlreadyRevealed",
+      "msg": "already revealed"
+    },
+    {
+      "code": 6013,
+      "name": "DrawNotRequested",
+      "msg": "No draw has been requested for this lottery."
+    },
+    {
+      "code": 6014,
+      "name": "RandomnessExpired",
+      "msg": "The randomness request has expired."
+    },
+    {
+      "code": 6015,
+      "name": "RandomnessNotResolved",
+      "msg": "The randomness result has not been revealed yet."
+    },
+    {
+      "code": 6016,
+      "name": "VrfResultNotReady",
+      "msg": "The oracle's random number result is not ready yet."
+    },
+    {
+      "code": 6017,
+      "name": "CannotRolloverWithPlayers",
+      "msg": "Cannot rollover a lottery that has participants. Use request_draw instead."
+    },
+    {
+      "code": 6018,
+      "name": "Unauthorized",
+      "msg": "Only the authority can perform this action."
+    },
+    {
+      "code": 6019,
+      "name": "InvalidEndtime",
+      "msg": "The new lottery endtime must be in the future."
+    }
+  ],
+  "types": [
+    {
+      "name": "LotteryState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "pot_vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "platform_wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "platform_fee_bps",
+            "type": "u16"
+          },
+          {
+            "name": "ticket_price",
+            "type": "u64"
+          },
+          {
+            "name": "winner",
+            "type": "u64"
+          },
+          {
+            "name": "current_lottery_id",
+            "type": "u64"
+          },
+          {
+            "name": "total_participants",
+            "type": "u64"
+          },
+          {
+            "name": "is_drawing",
+            "type": "bool"
+          },
+          {
+            "name": "lottery_endtime",
+            "type": "i64"
+          },
+          {
+            "name": "commit_slot",
+            "type": "u64"
+          },
+          {
+            "name": "lottery_state_bump",
+            "type": "u8"
+          },
+          {
+            "name": "pot_vault_bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "UserEntryReceipt",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "user",
+            "type": "pubkey"
+          },
+          {
+            "name": "lottery_id",
+            "type": "u64"
+          },
+          {
+            "name": "ticket_number",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "UserTicket",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "user",
+            "type": "pubkey"
+          },
+          {
+            "name": "lottery_id",
+            "type": "u64"
+          },
+          {
+            "name": "is_winner",
+            "type": "bool"
+          },
+          {
+            "name": "prize_amount",
+            "type": "u64"
+          },
+          {
+            "name": "is_claimed",
+            "type": "bool"
+          }
+        ]
+      }
+    }
+  ],
+  "constants": [
+    {
+      "name": "LOTTERY_STATE_SEED",
+      "type": "bytes",
+      "value": "[108, 111, 116, 116, 101, 114, 121, 95, 115, 116, 97, 116, 101]"
+    },
+    {
+      "name": "POT_VAULT_SEED",
+      "type": "bytes",
+      "value": "[112, 111, 116, 95, 118, 97, 117, 108, 116]"
+    },
+    {
+      "name": "PRIZE_VAULT_SEED",
+      "type": "bytes",
+      "value": "[112, 114, 105, 122, 101, 95, 118, 97, 117, 108, 116]"
+    },
+    {
+      "name": "USER_RECEIPT_SEED",
+      "type": "bytes",
+      "value": "[117, 115, 101, 114, 45, 114, 101, 99, 101, 105, 112, 116]"
+    },
+    {
+      "name": "USER_TICKET_SEED",
+      "type": "bytes",
+      "value": "[117, 115, 101, 114, 45, 116, 105, 99, 107, 101, 116]"
+    }
+  ]
+}

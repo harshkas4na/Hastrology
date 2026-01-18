@@ -26,6 +26,7 @@ router.post('/trigger-draw', async (req, res) => {
             return res.status(503).json({
                 success: false,
                 error: 'Lottery scheduler not initialized',
+                details: lotteryScheduler.initializationError || 'Unknown initialization failure',
                 code: 'SCHEDULER_NOT_INITIALIZED'
             });
         }

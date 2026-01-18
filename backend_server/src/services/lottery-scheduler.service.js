@@ -47,18 +47,29 @@ class LotterySchedulerService {
 
             // Load authority keypair
             if (keypairPath) {
-                if (keypairPath.startsWith('/') || keypairPath.startsWith('.')) {
-                    const fs = require('fs');
-                    const keypairData = JSON.parse(fs.readFileSync(keypairPath, 'utf8'));
-                    this.authorityKeypair = Keypair.fromSecretKey(Uint8Array.from(keypairData));
-                } else {
-                    try {
-                        const keypairData = JSON.parse(keypairPath);
-                        this.authorityKeypair = Keypair.fromSecretKey(Uint8Array.from(keypairData));
-                    } catch {
-                        const bs58 = require('bs58');
-                        this.authorityKeypair = Keypair.fromSecretKey(bs58.decode(keypairPath));
+                try {
+                    if (keypairPath.startsWith('/') || keypairPath.startsWith('.')) {
+                        const fs = require('fs');
+                        if (fs.existsSync(keypairPath)) {
+                            const keypairData = JSON.parse(fs.readFileSync(keypairPath, 'utf8'));
+                            this.authorityKeypair = Keypair.fromSecretKey(Uint8Array.from(keypairData));
+                        } else {
+                            throw new Error(`Keypair file not found at path: ${keypairPath}`);
+                        }
+                    } else {
+                        try {
+                            const keypairData = JSON.parse(keypairPath);
+                            this.authorityKeypair = Keypair.fromSecretKey(Uint8Array.from(keypairData));
+                        } catch {
+                            const bs58 = require('bs58');
+                            this.authorityKeypair = Keypair.fromSecretKey(bs58.decode(keypairPath));
+                        }
                     }
+                } catch (keypairError) {
+                    this.initializationError = `Invalid Keypair: ${keypairError.message}`;
+                    logger.error('Failed to parse authority keypair:', keypairError);
+                    this.isInitialized = false;
+                    return false;
                 }
 
                 // Set up Anchor Provider and Program
@@ -76,26 +87,43 @@ class LotterySchedulerService {
 
                 const provider = new anchor.AnchorProvider(this.connection, wallet, { commitment: 'confirmed' });
 
-                // Load IDL
+                // Load IDL - Look in bundled location first
                 const path = require('path');
-                const idlPath = path.resolve(__dirname, '../../../hastrology_program/target/idl/hastrology_program.json');
+                // Try bundled IDL path first
+                let idlPath = path.resolve(__dirname, '../idl/hastrology_program.json');
                 const fs = require('fs');
-                if (fs.existsSync(idlPath)) {
-                    const idl = JSON.parse(fs.readFileSync(idlPath, 'utf8'));
-                    this.program = new anchor.Program(idl, provider);
-                } else {
-                    logger.warn('IDL not found at ' + idlPath + ' - Scheduler will have limited functionality');
+
+                // Fallback to target directory (for local dev if bundled missing)
+                if (!fs.existsSync(idlPath)) {
+                    idlPath = path.resolve(__dirname, '../../../hastrology_program/target/idl/hastrology_program.json');
                 }
 
-                logger.info(`Lottery scheduler initialized with Anchor. Authority: ${this.authorityKeypair.publicKey.toBase58()}`);
-                this.isInitialized = true;
+                if (fs.existsSync(idlPath)) {
+                    try {
+                        const idl = JSON.parse(fs.readFileSync(idlPath, 'utf8'));
+                        this.program = new anchor.Program(idl, provider);
+
+                        logger.info(`Lottery scheduler initialized with Anchor. Authority: ${this.authorityKeypair.publicKey.toBase58()}`);
+                        this.isInitialized = true;
+                        this.initializationError = null;
+                        return true;
+                    } catch (idlError) {
+                        this.initializationError = `Invalid IDL file: ${idlError.message}`;
+                        logger.error('Failed to parse IDL:', idlError);
+                    }
+                } else {
+                    this.initializationError = 'IDL file not found. Ensure src/idl/hastrology_program.json exists.';
+                    logger.warn('IDL not found at ' + idlPath + ' - Scheduler will have limited functionality');
+                }
             } else {
+                this.initializationError = 'LOTTERY_AUTHORITY_KEYPAIR environment variable not set';
                 logger.warn('Lottery scheduler initialized WITHOUT authority keypair.');
-                this.isInitialized = false;
             }
 
-            return true;
+            this.isInitialized = false;
+            return false;
         } catch (error) {
+            this.initializationError = `Unexpected initialization error: ${error.message}`;
             logger.error('Failed to initialize lottery scheduler:', error);
             this.isInitialized = false;
             return false;
