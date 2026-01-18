@@ -8,7 +8,6 @@ import { HoroscopeSection } from "@/components/HoroscopeSection";
 import { UserXDetails } from "@/components/TwitterDetails";
 import { Toast } from "@/components/toast";
 import { api } from "@/lib/api";
-import { useOnboardingStatus } from "@/lib/useOnboardingStatus";
 import { useStore } from "@/store/useStore";
 import { usePrivyWallet } from "../hooks/use-privy-wallet";
 
@@ -17,7 +16,6 @@ const CardsPage: FC = () => {
 	const { fundWallet } = useFundWallet();
 	const { user } = useStore();
 	const { setWallet, setUser, reset } = useStore();
-	const onboarding = useOnboardingStatus();
 	const [toastMessage, setToastMessage] = useState<string | null>(null);
 
 	const router = useRouter();
@@ -134,7 +132,7 @@ const CardsPage: FC = () => {
 				</div>
 
 				<div
-					className="hidden md:block absolute top-6 right-6 z-50"
+					className="cursor-pointer hidden md:block absolute top-6 right-6 z-50"
 					ref={dropdownRef}
 				>
 					<div className="cursor-pointer relative">
@@ -154,6 +152,7 @@ const CardsPage: FC = () => {
 							hover:shadow-[0_0_20px_rgba(252,84,17,0.35)]
 							transition-all duration-200
 							min-w-[140px]
+							cursor-pointer
 							justify-center
 						"
 							type="button"

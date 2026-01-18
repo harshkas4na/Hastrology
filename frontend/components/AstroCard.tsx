@@ -475,7 +475,7 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 									<button
 										onClick={handleGenerateDraft}
 										disabled={shareStatus.show && shareStatus.type === "info"}
-										className="group relative w-full px-8 py-4 border border-[#FC5411]
+										className="cursor-pointer group relative w-full px-8 py-4 border border-[#FC5411]
       bg-white/5 hover:bg-white/10 rounded-2xl transition-all"
 									>
 										<span className="text-white text-sm md:text-lg font-medium">
@@ -489,7 +489,7 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 								{/* Download */}
 								<button
 									onClick={downloadFrontAndBackCard}
-									className="text-sm md:text-lg group relative w-full px-8 py-4 border border-[#FC5411]
+									className="cursor-pointer text-sm md:text-lg group relative w-full px-8 py-4 border border-[#FC5411]
     hover:bg-white/10 rounded-2xl transition-all"
 								>
 									Download Card
@@ -498,7 +498,7 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 								{/* Lottery */}
 								<button
 									onClick={() => router.push("/lottery")}
-									className="text-sm md:text-lg w-full border border-[#FC5411]
+									className="cursor-pointer text-sm md:text-lg w-full border border-[#FC5411]
     flex items-center justify-center gap-3 px-8 py-4
      hover:bg-white/10 rounded-2xl transition-all"
 								>
