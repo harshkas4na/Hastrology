@@ -69,28 +69,28 @@ const getVibeColor = (
 	vibe: string,
 ): { bg: string; text: string; border: string } => {
 	const vibeMap: Record<string, { bg: string; text: string; border: string }> =
-		{
-			stellar: {
-				bg: "bg-emerald-500/20",
-				text: "text-emerald-300",
-				border: "border-emerald-500/30",
-			},
-			ascending: {
-				bg: "bg-blue-500/20",
-				text: "text-blue-300",
-				border: "border-blue-500/30",
-			},
-			shaky: {
-				bg: "bg-amber-500/20",
-				text: "text-amber-300",
-				border: "border-amber-500/30",
-			},
-			eclipse: {
-				bg: "bg-purple-500/20",
-				text: "text-purple-300",
-				border: "border-purple-500/30",
-			},
-		};
+	{
+		stellar: {
+			bg: "bg-emerald-500/20",
+			text: "text-emerald-300",
+			border: "border-emerald-500/30",
+		},
+		ascending: {
+			bg: "bg-blue-500/20",
+			text: "text-blue-300",
+			border: "border-blue-500/30",
+		},
+		shaky: {
+			bg: "bg-amber-500/20",
+			text: "text-amber-300",
+			border: "border-amber-500/30",
+		},
+		eclipse: {
+			bg: "bg-purple-500/20",
+			text: "text-purple-300",
+			border: "border-purple-500/30",
+		},
+	};
 	return vibeMap[vibe.toLowerCase()] || vibeMap.stellar;
 };
 
@@ -520,196 +520,195 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 
 			{/* RIGHT SIDE - Card Display */}
 			<div
-				className={`w-full h-[765px] md:min-h-[650px] lg:h-[765px] perspective-1000 relative order-1 lg:order-2 ${!showShare ? "mx-auto max-w-xl" : ""}`}
+				className={`w-full relative order-1 lg:order-2 ${!showShare ? "mx-auto max-w-xl" : ""}`}
 			>
-				{/* Card Content */}
-				<div
-					className="w-full max-w-sm md:max-w-md h-full cursor-pointer mx-auto lg:mx-0"
-					onClick={() => !showTweetSuccess && setIsFlipped(!isFlipped)}
-				>
-					<motion.div
-						animate={{ rotateY: isFlipped ? 180 : 0 }}
-						className="relative w-full h-full preserve-3d"
-						style={{ transformStyle: "preserve-3d" }}
-						transition={{ duration: 0.8, type: "spring", stiffness: 100 }}
+				<div className="w-full h-[765px] md:min-h-[650px] lg:h-[765px] perspective-1000 relative">
+					{/* Card Content */}
+					<div
+						className="w-full max-w-sm md:max-w-md h-full cursor-pointer mx-auto lg:mx-0"
+						onClick={() => !showTweetSuccess && setIsFlipped(!isFlipped)}
 					>
-						{/* ==================== FRONT FACE ==================== */}
 						<motion.div
-							data-card-front
-							className={`absolute w-full h-full rounded-[2.5rem] overflow-hidden shadow-2xl ${
-								isFlipped ? "pointer-events-none" : "pointer-events-auto"
-							}`}
-							style={{
-								backfaceVisibility: "hidden",
-								WebkitBackfaceVisibility: "hidden",
-								transform: isFlipped
-									? "rotateY(0deg) translateZ(-1px)"
-									: "rotateY(0deg) translateZ(1px)",
-								boxShadow: `
-      0 0 16px rgba(220, 220, 220, 0.25),
-      0 0 18px rgba(180, 180, 180, 0.15),
-      0 25px 50px -12px ${accent}40
-    `,
-							}}
+							animate={{ rotateY: isFlipped ? 180 : 0 }}
+							className="relative w-full h-full preserve-3d"
+							style={{ transformStyle: "preserve-3d" }}
+							transition={{ duration: 0.8, type: "spring", stiffness: 100 }}
 						>
-							{/* Background Gradient */}
-							<img
-								src="/cardbg.png"
-								alt="Card Background"
-								className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
-							/>
+							{/* ==================== FRONT FACE ==================== */}
+							<motion.div
+								data-card-front
+								className={`absolute w-full h-full rounded-[2.5rem] overflow-hidden shadow-2xl ${isFlipped ? "pointer-events-none" : "pointer-events-auto"}`}
+								style={{
+									backfaceVisibility: "hidden",
+									WebkitBackfaceVisibility: "hidden",
+									transform: isFlipped
+										? "rotateY(0deg) translateZ(-1px)"
+										: "rotateY(0deg) translateZ(1px)",
+									boxShadow: `
+										0 0 16px rgba(220, 220, 220, 0.25),
+										0 0 18px rgba(180, 180, 180, 0.15),
+										0 25px 50px -12px ${accent}40
+										`,
+								}}
+							>
+								{/* Background Gradient */}
+								<img
+									src="/cardbg.png"
+									alt="Card Background"
+									className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
+								/>
 
-							<img
-								src={`/planets/${card.ruling_planet_theme.toLowerCase()}.png`}
-								alt="Card Background"
-								className="absolute left-0 bottom-20 w-full h-auto object-cover z-20 pointer-events-none"
-							/>
+								<img
+									src={`/planets/${card.ruling_planet_theme.toLowerCase()}.png`}
+									alt="Card Background"
+									className="absolute left-0 bottom-20 w-full h-auto object-cover z-20 pointer-events-none"
+								/>
 
-							<img
-								src="/small-black-ellipse.png"
-								alt="Card Background"
-								className="absolute left-0 -bottom-2 w-full h-auto object-cover z-20 pointer-events-none"
-							/>
-							{/* Noise Texture Overlay */}
+								<img
+									src="/small-black-ellipse.png"
+									alt="Card Background"
+									className="absolute left-0 -bottom-2 w-full h-auto object-cover z-20 pointer-events-none"
+								/>
+								{/* Noise Texture Overlay */}
 
-							{/* Content */}
-							<div className="relative z-20 h-full flex flex-col gap-0 p-8">
-								{/* Header */}
-								<div className="flex justify-center items-center mb-0">
-									<div
-										className={`text-white  px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest`}
-										style={{
-											boxShadow: `
+								{/* Content */}
+								<div className="relative z-20 h-full flex flex-col gap-0 p-8">
+									{/* Header */}
+									<div className="flex justify-center items-center mb-0">
+										<div
+											className={`text-white  px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest`}
+											style={{
+												boxShadow: `
       0 0 4px rgba(220, 220, 220, 0.25),
       0 0 4px rgba(180, 180, 180, 0.15),
       0 25px 75px -12px ${accent}10
     `,
-										}}
-									>
-										<img
-											src={"/Hastrology.svg"}
-											alt={"Hastrology"}
-											className="w-40 h-8"
-										/>
-									</div>
-								</div>
-
-								{/* Center Content */}
-								<div className="flex-1 mt-8 mb-20 min-h-0 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
-									<div className="mb-4 flex items-center justify-between">
-										<div>
-											<h2 className="text-2xl font-bold text-white tracking-tight">
-												{user?.username}
-											</h2>
-											<h3 className="text-sm mt-1 font-bold text-white/60 tracking-tight">
-												@{user?.twitterUsername}
-											</h3>
-										</div>
-										<img
-											src={`/api/image?url=${encodeURIComponent(
-												user?.twitterProfileUrl || "",
-											)}`}
-											alt="twitter"
-											crossOrigin="anonymous"
-											className="w-18 h-18 rounded-xl object-cover border border-white/20 shadow-md"
-										/>
-									</div>
-
-									<div className="mt-4">
-										<img
-											src={`/stars/${card.front.zodiac_sign.toLowerCase()}.svg`}
-											alt={card.front.zodiac_sign}
-											className="w-24 h-16"
-										/>
-									</div>
-									{/* Details */}
-									<div className="flex flex-row justify-between items-center">
-										<div className="flex flex-col gap-2 space-y-1 text-white/80 text-md font-medium">
-											<p className=" text-white font-medium text-md">
-												{card.front.vibe_status}
-											</p>
-											<h3 className="text-sm leading-snug drop-shadow-md text-left text-white/80 mx-0 mb-4">
-												{card.front.hook_1}
-											</h3>
-
-											<h3 className="text-sm leading-snug drop-shadow-md text-left text-white/80 mx-0">
-												{card.front.hook_2}
-											</h3>
-
-											<motion.div
-												animate={{ opacity: 1, y: 0 }}
-												className="space-y-3 mt-2"
-												initial={{ opacity: 0, y: 10 }}
-												transition={{ delay: 0.5 }}
-											>
-												<div className="grid grid-cols-3 gap-3">
-													<div className="bg-white/5 rounded-xl p-2 text-center border border-white/5 hover:border-white/10 transition-colors backdrop-blur-sm">
-														<div className="text-[10px] text-white/40 uppercase mb-2 tracking-wider font-medium">
-															Lucky Number
-														</div>
-														<div className="text-sm font-black text-white">
-															{card.back.lucky_assets.number}
-														</div>
-													</div>
-													<div className="bg-white/5 rounded-xl p-2 text-center border border-white/5 hover:border-white/10 transition-colors backdrop-blur-sm">
-														<div className="text-[10px] text-white/40 uppercase mb-2 tracking-wider font-medium">
-															Lucky Color
-														</div>
-														<div className="text-sm font-black text-white">
-															{card.back.lucky_assets.color}
-														</div>
-													</div>
-													<div className="bg-white/5 rounded-xl p-2 text-center border border-white/5 hover:border-white/10 transition-colors backdrop-blur-sm">
-														<div className="text-[10px] text-white/40 uppercase mb-2 tracking-wider font-medium">
-															Power Hour
-														</div>
-														<div className="text-xs font-black text-white">
-															{card.back.lucky_assets.power_hour}
-														</div>
-													</div>
-												</div>
-											</motion.div>
+											}}
+										>
+											<img
+												src={"/Hastrology.svg"}
+												alt={"Hastrology"}
+												className="w-40 h-8"
+											/>
 										</div>
 									</div>
-								</div>
-								<div className="flex flex-col items-center gap-2 justify-center z-9999">
-									<img
-										src={`/zodiac/${card.front.zodiac_sign.toLowerCase()}.svg`}
-										alt="Cosmic Back Visual"
-										className="text-white w-24 h-24 object-contain drop-shadow-[0_0_20px_rgba(255,255,255,0.15)]"
-									/>
-									<span className="uppercase text-white/50">
-										Ruling Planet: {card.ruling_planet_theme}
-									</span>
-								</div>
-								{/* Footer */}
-							</div>
-						</motion.div>
 
-						{/* ==================== BACK FACE ==================== */}
-						<motion.div
-							data-card-back
-							className={`absolute w-full h-full rounded-[2.5rem] overflow-hidden shadow-2xl ${
-								isFlipped ? "pointer-events-auto" : "pointer-events-none"
-							}`}
-							style={{
-								transform: isFlipped
-									? "rotateY(180deg) translateZ(1px)"
-									: "rotateY(180deg) translateZ(-1px)",
-								backfaceVisibility: "hidden",
-								WebkitBackfaceVisibility: "hidden",
-								boxShadow: `
+									{/* Center Content */}
+									<div className="flex-1 mt-8 mb-20 min-h-0 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
+										<div className="mb-4 flex items-center justify-between">
+											<div>
+												<h2 className="text-2xl font-bold text-white tracking-tight">
+													{user?.username}
+												</h2>
+												<h3 className="text-sm mt-1 font-bold text-white/60 tracking-tight">
+													@{user?.twitterUsername}
+												</h3>
+											</div>
+											{user?.twitterProfileUrl && (
+												<img
+													src={`/api/image?url=${encodeURIComponent(
+														user.twitterProfileUrl.replace("_normal", "_400x400"),
+													)}`}
+													alt={user?.username || "Twitter Profile"}
+													className="w-16 h-16 rounded-xl object-cover border border-white/20 shadow-md"
+												/>
+											)}
+										</div>
+
+										<div className="mt-4">
+											<img
+												src={`/stars/${card.front.zodiac_sign.toLowerCase()}.svg`}
+												alt={card.front.zodiac_sign}
+												className="w-24 h-16"
+											/>
+										</div>
+										{/* Details */}
+										<div className="flex flex-row justify-between items-center">
+											<div className="flex flex-col gap-2 space-y-1 text-white/80 text-md font-medium">
+												<p className=" text-white font-medium text-md">
+													{card.front.vibe_status}
+												</p>
+												<h3 className="text-sm leading-snug drop-shadow-md text-left text-white/80 mx-0 mb-4">
+													{card.front.hook_1}
+												</h3>
+
+												<h3 className="text-sm leading-snug drop-shadow-md text-left text-white/80 mx-0">
+													{card.front.hook_2}
+												</h3>
+
+												<motion.div
+													animate={{ opacity: 1, y: 0 }}
+													className="space-y-3 mt-2"
+													initial={{ opacity: 0, y: 10 }}
+													transition={{ delay: 0.5 }}
+												>
+													<div className="grid grid-cols-3 gap-3">
+														<div className="bg-white/5 rounded-xl p-2 text-center border border-white/5 hover:border-white/10 transition-colors backdrop-blur-sm">
+															<div className="text-[10px] text-white/40 uppercase mb-2 tracking-wider font-medium">
+																Lucky Number
+															</div>
+															<div className="text-sm font-black text-white">
+																{card.back.lucky_assets.number}
+															</div>
+														</div>
+														<div className="bg-white/5 rounded-xl p-2 text-center border border-white/5 hover:border-white/10 transition-colors backdrop-blur-sm">
+															<div className="text-[10px] text-white/40 uppercase mb-2 tracking-wider font-medium">
+																Lucky Color
+															</div>
+															<div className="text-sm font-black text-white">
+																{card.back.lucky_assets.color}
+															</div>
+														</div>
+														<div className="bg-white/5 rounded-xl p-2 text-center border border-white/5 hover:border-white/10 transition-colors backdrop-blur-sm">
+															<div className="text-[10px] text-white/40 uppercase mb-2 tracking-wider font-medium">
+																Power Hour
+															</div>
+															<div className="text-xs font-black text-white">
+																{card.back.lucky_assets.power_hour}
+															</div>
+														</div>
+													</div>
+												</motion.div>
+											</div>
+										</div>
+									</div>
+									<div className="flex flex-col items-center gap-2 justify-center z-9999">
+										<img
+											src={`/zodiac/${card.front.zodiac_sign.toLowerCase()}.svg`}
+											alt="Cosmic Back Visual"
+											className="text-white w-24 h-24 object-contain drop-shadow-[0_0_20px_rgba(255,255,255,0.15)]"
+										/>
+										<span className="uppercase text-white/50">
+											Ruling Planet: {card.ruling_planet_theme}
+										</span>
+									</div>
+									{/* Footer */}
+								</div>
+							</motion.div>
+
+							{/* ==================== BACK FACE ==================== */}
+							<motion.div
+								data-card-back
+								className={`absolute w-full h-full rounded-[2.5rem] overflow-hidden shadow-2xl ${isFlipped ? "pointer-events-auto" : "pointer-events-none"
+									}`}
+								style={{
+									transform: isFlipped
+										? "rotateY(180deg) translateZ(1px)"
+										: "rotateY(180deg) translateZ(-1px)",
+									backfaceVisibility: "hidden",
+									WebkitBackfaceVisibility: "hidden",
+									boxShadow: `
       0 0 16px rgba(220, 220, 220, 0.25),
       0 0 18px rgba(180, 180, 180, 0.15),
       0 25px 50px -12px ${accent}40
     `,
-							}}
-						>
-							{/* Content */}
-							<div className="relative z-20 h-full flex flex-col gap-0 p-8">
-								{/* Header */}
-								<div className="flex justify-end items-center mb-3">
-									<button
+								}}
+							>
+								{/* Content */}
+								<div className="relative z-20 h-full flex flex-col gap-0 p-8">
+									{/* Header */}
+									<div className="flex justify-end items-center mb-3">
+										{/* <button
 										onClick={(e) => {
 											e.stopPropagation();
 											setIsFlipped(false);
@@ -727,81 +726,81 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 										>
 											<path d="M19 12H5M12 19l-7-7 7-7" />
 										</svg>
-									</button>
-								</div>
+									</button> */}
+									</div>
 
-								{/* Scrollable Content */}
-								<div
-									className="flex-1 min-h-0 overflow-y-auto pr-2 space-y-6 custom-scrollbar"
-									onClick={(e) => e.stopPropagation()}
-								>
-									{/* Detailed Reading */}
-									<motion.div
-										animate={{ opacity: 1, y: 0 }}
-										className="space-y-3"
-										initial={{ opacity: 0, y: 10 }}
-										transition={{ delay: 0.2 }}
+									{/* Scrollable Content */}
+									<div
+										className="flex-1 min-h-0 mt-2 overflow-y-auto pr-2 space-y-6 custom-scrollbar"
 									>
-										<div className="flex items-center gap-2">
-											<h4 className="text-sm font-bold text-white/90 uppercase tracking-wider">
-												Deep Insight
-											</h4>
-										</div>
-										<p className="text-base leading-relaxed text-white/70 font-light">
-											{card.back.detailed_reading}
-										</p>
-									</motion.div>
-
-									{/* Hustle Alpha */}
-									<motion.div
-										animate={{ opacity: 1, y: 0 }}
-										className="relative"
-										initial={{ opacity: 0, y: 10 }}
-										transition={{ delay: 0.3 }}
-									>
-										<div
-											className="absolute inset-0 rounded-2xl blur-xl opacity-20"
-											style={{
-												background: `linear-gradient(135deg, ${accent}, transparent)`,
-											}}
-										></div>
-										<div className="relative p-5 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-sm space-y-3">
+										{/* Detailed Reading */}
+										<motion.div
+											animate={{ opacity: 1, y: 0 }}
+											className="space-y-3"
+											initial={{ opacity: 0, y: 10 }}
+											transition={{ delay: 0.2 }}
+										>
 											<div className="flex items-center gap-2">
-												<h4 className="text-xs font-black uppercase tracking-widest">
-													Hustle Alpha
+												<h4 className="text-sm font-bold text-white/90 uppercase tracking-wider">
+													Deep Insight
 												</h4>
 											</div>
-											<p className="text-sm text-white/90 font-medium leading-relaxed">
-												{card.back.hustle_alpha}
+											<p className="text-base leading-relaxed text-white/70 font-light">
+												{card.back.detailed_reading}
 											</p>
-										</div>
-									</motion.div>
+										</motion.div>
 
-									{/* Shadow Warning */}
-									<motion.div
-										animate={{ opacity: 1, y: 0 }}
-										className="p-4 rounded-xl bg-red-500/5 border border-red-500/20 backdrop-blur-sm space-y-2"
-										initial={{ opacity: 0, y: 10 }}
-										transition={{ delay: 0.4 }}
-									>
-										<div className="flex items-center gap-2">
-											<h4 className="text-xs font-black uppercase tracking-widest">
-												Shadow Warning
-											</h4>
-										</div>
-										<p className="text-sm text-white/90 leading-relaxed">
-											{card.back.shadow_warning}
-										</p>
-									</motion.div>
+										{/* Hustle Alpha */}
+										<motion.div
+											animate={{ opacity: 1, y: 0 }}
+											className="relative"
+											initial={{ opacity: 0, y: 10 }}
+											transition={{ delay: 0.3 }}
+										>
+											<div
+												className="absolute inset-0 rounded-2xl blur-xl opacity-20"
+												style={{
+													background: `linear-gradient(135deg, ${accent}, transparent)`,
+												}}
+											></div>
+											<div className="relative p-5 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-sm space-y-3">
+												<div className="flex items-center gap-2">
+													<h4 className="text-xs font-black uppercase tracking-widest">
+														Hustle Alpha
+													</h4>
+												</div>
+												<p className="text-sm text-white/90 font-medium leading-relaxed">
+													{card.back.hustle_alpha}
+												</p>
+											</div>
+										</motion.div>
+
+										{/* Shadow Warning */}
+										<motion.div
+											animate={{ opacity: 1, y: 0 }}
+											className="p-4 rounded-xl bg-red-500/5 border border-red-500/20 backdrop-blur-sm space-y-2"
+											initial={{ opacity: 0, y: 10 }}
+											transition={{ delay: 0.4 }}
+										>
+											<div className="flex items-center gap-2">
+												<h4 className="text-xs font-black uppercase tracking-widest">
+													Shadow Warning
+												</h4>
+											</div>
+											<p className="text-sm text-white/90 leading-relaxed">
+												{card.back.shadow_warning}
+											</p>
+										</motion.div>
+									</div>
 								</div>
-							</div>
+							</motion.div>
 						</motion.div>
-					</motion.div>
+					</div>
 				</div>
 
 				<motion.div
 					animate={{ opacity: 1 }}
-					className="hidden bg-black/30 mt-5 backdrop-blur-xl rounded-2xl p-4 border border-white/10 md:flex items-center justify-center max-w-md"
+					className="flex bg-black/30 mt-5 backdrop-blur-xl rounded-2xl p-4 border border-white/10 items-center justify-center max-w-md mx-auto lg:mx-0"
 					initial={{ opacity: 0 }}
 					transition={{ delay: 0.8 }}
 				>
