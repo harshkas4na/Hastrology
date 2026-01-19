@@ -1,6 +1,6 @@
 "use client";
 
-import { useFundWallet } from "@privy-io/react-auth/solana";
+import { useExportWallet, useFundWallet } from "@privy-io/react-auth/solana";
 import { useRouter } from "next/navigation";
 import { type FC, useEffect, useRef, useState } from "react";
 import { WalletBalance } from "@/components/balance";
@@ -15,6 +15,7 @@ const CardsPage: FC = () => {
 	const { publicKey, disconnect, connected } = usePrivyWallet();
 	const { fundWallet } = useFundWallet();
 	const { user } = useStore();
+	const { exportWallet } = useExportWallet();
 	const { setWallet, setUser, reset } = useStore();
 	const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -233,6 +234,35 @@ const CardsPage: FC = () => {
 											/>
 										</svg>
 										<span>Fund Wallet</span>
+									</button>
+
+									<button
+										onClick={() => exportWallet()}
+										className="w-full px-4 py-3 text-left text-white hover:bg-[#262626] transition-colors duration-150 flex items-center gap-2"
+										type="button"
+									>
+										<svg
+											className="w-4 h-4"
+											fill="none"
+											stroke="currentColor"
+											viewBox="0 0 24 24"
+										>
+											<title>Export Wallet</title>
+											<path
+												strokeLinecap="round"
+												strokeLinejoin="round"
+												strokeWidth={2}
+												d="M17 8V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-1"
+											/>
+											<path
+												strokeLinecap="round"
+												strokeLinejoin="round"
+												strokeWidth={2}
+												d="M21 12H10m0 0l3-3m-3 3l3 3"
+											/>
+										</svg>
+
+										<span>Export Wallet</span>
 									</button>
 
 									{/* View on Explorer */}
