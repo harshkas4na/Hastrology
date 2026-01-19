@@ -145,6 +145,34 @@ const LoginPage: FC = () => {
 
 	return (
 		<section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-black">
+			{/* WALLET BUTTON - TOP RIGHT */}
+			<div className="absolute top-4 right-4 md:top-8 md:right-8 z-50">
+				<button
+					onClick={handleDisconnect}
+					className="flex flex-row gap-2 items-center
+						bg-[#1F1F1F]
+						border border-[#FC5411]
+						text-white
+						px-4
+						py-2
+						rounded-xl
+						font-medium
+						hover:bg-[#262626]
+						hover:shadow-[0_0_20px_rgba(252,84,17,0.35)]
+						transition
+						text-sm md:text-base
+					"
+					type="button"
+				>
+					<img
+						alt="Solana Logo"
+						className="w-4 h-4 md:w-5 md:h-5"
+						src="https://solana.com/src/img/branding/solanaLogoMark.svg"
+					/>
+					{publicKey?.slice(0, 4)}...
+					{publicKey?.slice(-4)}
+				</button>
+			</div>
 			<div className="flex absolute inset-y-0 right-0 w-full md:w-1/2 z-0 flex-col">
 				<div className="relative h-full w-full">
 					<img
@@ -267,7 +295,7 @@ const LoginPage: FC = () => {
 							</p>
 
 							<form
-								className="space-y-6 lg:space-y-10 mt-8 lg:mt-26"
+								className="space-y-6 lg:space-y-10"
 								onSubmit={handleBirthDetailsSubmit}
 							>
 								{/* Date of Birth */}
@@ -280,14 +308,13 @@ const LoginPage: FC = () => {
 											w-full px-4 py-3 rounded-lg
 											bg-[#121212]
 											border border-[#2A2A2A]
-											text-white
 											placeholder:text-gray-500
 											focus:outline-none
 											focus:border-[#FC5411]
 											disabled:opacity-50
 											disabled:cursor-not-allowed
 											[color-scheme:dark]
-											${!birthDate ? "text-gray-500 before:content-[attr(placeholder)] before:mr-2" : ""}
+											${!birthDate ? "text-gray-500" : "text-white"}
 										`}
 										disabled={isSubmitting}
 										onChange={(e) => setBirthDate(e.target.value)}
@@ -307,14 +334,13 @@ const LoginPage: FC = () => {
 											w-full px-4 py-3 rounded-lg
 											bg-[#121212]
 											border border-[#2A2A2A]
-											text-white
 											placeholder:text-gray-500
 											focus:outline-none
 											focus:border-[#FC5411]
 											disabled:opacity-50
 											disabled:cursor-not-allowed
 											[color-scheme:dark]
-											${!birthTime ? "text-gray-500 before:content-[attr(placeholder)] before:mr-2" : ""}
+											${!birthTime ? "text-gray-500" : "text-white"}
 										`}
 										disabled={isSubmitting}
 										onChange={(e) => setBirthTime(e.target.value)}
@@ -416,32 +442,7 @@ const LoginPage: FC = () => {
 			</motion.div>
 
 			<div className="block absolute bottom-4 md:bottom-11 left-0 w-full z-30 px-6">
-				<div className="w-full flex md:hidden mt-0 mb-5 flex-col items-center gap-4">
-					<button
-						onClick={handleDisconnect}
-						className="flex flex-row gap-2 items-center
-      bg-[#1F1F1F]
-      border border-[#FC5411]
-      text-white
-      px-4
-      py-2
-      rounded-xl
-      font-medium
-      hover:bg-[#262626]
-      hover:shadow-[0_0_20px_rgba(252,84,17,0.35)]
-      transition
-    "
-						type="button"
-					>
-						<img
-							alt="Solana Logo"
-							className="w-4 h-5"
-							src="https://solana.com/src/img/branding/solanaLogoMark.svg"
-						/>
-						{publicKey?.slice(0, 4)}...
-						{publicKey?.slice(-4)}
-					</button>
-				</div>
+
 
 				<div className="font-display max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2 md:gap-0 text-xs md:text-md text-[#8A8A8A]">
 					<span className="font-display">
