@@ -4,11 +4,11 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FC, useEffect, useRef, useState } from "react";
+import { PlaceAutocomplete } from "@/components/place-autocomplete";
 import { api } from "@/lib/api";
 import { geocodePlace, getTimezoneOffset } from "@/lib/geocoding";
 import { useStore } from "@/store/useStore";
 import { usePrivyWallet } from "../hooks/use-privy-wallet";
-import { PlaceAutocomplete } from "@/components/place-autocomplete";
 
 type FormStep = "initial" | "birth-details";
 
@@ -183,8 +183,8 @@ const LoginPage: FC = () => {
 					<motion.img
 						alt="Hastrology Logo"
 						animate={{ scale: 1, opacity: 1 }}
-						className="-mt-0 md:-mt-5
-              w-72 md:w-96 lg:w-120
+						className="-mt-10 md:-mt-5
+              w-65 md:w-96 lg:w-120
               mx-auto
               drop-shadow-[0_0_20px_rgba(251,146,60,0.35)]
             "
@@ -207,7 +207,7 @@ const LoginPage: FC = () => {
 			/>
 
 			{/* LEFT BLACK PANEL — FORMS */}
-			<div className="mt-30 md:mt-0 relative lg:absolute inset-y-0 left-0 w-full lg:w-1/2 z-20 flex items-center lg:items-start justify-center pt-8 lg:pt-35 px-4">
+			<div className="mt-10 md:mt-0 relative lg:absolute inset-y-0 left-0 w-full lg:w-1/2 z-20 flex items-center lg:items-start justify-center pt-8 lg:pt-35 px-4">
 				<div className="w-full max-w-xl px-4 lg:px-10">
 					{formStep === "initial" ? (
 						<>
@@ -258,11 +258,11 @@ const LoginPage: FC = () => {
 						// BIRTH DETAILS FORM
 						<>
 							<div className="flex items-center justify-center md:justify-between mb-2">
-								<h1 className="text-3xl lg:text-5xl font-semibold text-white">
+								<h1 className="text-xl lg:text-5xl font-semibold text-white">
 									Enter Your Birth Details
 								</h1>
 							</div>
-							<p className="text-gray-400 md:text-left text-center mb-8 lg:mb-16 mt-2 text-lg lg:text-2xl">
+							<p className="hidden md:block text-gray-400 md:text-left text-center mb-8 lg:mb-16 mt-2 text-lg lg:text-2xl">
 								Align Your Energy With Cosmos ✨
 							</p>
 
@@ -272,6 +272,9 @@ const LoginPage: FC = () => {
 							>
 								{/* Date of Birth */}
 								<div>
+									<label className="block md:hidden text-sm text-gray-400 mb-1">
+										Date of Birth
+									</label>
 									<input
 										className="
 											w-full px-4 py-3 rounded-lg
@@ -295,6 +298,9 @@ const LoginPage: FC = () => {
 
 								{/* Time of Birth */}
 								<div>
+									<label className="block md:hidden text-sm text-gray-400 mb-1">
+										Time of Birth
+									</label>
 									<input
 										className="
 											w-full px-4 py-3 rounded-lg
@@ -318,6 +324,9 @@ const LoginPage: FC = () => {
 
 								{/* Place of Birth */}
 								<div>
+									<label className="block md:hidden text-sm text-gray-400 mb-1">
+										Place of Birth
+									</label>
 									<PlaceAutocomplete
 										value={birthPlace}
 										onChange={setBirthPlace}

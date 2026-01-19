@@ -330,7 +330,7 @@ const LotteryPage: FC = () => {
 
 				<div className="relative z-10 w-full max-w-8xl mx-auto px-4 pt-16 md:pt-24 lg:pt-15">
 					<div
-						className={`grid grid-cols-1 ${!isResultMode ? "lg:grid-cols-2" : ""} gap-8 lg:gap-1 items-start`}
+						className={`grid grid-cols-1 ${!isResultMode && card ? "lg:grid-cols-2" : "lg:grid-cols-1"} gap-8 lg:gap-1 items-start`}
 					>
 						<motion.div
 							initial={{ opacity: 0, x: -50 }}
@@ -364,9 +364,9 @@ const LotteryPage: FC = () => {
 								initial={{ opacity: 0, x: 50 }}
 								animate={{ opacity: 1, x: 0 }}
 								transition={{ duration: 0.6, delay: 0.2 }}
-								className="hidden lg:flex w-full max-w-md justify-center lg:justify-end"
+								className="hidden w-full max-w-xl justify-center lg:justify-end"
 							>
-								<div className="w-full max-w-md aspect-[3/4] rounded-3xl border-2 border-dashed border-white/20 bg-white/5 backdrop-blur-sm flex flex-col items-center justify-center gap-4 p-8">
+								<div className="mt-25 w-full max-w-md aspect-[3/4] rounded-3xl border-2 border-dashed border-white/20 flex flex-col items-center justify-center gap-4 p-8">
 									<div className="text-6xl opacity-30">🌌</div>
 									<p className="text-slate-400 text-center">
 										Your cosmic card will appear here
