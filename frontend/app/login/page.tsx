@@ -96,7 +96,7 @@ const LoginPage: FC = () => {
 			if (!geoResult.success) {
 				setError(
 					geoResult.error ||
-						'Could not find location. Please try a more specific place name (e.g., "New Delhi, India")',
+					'Could not find location. Please try a more specific place name (e.g., "New Delhi, India")',
 				);
 				setIsGeocoding(false);
 				return;
@@ -276,7 +276,7 @@ const LoginPage: FC = () => {
 										Date of Birth
 									</label>
 									<input
-										className="
+										className={`
 											w-full px-4 py-3 rounded-lg
 											bg-[#121212]
 											border border-[#2A2A2A]
@@ -287,7 +287,8 @@ const LoginPage: FC = () => {
 											disabled:opacity-50
 											disabled:cursor-not-allowed
 											[color-scheme:dark]
-										"
+											${!birthDate ? "text-gray-500 before:content-[attr(placeholder)] before:mr-2" : ""}
+										`}
 										disabled={isSubmitting}
 										onChange={(e) => setBirthDate(e.target.value)}
 										placeholder="Date of Birth"
@@ -302,7 +303,7 @@ const LoginPage: FC = () => {
 										Time of Birth
 									</label>
 									<input
-										className="
+										className={`
 											w-full px-4 py-3 rounded-lg
 											bg-[#121212]
 											border border-[#2A2A2A]
@@ -313,7 +314,8 @@ const LoginPage: FC = () => {
 											disabled:opacity-50
 											disabled:cursor-not-allowed
 											[color-scheme:dark]
-										"
+											${!birthTime ? "text-gray-500 before:content-[attr(placeholder)] before:mr-2" : ""}
+										`}
 										disabled={isSubmitting}
 										onChange={(e) => setBirthTime(e.target.value)}
 										placeholder="Time of Birth"
@@ -345,10 +347,9 @@ const LoginPage: FC = () => {
 										h-12
 										border
 										transition-all
-										${
-											birthDate && birthTime && birthPlace && !isSubmitting
-												? "bg-[#1F1F1F] text-white border-[#FC5411] hover:bg-[#262626]"
-												: "bg-[#1f1f1f] text-gray-500 border-[#2A2A2A] cursor-not-allowed opacity-60"
+										${birthDate && birthTime && birthPlace && !isSubmitting
+											? "bg-[#1F1F1F] text-white border-[#FC5411] hover:bg-[#262626]"
+											: "bg-[#1f1f1f] text-gray-500 border-[#2A2A2A] cursor-not-allowed opacity-60"
 										}
 									`}
 									disabled={

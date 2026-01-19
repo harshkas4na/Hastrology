@@ -64,22 +64,22 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({
 	// Calculate IST Time for display
 	const istTime = state
 		? new Date(state.lotteryEndtime.toNumber() * 1000).toLocaleTimeString(
-				"en-IN",
-				{
-					timeZone: "Asia/Kolkata",
-					hour: "2-digit",
-					minute: "2-digit",
-					hour12: true,
-				},
-			)
+			"en-IN",
+			{
+				timeZone: "Asia/Kolkata",
+				hour: "2-digit",
+				minute: "2-digit",
+				hour12: true,
+			},
+		)
 		: "";
 
 	// Calculate prize pool
 	const prizePool = state
 		? (
-				(Number(state.ticketPrice) * Number(state.totalParticipants)) /
-				1e9
-			).toFixed(2)
+			(Number(state.ticketPrice) * Number(state.totalParticipants)) /
+			1e9
+		).toFixed(2)
 		: "0.00";
 
 	/**
@@ -145,11 +145,22 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({
 
 					if (data.userStatus === "lost") {
 						setResult("lost");
+
+						let xHandle: string | undefined;
+						try {
+							const profile = await api.getUserProfile(data.winner);
+							if (profile?.user?.twitterUsername) {
+								xHandle = `@${profile.user.twitterUsername}`;
+							}
+						} catch (e) {
+							// Ignore - user might not have a profile
+						}
+
 						setWinnerInfo({
 							address: data.winner,
 							prize: Number(data.prize).toFixed(2),
 							lotteryId: data.lotteryId,
-							xHandle: undefined, // Could fetch profile here if needed
+							xHandle,
 						});
 						setStatus("result");
 						setViewingLotteryId(new BN(data.lotteryId));
@@ -158,11 +169,22 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({
 
 					// status === 'not_entered'
 					setStatus("not_entered");
+
+					let xHandle: string | undefined;
+					try {
+						const profile = await api.getUserProfile(data.winner);
+						if (profile?.user?.twitterUsername) {
+							xHandle = `@${profile.user.twitterUsername}`;
+						}
+					} catch (e) {
+						// Ignore
+					}
+
 					setLastWinnerInfo({
 						address: data.winner,
 						prize: Number(data.prize).toFixed(2),
 						lotteryId: data.lotteryId,
-						xHandle: undefined,
+						xHandle,
 					});
 					return;
 				}
@@ -442,7 +464,7 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({
 							initial={{ opacity: 0, y: 30 }}
 							animate={{ opacity: 1, y: 0 }}
 							exit={{ opacity: 0, y: -20 }}
-							className="text-center space-y-8"
+							className="text-center space-y-8 lg:mx-64"
 						>
 							<div>
 								<div className="text-6xl mb-6">🌟</div>
@@ -508,7 +530,7 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({
 								</p>
 								<Link href="/cards" className="block w-full">
 									<button
-										className="w-full group relative py-4 px-10 bg-gradient-to-r from-[#FC5411] to-[#ff7a3d] rounded-xl font-bold text-lg text-white shadow-xl hover:scale-102 transition-all duration-200 hover:shadow-[0_0_30px_rgba(252,84,17,0.3)]"
+										className="w-full group relative py-4 px-10 bg-black/40 border border-[#FC5411] rounded-xl font-bold text-lg text-white shadow-lg hover:shadow-[0_0_20px_rgba(252,84,17,0.4)] hover:scale-102 hover:bg-[#FC5411]/10 transition-all duration-200"
 										type="button"
 									>
 										Generate Horoscope 🔮
