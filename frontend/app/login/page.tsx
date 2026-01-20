@@ -102,7 +102,7 @@ const LoginPage: FC = () => {
 			if (!geoResult.success) {
 				setError(
 					geoResult.error ||
-						'Could not find location. Please try a more specific place name (e.g., "New Delhi, India")',
+					'Could not find location. Please try a more specific place name (e.g., "New Delhi, India")',
 				);
 				setIsGeocoding(false);
 				return;
@@ -167,6 +167,34 @@ const LoginPage: FC = () => {
 
 	return (
 		<section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-black">
+			{/* WALLET BUTTON - TOP RIGHT */}
+			<div className="absolute top-4 right-4 md:top-8 md:right-8 z-50">
+				<button
+					onClick={handleDisconnect}
+					className="flex flex-row gap-2 items-center
+						bg-[#1F1F1F]
+						border border-[#FC5411]
+						text-white
+						px-4
+						py-2
+						rounded-xl
+						font-medium
+						hover:bg-[#262626]
+						hover:shadow-[0_0_20px_rgba(252,84,17,0.35)]
+						transition
+						text-sm md:text-base
+					"
+					type="button"
+				>
+					<img
+						alt="Solana Logo"
+						className="w-4 h-4 md:w-5 md:h-5"
+						src="https://solana.com/src/img/branding/solanaLogoMark.svg"
+					/>
+					{publicKey?.slice(0, 4)}...
+					{publicKey?.slice(-4)}
+				</button>
+			</div>
 			<div className="flex absolute inset-y-0 right-0 w-full md:w-1/2 z-0 flex-col">
 				<div className="relative h-full w-full">
 					<img
@@ -289,7 +317,7 @@ const LoginPage: FC = () => {
 							</p>
 
 							<form
-								className="space-y-6 lg:space-y-10 mt-8 lg:mt-26"
+								className="space-y-6 lg:space-y-10"
 								onSubmit={handleBirthDetailsSubmit}
 							>
 								{/* Date of Birth */}
@@ -298,18 +326,18 @@ const LoginPage: FC = () => {
 										Date of Birth
 									</label>
 									<input
-										className="
+										className={`
 											w-full px-4 py-3 rounded-lg
 											bg-[#121212]
 											border border-[#2A2A2A]
-											text-white
 											placeholder:text-gray-500
 											focus:outline-none
 											focus:border-[#FC5411]
 											disabled:opacity-50
 											disabled:cursor-not-allowed
 											[color-scheme:dark]
-										"
+											${!birthDate ? "text-gray-500" : "text-white"}
+										`}
 										disabled={isSubmitting}
 										onChange={(e) => setBirthDate(e.target.value)}
 										placeholder="Date of Birth"
@@ -324,18 +352,18 @@ const LoginPage: FC = () => {
 										Time of Birth
 									</label>
 									<input
-										className="
+										className={`
 											w-full px-4 py-3 rounded-lg
 											bg-[#121212]
 											border border-[#2A2A2A]
-											text-white
 											placeholder:text-gray-500
 											focus:outline-none
 											focus:border-[#FC5411]
 											disabled:opacity-50
 											disabled:cursor-not-allowed
 											[color-scheme:dark]
-										"
+											${!birthTime ? "text-gray-500" : "text-white"}
+										`}
 										disabled={isSubmitting}
 										onChange={(e) => setBirthTime(e.target.value)}
 										placeholder="Time of Birth"
@@ -367,10 +395,9 @@ const LoginPage: FC = () => {
 										h-12
 										border
 										transition-all
-										${
-											birthDate && birthTime && birthPlace && !isSubmitting
-												? "bg-[#1F1F1F] text-white border-[#FC5411] hover:bg-[#262626]"
-												: "bg-[#1f1f1f] text-gray-500 border-[#2A2A2A] cursor-not-allowed opacity-60"
+										${birthDate && birthTime && birthPlace && !isSubmitting
+											? "bg-[#1F1F1F] text-white border-[#FC5411] hover:bg-[#262626]"
+											: "bg-[#1f1f1f] text-gray-500 border-[#2A2A2A] cursor-not-allowed opacity-60"
 										}
 									`}
 									disabled={
@@ -435,7 +462,7 @@ const LoginPage: FC = () => {
 					</span>
 				</motion.p>
 			</motion.div>
-
+      
 			<div className="block absolute bottom-4 md:bottom-11 left-0 w-full z-999 px-6">
 				{/* Mobile dropdown container - centered above footer */}
 				<div className="w-full flex md:hidden mt-0 mb-5 flex-col items-center gap-4 relative">
@@ -621,7 +648,6 @@ const LoginPage: FC = () => {
 						)}
 					</div>
 				</div>
-
 				<div className="font-display max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2 md:gap-0 text-xs md:text-md text-[#8A8A8A]">
 					<span className="font-display">
 						©2025 <span className="text-white">Hashtro</span>
