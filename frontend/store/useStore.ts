@@ -25,7 +25,7 @@ export const useStore = create<AppState>((set) => ({
 		try {
 			const endpoint =
 				process.env.NEXT_PUBLIC_SOLANA_RPC_URL ||
-				"https://api.devnet.solana.com";
+				"https://api.mainnet-beta.solana.com";
 			const connection = new Connection(endpoint, "confirmed");
 			const pubKey = new PublicKey(wallet);
 			const lamports = await connection.getBalance(pubKey);

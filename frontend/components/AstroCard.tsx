@@ -70,28 +70,28 @@ const getVibeColor = (
 	vibe: string,
 ): { bg: string; text: string; border: string } => {
 	const vibeMap: Record<string, { bg: string; text: string; border: string }> =
-		{
-			stellar: {
-				bg: "bg-emerald-500/20",
-				text: "text-emerald-300",
-				border: "border-emerald-500/30",
-			},
-			ascending: {
-				bg: "bg-blue-500/20",
-				text: "text-blue-300",
-				border: "border-blue-500/30",
-			},
-			shaky: {
-				bg: "bg-amber-500/20",
-				text: "text-amber-300",
-				border: "border-amber-500/30",
-			},
-			eclipse: {
-				bg: "bg-purple-500/20",
-				text: "text-purple-300",
-				border: "border-purple-500/30",
-			},
-		};
+	{
+		stellar: {
+			bg: "bg-emerald-500/20",
+			text: "text-emerald-300",
+			border: "border-emerald-500/30",
+		},
+		ascending: {
+			bg: "bg-blue-500/20",
+			text: "text-blue-300",
+			border: "border-blue-500/30",
+		},
+		shaky: {
+			bg: "bg-amber-500/20",
+			text: "text-amber-300",
+			border: "border-amber-500/30",
+		},
+		eclipse: {
+			bg: "bg-purple-500/20",
+			text: "text-purple-300",
+			border: "border-purple-500/30",
+		},
+	};
 	return vibeMap[vibe.toLowerCase()] || vibeMap.stellar;
 };
 
@@ -497,16 +497,6 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 									Download Card
 								</button>
 
-								{/* Lottery */}
-								<button
-									onClick={() => router.push("/lottery")}
-									className="cursor-pointer text-sm md:text-lg w-full border border-[#FC5411]
-    flex items-center justify-center gap-3 px-8 py-4
-     hover:bg-white/10 rounded-2xl transition-all"
-								>
-									Check Your Lottery Luck →
-								</button>
-
 								<button
 									onClick={() => setOpenModal(true)}
 									className="cursor-pointer text-sm md:text-lg w-full border border-[#FC5411]
@@ -618,39 +608,37 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 								{/* Noise Texture Overlay */}
 
 								{/* Content */}
-								<div className="relative z-20 h-full flex flex-col gap-0 p-8">
-									{/* Header */}
-									<div className="flex justify-center items-center mb-0">
-										<div
-											className={`text-white  px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest`}
-											style={{
-												boxShadow: `
-      0 0 4px rgba(220, 220, 220, 0.25),
-      0 0 4px rgba(180, 180, 180, 0.15),
-      0 25px 75px -12px ${accent}10
-    `,
-											}}
-										>
-											<img
-												src={"/Hastrology.svg"}
-												alt={"Hastrology"}
-												className="w-40 h-8"
-											/>
-										</div>
-									</div>
-
-									{/* Center Content */}
-									<div className="flex-1 mt-8 mb-20 min-h-0 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
-										<div className="mb-4 flex items-center justify-between">
+								<div className="relative z-20 h-full flex flex-col justify-between p-6 md:p-8">
+									{/* Top Section: User & Constellation */}
+									<div className="flex justify-between items-start">
+										<div className="space-y-4">
+											{/* User Info */}
 											<div>
-												<h2 className="text-2xl font-bold text-white tracking-tight">
-													{user?.username}
+												<h2 className="text-2xl md:text-3xl font-black text-white tracking-tight leading-none">
+													{user?.username || card.front.zodiac_sign}
 												</h2>
-												<h3 className="text-sm mt-1 font-bold text-white/60 tracking-tight">
-													@{user?.twitterUsername}
+												<h3 className="text-sm md:text-base font-medium text-white/50 tracking-wide mt-1">
+													@{user?.twitterUsername || user?.username}
 												</h3>
 											</div>
-											{user?.twitterProfileUrl && (
+
+											{/* Constellation */}
+											<div className="relative w-32 h-24 md:w-40 md:h-28 opacity-90">
+												<img
+													src={`/stars/${card.front.zodiac_sign.toLowerCase()}.svg`}
+													alt={`${card.front.zodiac_sign} Constellation`}
+													className="w-full h-full object-contain object-left"
+												/>
+												<div className="absolute top-0 left-0 text-[10px] uppercase tracking-[0.2em] text-white/40 font-bold">
+													{card.front.zodiac_sign}
+												</div>
+											</div>
+										</div>
+
+										{/* Profile Pic (Optional/Small) */}
+										{user?.twitterProfileUrl && (
+											<div className="relative">
+												<div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent rounded-2xl blur-sm" />
 												<img
 													src={`/api/image?url=${encodeURIComponent(
 														user.twitterProfileUrl.replace(
@@ -658,79 +646,107 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 															"_400x400",
 														),
 													)}`}
-													alt={user?.username || "Twitter Profile"}
-													className="w-16 h-16 rounded-xl object-cover border border-white/20 shadow-md"
+													alt={user?.username || "Profile"}
+													className="relative w-12 h-12 md:w-16 md:h-16 rounded-2xl object-cover border border-white/20 shadow-xl"
 												/>
-											)}
+											</div>
+										)}
+									</div>
+
+									{/* Middle Section: Vibe & Hooks */}
+									<div className="space-y-6 mt-4">
+										{/* Vibe Status - Large Display */}
+										<div>
+											<h1 className="text-3xl md:text-4xl font-light text-white tracking-wide">
+												{card.front.vibe_status}
+											</h1>
 										</div>
 
-										<div className="mt-4">
-											<img
-												src={`/stars/${card.front.zodiac_sign.toLowerCase()}.svg`}
-												alt={card.front.zodiac_sign}
-												className="w-24 h-16"
-											/>
+										{/* Hooks - Typography */}
+										<div className="space-y-4">
+											<p className="text-lg md:text-xl text-white/90 font-medium leading-snug">
+												{card.front.hook_1}
+											</p>
+											<p className="text-base md:text-lg text-white/60 font-light leading-relaxed">
+												{card.front.hook_2}
+											</p>
 										</div>
-										{/* Details */}
-										<div className="flex flex-row justify-between items-center">
-											<div className="flex flex-col gap-2 space-y-1 text-white/80 text-md font-medium">
-												<p className=" text-white font-medium text-md">
-													{card.front.vibe_status}
-												</p>
-												<h3 className="text-sm leading-snug drop-shadow-md text-left text-white/80 mx-0 mb-4">
-													{card.front.hook_1}
-												</h3>
+									</div>
 
-												<h3 className="text-sm leading-snug drop-shadow-md text-left text-white/80 mx-0">
-													{card.front.hook_2}
-												</h3>
-
-												<motion.div
-													animate={{ opacity: 1, y: 0 }}
-													className="space-y-3 mt-2"
-													initial={{ opacity: 0, y: 10 }}
-													transition={{ delay: 0.5 }}
-												>
-													<div className="grid grid-cols-3 gap-3">
-														<div className="bg-white/5 rounded-xl p-2 text-center border border-white/5 hover:border-white/10 transition-colors backdrop-blur-sm">
-															<div className="text-[10px] text-white/40 uppercase mb-2 tracking-wider font-medium">
-																Lucky Number
-															</div>
-															<div className="text-sm font-black text-white">
-																{card.back.lucky_assets.number}
-															</div>
-														</div>
-														<div className="bg-white/5 rounded-xl p-2 text-center border border-white/5 hover:border-white/10 transition-colors backdrop-blur-sm">
-															<div className="text-[10px] text-white/40 uppercase mb-2 tracking-wider font-medium">
-																Lucky Color
-															</div>
-															<div className="text-sm font-black text-white">
-																{card.back.lucky_assets.color}
-															</div>
-														</div>
-														<div className="bg-white/5 rounded-xl p-2 text-center border border-white/5 hover:border-white/10 transition-colors backdrop-blur-sm">
-															<div className="text-[10px] text-white/40 uppercase mb-2 tracking-wider font-medium">
-																Power Hour
-															</div>
-															<div className="text-xs font-black text-white">
-																{card.back.lucky_assets.power_hour}
-															</div>
-														</div>
+									{/* Bottom Section: Lucky Assets */}
+									<div className="mt-auto pt-5 border-t border-white/10">
+										<div className="grid grid-cols-3 gap-2 md:gap-3">
+											{/* Lucky Number */}
+											<div
+												className="relative overflow-hidden backdrop-blur-sm rounded-2xl p-3 md:p-4 text-center group transition-all duration-300 hover:scale-[1.02]"
+												style={{
+													background: `linear-gradient(135deg, ${accent}15 0%, transparent 100%)`,
+													border: `1px solid ${accent}25`,
+												}}
+											>
+												<div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+												<div className="relative">
+													<div className="flex items-center justify-center gap-1 mb-1">
+														<span className="text-xs opacity-60">🎯</span>
+														<span className="text-[8px] md:text-[9px] text-white/50 uppercase tracking-widest font-bold">
+															Number
+														</span>
 													</div>
-												</motion.div>
+													<div
+														className="text-2xl md:text-3xl font-black group-hover:scale-110 transition-transform"
+														style={{ color: accent }}
+													>
+														{card.back.lucky_assets.number}
+													</div>
+												</div>
+											</div>
+
+											{/* Lucky Color */}
+											<div
+												className="relative overflow-hidden backdrop-blur-sm rounded-2xl p-3 md:p-4 text-center group transition-all duration-300 hover:scale-[1.02]"
+												style={{
+													background: `linear-gradient(135deg, ${accent}15 0%, transparent 100%)`,
+													border: `1px solid ${accent}25`,
+												}}
+											>
+												<div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+												<div className="relative">
+													<div className="flex items-center justify-center gap-1 mb-1">
+														<span className="text-xs opacity-60">🎨</span>
+														<span className="text-[8px] md:text-[9px] text-white/50 uppercase tracking-widest font-bold">
+															Color
+														</span>
+													</div>
+													<div className="text-sm md:text-base font-bold text-white leading-tight break-words">
+														{card.back.lucky_assets.color}
+													</div>
+												</div>
+											</div>
+
+											{/* Power Hour */}
+											<div
+												className="relative overflow-hidden backdrop-blur-sm rounded-2xl p-3 md:p-4 text-center group transition-all duration-300 hover:scale-[1.02]"
+												style={{
+													background: `linear-gradient(135deg, ${accent}15 0%, transparent 100%)`,
+													border: `1px solid ${accent}25`,
+												}}
+											>
+												<div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+												<div className="relative">
+													<div className="flex items-center justify-center gap-1 mb-1">
+														<span className="text-xs opacity-60">⚡</span>
+														<span className="text-[8px] md:text-[9px] text-white/50 uppercase tracking-widest font-bold">
+															Power
+														</span>
+													</div>
+													<div className="text-sm md:text-base font-bold text-white leading-tight">
+														{card.back.lucky_assets.power_hour}
+													</div>
+												</div>
 											</div>
 										</div>
 									</div>
-									<div className="flex flex-col items-center gap-2 justify-center z-9999">
-										<img
-											src={`/zodiac/${card.front.zodiac_sign.toLowerCase()}.svg`}
-											alt="Cosmic Back Visual"
-											className="text-white w-24 h-24 object-contain drop-shadow-[0_0_20px_rgba(255,255,255,0.15)]"
-										/>
-										<span className="uppercase text-white/50">
-											Ruling Planet: {card.ruling_planet_theme}
-										</span>
-									</div>
+
 									{/* Footer */}
 								</div>
 							</motion.div>
@@ -738,9 +754,8 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 							{/* ==================== BACK FACE ==================== */}
 							<motion.div
 								data-card-back
-								className={`absolute w-full h-full rounded-[2.5rem] overflow-hidden shadow-2xl ${
-									isFlipped ? "pointer-events-auto" : "pointer-events-none"
-								}`}
+								className={`absolute w-full h-full rounded-[2.5rem] overflow-hidden shadow-2xl ${isFlipped ? "pointer-events-auto" : "pointer-events-none"
+									}`}
 								style={{
 									transform: isFlipped
 										? "rotateY(180deg) translateZ(1px)"
@@ -754,33 +769,54 @@ export const AstroCard: React.FC<AstroCardProps> = ({
     `,
 								}}
 							>
+								{/* Background image matching front */}
+								<img
+									src="/cardbg.png"
+									alt="Card Background"
+									className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
+								/>
+
+								{/* Gradient overlay for readability */}
+								<div
+									className="absolute inset-0 z-10 pointer-events-none"
+									style={{
+										background: `linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.85) 50%, rgba(0,0,0,0.9) 100%)`,
+									}}
+								/>
+
 								{/* Content */}
-								<div className="relative z-20 h-full flex flex-col gap-0 p-8">
-									{/* Header */}
-									<div className="flex justify-end items-center mb-3">
-										{/* <button
-										onClick={(e) => {
-											e.stopPropagation();
-											setIsFlipped(false);
-										}}
-										className="bg-white/5 backdrop-blur-md w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors border border-white/10"
-									>
-										<svg
-											className="text-white/60"
-											fill="none"
-											height="16"
-											stroke="currentColor"
-											strokeWidth="2"
-											viewBox="0 0 24 24"
-											width="16"
+								<div className="relative z-20 h-full flex flex-col p-6 md:p-8">
+									{/* Header with title */}
+									<div className="flex items-center justify-between mb-4">
+										<div className="flex items-center gap-3">
+											<div
+												className="w-10 h-10 rounded-xl flex items-center justify-center"
+												style={{ backgroundColor: `${accent}30` }}
+											>
+												<span className="text-xl">{zodiacEmoji}</span>
+											</div>
+											<div>
+												<h3 className="text-lg md:text-xl font-bold text-white">
+													Deep Dive
+												</h3>
+												<p className="text-xs text-white/40 uppercase tracking-widest">
+													{card.front.zodiac_sign}
+												</p>
+											</div>
+										</div>
+										<div
+											className="px-3 py-1.5 rounded-full text-xs font-bold"
+											style={{
+												backgroundColor: `${accent}20`,
+												color: accent
+											}}
 										>
-											<path d="M19 12H5M12 19l-7-7 7-7" />
-										</svg>
-									</button> */}
+											{card.front.vibe_status}
+										</div>
 									</div>
 
 									{/* Scrollable Content */}
-									<div className="flex-1 min-h-0 mt-2 overflow-y-auto pr-2 space-y-6 custom-scrollbar">
+									<div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-4 custom-scrollbar">
 										{/* Detailed Reading */}
 										<motion.div
 											animate={{ opacity: 1, y: 0 }}
@@ -789,11 +825,12 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 											transition={{ delay: 0.2 }}
 										>
 											<div className="flex items-center gap-2">
-												<h4 className="text-sm font-bold text-white/90 uppercase tracking-wider">
-													Deep Insight
+												<span className="text-lg">🔮</span>
+												<h4 className="text-xs font-bold text-white/70 uppercase tracking-widest">
+													Cosmic Insight
 												</h4>
 											</div>
-											<p className="text-base leading-relaxed text-white/70 font-light">
+											<p className="text-sm md:text-base leading-relaxed text-white/90 font-light pl-7">
 												{card.back.detailed_reading}
 											</p>
 										</motion.div>
@@ -801,23 +838,24 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 										{/* Hustle Alpha */}
 										<motion.div
 											animate={{ opacity: 1, y: 0 }}
-											className="relative"
+											className="relative group"
 											initial={{ opacity: 0, y: 10 }}
 											transition={{ delay: 0.3 }}
 										>
 											<div
-												className="absolute inset-0 rounded-2xl blur-xl opacity-20"
+												className="absolute inset-0 rounded-2xl blur-xl opacity-15 group-hover:opacity-25 transition-opacity"
 												style={{
 													background: `linear-gradient(135deg, ${accent}, transparent)`,
 												}}
-											></div>
-											<div className="relative p-5 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-sm space-y-3">
+											/>
+											<div className="relative p-4 md:p-5 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-sm space-y-2 hover:bg-white/[0.06] transition-colors">
 												<div className="flex items-center gap-2">
-													<h4 className="text-xs font-black uppercase tracking-widest">
+													<span className="text-base">💼</span>
+													<h4 className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-white/60">
 														Hustle Alpha
 													</h4>
 												</div>
-												<p className="text-sm text-white/90 font-medium leading-relaxed">
+												<p className="text-sm md:text-base text-white/90 font-medium leading-relaxed pl-6">
 													{card.back.hustle_alpha}
 												</p>
 											</div>
@@ -826,19 +864,39 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 										{/* Shadow Warning */}
 										<motion.div
 											animate={{ opacity: 1, y: 0 }}
-											className="p-4 rounded-xl bg-red-500/5 border border-red-500/20 backdrop-blur-sm space-y-2"
+											className="p-4 md:p-5 rounded-2xl bg-gradient-to-br from-red-500/[0.08] to-orange-500/[0.05] border border-red-500/20 backdrop-blur-sm space-y-2 hover:from-red-500/[0.12] transition-all"
 											initial={{ opacity: 0, y: 10 }}
 											transition={{ delay: 0.4 }}
 										>
 											<div className="flex items-center gap-2">
-												<h4 className="text-xs font-black uppercase tracking-widest">
+												<span className="text-base">⚠️</span>
+												<h4 className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-red-300/70">
 													Shadow Warning
 												</h4>
 											</div>
-											<p className="text-sm text-white/90 leading-relaxed">
+											<p className="text-sm md:text-base text-white/85 leading-relaxed pl-6">
 												{card.back.shadow_warning}
 											</p>
 										</motion.div>
+
+									</div>
+
+									{/* Footer hint */}
+									<div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-center gap-2 text-white/40">
+										<svg
+											fill="none"
+											height="14"
+											stroke="currentColor"
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											strokeWidth="2"
+											viewBox="0 0 24 24"
+											width="14"
+										>
+											<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+											<path d="M3 3v5h5" />
+										</svg>
+										<span className="text-xs font-medium">Tap to flip back</span>
 									</div>
 								</div>
 							</motion.div>
@@ -984,11 +1042,11 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 										/>
 
 										{/* Image Preview */}
-										<div className="mt-3 relative rounded-2xl overflow-hidden border border-white/20">
+										<div className="mt-3 relative rounded-2xl overflow-hidden border border-white/20"										>
 											<img
-												src={URL.createObjectURL(draftBlob!)}
-												alt="Card Preview"
-												className="w-full object-cover"
+												src={"/logo/hast.svg"}
+												alt={"Hastrology"}
+												className="w-40 h-auto"
 											/>
 										</div>
 									</div>

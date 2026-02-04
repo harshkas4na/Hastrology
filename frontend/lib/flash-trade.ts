@@ -746,6 +746,6 @@ export class FlashPrivyService {
 	}
 
 	async cleanup() {
-		console.log("✅ Flash client cleanup complete");
+		// Cleanup resources if needed
 	}
 }

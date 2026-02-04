@@ -1,13 +1,13 @@
 "use client";
+
 import { useLogin } from "@privy-io/react-auth";
-import { useFundWallet } from "@privy-io/react-auth/solana";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { type FC, useEffect, useRef, useState } from "react";
 import { usePrivyWallet } from "@/app/hooks/use-privy-wallet";
 import { api } from "@/lib/api";
 import { useStore } from "@/store/useStore";
+import { StarBackground } from "./StarBackground";
+import Image from "next/image";
 
 export const Hero: FC = () => {
 	const {
@@ -35,7 +35,7 @@ export const Hero: FC = () => {
 			}
 		},
 	});
-	const [open, setOpen] = useState(false);
+	const [dropdownOpen, setDropdownOpen] = useState(false);
 
 	useEffect(() => {
 		const checkUserStatus = async () => {
@@ -49,10 +49,10 @@ export const Hero: FC = () => {
 
 			setIsChecking(true);
 			try {
-				const address = publicKey;
-				setWallet(address);
+				const addr = publicKey;
+				setWallet(addr);
 
-				const profileResponse = await api.getUserProfile(address);
+				const profileResponse = await api.getUserProfile(addr);
 
 				if (profileResponse?.user) {
 					const user = profileResponse.user;
@@ -76,214 +76,121 @@ export const Hero: FC = () => {
 	}, [connected, publicKey, setUser, setWallet, router]);
 
 	return (
-		<section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-black">
-			<div className="absolute inset-0 z-0 flex flex-col">
-				<div className="relative h-1/2 w-full">
-					<img
-						alt="Upper Background"
-						className="w-full h-full object-cover"
-						src="/bg-home-upper.png"
-					/>
+		<section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+			{/* Animated background */}
+			<StarBackground />
+
+			{/* Main content */}
+			<div className="relative z-10 text-center px-6 max-w-4xl screen-fade-in">
+				{/* Brand section */}
+				<div className="mb-12">
+					<div className="mb-6 relative w-64 h-24 mx-auto">
+						<Image
+							src="/logo/hast-transparent.svg"
+							alt="Hastrology Logo"
+							fill
+							className="object-contain"
+							priority
+						/>
+					</div>
+					<p className="text-lg text-white/60 mb-3">
+						Your daily horoscope, verified by a trade on Solana
+					</p>
+					<p className="text-sm text-white/40 max-w-md mx-auto leading-relaxed">
+						Get your personalized reading once a day. Verify it with a real trade.
+						See if the stars align.
+					</p>
 				</div>
-				<div className="relative h-1/2 w-full">
-					<img
-						alt="Lower Background"
-						className="w-full h-full object-cover"
-						src="/bg-home-lower.png"
-					/>
-				</div>
-				<div className="absolute inset-0 bg-linear-to-b from-transparent via-transparent to-transparent" />
-			</div>
-			<img
-				alt="Orange Planet"
-				className="hidden md:block absolute left-0 top-0 h-full w-auto object-contain object-left z-0"
-				src="/ellipse-left.png"
-			/>
-			<img
-				alt="Black Planet"
-				className="hidden md:block absolute left-0 top-0 h-full w-auto object-contain object-left z-10"
-				src="/ellipse-black.png"
-			/>
-			{/* CONTENT */}
-			<motion.div
-				animate={{ opacity: 1, y: 0 }}
-				className="relative z-10 text-center px-6 max-w-4xl"
-				initial={{ opacity: 0, y: 30 }}
-				transition={{ duration: 0.9, ease: "easeOut" }}
-			>
-				{/* TITLE */}
-				<motion.img
-					alt="Hastrology Logo"
-					animate={{ scale: 1, opacity: 1 }}
-					className="-mt-35 md:-mt-25
-            w-65 md:w-120 lg:w-166
-            mx-auto
-            drop-shadow-[0_0_20px_rgba(251,146,60,0.35)]
-          "
-					initial={{ scale: 0.9, opacity: 0 }}
-					src="/Hastrology.svg"
-					transition={{ delay: 0.2, duration: 0.8 }}
-				/>
 
-				{/* SUBTEXT */}
-				<motion.p
-					animate={{ opacity: 1 }}
-					className="mt-6 text-md md:text-2xl text-[#CCCCCC] leading-relaxed"
-					initial={{ opacity: 0 }}
-					transition={{ delay: 0.4, duration: 0.8 }}
-				>
-					Unlock the secrets of the stars with AI-powered insights on Solana.
-					<br />
-					<span className="text-[#CCCCCC] mt-0">
-						Your destiny is written in the code of the cosmos. ✨
-					</span>
-				</motion.p>
-
-				<div className="hover:scale-105 hidden md:inline-block relative mt-3">
-					<button
-						className="cursor-pointer mt-5 !bg-[#1f1f1f] hover:!bg-[#121212] !text-white !h-12 !px-8 !py-6 !border !border-[#fc5411] !pt-2.5 !rounded-xl !transition-all"
-						disabled={isLoadingWallet}
-						onClick={() => {
-							if (!address && !isLoadingWallet) {
-								login();
-							} else {
-								setOpen((v) => !v);
-							}
-						}}
-						type="button"
-					>
-						{isLoadingWallet ? (
-							"Loading..."
-						) : address ? (
-							`${address.slice(0, 6)}...${address.slice(-4)}`
-						) : (
-							<div className="flex flex-row items-center gap-2">
-								<span>Connect Your</span>
-								<svg
-									viewBox="0 0 24 24"
-									aria-hidden="true"
-									className="block w-5 h-5 fill-current"
-								>
-									<path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-								</svg>
-							</div>
-						)}
-					</button>
-
-					{open && address && (
-						<div
-							className="absolute right-0 mt-2 min-w-[200px]
-      bg-[#06141a] border border-[#194758] text-white shadow-lg z-50"
-						>
-							{/* Address */}
-							<div className="px-3 py-2 border-b border-[#194758]">
-								<div className="flex items-center gap-2">
-									<span className="text-sm font-mono flex-1 truncate">
-										{`${address.slice(0, 10)}...${address.slice(-6)}`}
-									</span>
-								</div>
-							</div>
-
-							{/* Logout */}
-							<button
-								className="w-full text-left px-3 py-2 text-sm
-        hover:bg-[#2596be] hover:text-black transition-colors"
-								onClick={() => {
-									logout();
-									setOpen(false);
-								}}
-								type="button"
-							>
-								Logout
-							</button>
-						</div>
-					)}
-				</div>
-			</motion.div>
-			<div className="absolute bottom-0 left-0 w-full h-32 bg-linear-to-t from-black to-transparent" />
-			<img
-				alt="Orange Planet"
-				className="hidden md:block absolute right-0 top-0 h-full w-auto object-contain object-left z-0"
-				src="/ellipse-right.png"
-			/>
-			<img
-				alt="Black Planet"
-				className="hidden md:block absolute right-0 top-0 h-full w-auto object-contain object-left z-10"
-				src="/ellipse-black-right.png"
-			/>
-			{/* Small bottom ellipses (card-style accent) */}
-			<div className="md:hidden pointer-events-none absolute bottom-12 left-0 w-full flex justify-center z-20">
-				<div className="relative w-full max-w-md h-40">
-					{/* Orange ellipse */}
-					<img
-						src="/small-ellipse.png"
-						alt="Orange Ellipse"
-						className="absolute bottom-10 left-1/2 -translate-x-1/2 w-full object-contain blur-sm"
-					/>
-
-					{/* Black ellipse (softer) */}
-					<img
-						src="/small-black-ellipse.png"
-						alt="Black Ellipse"
-						className="absolute bottom-6 left-1/2 -translate-x-1/2 w-full object-contain"
-					/>
-				</div>
-			</div>
-
-			<div className="absolute bottom-14 md:bottom-11 left-0 w-full z-30 px-4 md:px-6">
-				<motion.div
-					animate={{ opacity: 1, y: 0 }}
-					className="w-full flex md:hidden mt-10 mb-10 flex-col items-center gap-4"
-					initial={{ opacity: 0, y: 20 }}
-					transition={{ delay: 0.7, duration: 0.8 }}
-				>
+				{/* Login section */}
+				<div className="flex flex-col items-center gap-5">
 					{isChecking ? (
 						<button
 							disabled
 							type="button"
-							className="bg-[#1f1f1f] text-white h-12 px-8 py-6 border border-[#fc5411] pt-2.5 rounded-xl opacity-50 cursor-not-allowed"
+							className="btn-white opacity-50 cursor-not-allowed"
 						>
 							Locating Your Stars...
 						</button>
+					) : address ? (
+						<div className="relative">
+							<button
+								onClick={() => setDropdownOpen((v) => !v)}
+								type="button"
+								className="btn-white"
+							>
+								{`${address.slice(0, 6)}...${address.slice(-4)}`}
+							</button>
+
+							{dropdownOpen && (
+								<div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 min-w-[200px] bg-[#0a0a0f] border border-white/10 rounded-xl shadow-lg z-50 overflow-hidden">
+									<div className="px-4 py-3 border-b border-white/10">
+										<span className="text-sm font-mono text-white/70">
+											{`${address.slice(0, 10)}...${address.slice(-6)}`}
+										</span>
+									</div>
+									<button
+										className="w-full text-left px-4 py-3 text-sm text-white/60 hover:bg-white/5 hover:text-white transition-colors"
+										onClick={() => {
+											logout();
+											setDropdownOpen(false);
+										}}
+										type="button"
+									>
+										Disconnect
+									</button>
+								</div>
+							)}
+						</div>
 					) : (
 						<button
 							onClick={() => {
-								if (!address && !isLoadingWallet) {
+								if (!isLoadingWallet) {
 									login();
-								} else {
-									setOpen((v) => !v);
 								}
 							}}
+							disabled={isLoadingWallet}
 							type="button"
-							className=" hover:!bg-[#121212] !text-white !h-12 !px-8 !py-6 !border !border-[#fc5411] !pt-2.5 !rounded-xl !transition-all cursor-pointer hover:scale-105"
+							className="btn-white"
 						>
-							<div className="flex flex-row items-center gap-2">
-								<span>Connect Your</span>
-								<svg
-									viewBox="0 0 24 24"
-									aria-hidden="true"
-									className="block w-3.5 h-3.5 fill-current"
-								>
-									<path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-								</svg>
-							</div>
+							<svg
+								viewBox="0 0 24 24"
+								aria-hidden="true"
+								className="w-5 h-5 fill-current"
+							>
+								<path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+							</svg>
+							Continue with X
 						</button>
 					)}
-				</motion.div>
-				<div className="font-display max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2 md:gap-0 text-xs md:text-md text-[#8A8A8A]">
-					<span className="font-display">
-						©2025 <span className="text-white">Hashtro</span>
-					</span>
-					<div className="flex flex-wrap justify-center gap-3 md:gap-6">
-						<span className="text-white hidden sm:inline">
-							Your cosmic journey on Solana.
-						</span>
-						<a className="hover:text-white transition" href="/abc">
-							About us
-						</a>
-						<a className="hover:text-white transition" href="/abc">
-							Cookie Policy
-						</a>
+
+
+					<p className="text-sm text-white/40">
+						One horoscope per day. Make it count.
+					</p>
+				</div>
+			</div>
+
+			{/* Footer */}
+			<div className="absolute bottom-8 left-0 right-0 flex flex-col items-center gap-2 text-sm text-white/30 z-10">
+				<div className="flex items-center gap-2">
+					<span>Powered by</span>
+					<div className="solana-badge">
+						<svg viewBox="0 0 397.7 311.7" className="w-4 h-4">
+							<path
+								d="M64.6 237.9c2.4-2.4 5.7-3.8 9.2-3.8h317.4c5.8 0 8.7 7 4.6 11.1l-62.7 62.7c-2.4 2.4-5.7 3.8-9.2 3.8H6.5c-5.8 0-8.7-7-4.6-11.1l62.7-62.7z"
+								fill="#00FFA3"
+							/>
+							<path
+								d="M64.6 3.8C67.1 1.4 70.4 0 73.8 0h317.4c5.8 0 8.7 7 4.6 11.1l-62.7 62.7c-2.4 2.4-5.7 3.8-9.2 3.8H6.5c-5.8 0-8.7-7-4.6-11.1L64.6 3.8z"
+								fill="#00FFA3"
+							/>
+							<path
+								d="M333.1 120.1c-2.4-2.4-5.7-3.8-9.2-3.8H6.5c-5.8 0-8.7 7-4.6 11.1l62.7 62.7c2.4 2.4 5.7 3.8 9.2 3.8h317.4c5.8 0 8.7-7 4.6-11.1l-62.7-62.7z"
+								fill="#00FFA3"
+							/>
+						</svg>
+						<span className="text-xs text-white/50">Solana</span>
 					</div>
 				</div>
 			</div>

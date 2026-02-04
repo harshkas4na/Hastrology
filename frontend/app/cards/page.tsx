@@ -1,54 +1,112 @@
 "use client";
 
-import { useExportWallet, useFundWallet } from "@privy-io/react-auth/solana";
+import { useConnection } from "@solana/wallet-adapter-react";
+import { Connection, LAMPORTS_PER_SOL, PublicKey, Transaction } from "@solana/web3.js";
+import bs58 from "bs58";
 import { useRouter } from "next/navigation";
-import { type FC, useEffect, useRef, useState } from "react";
-import { WalletBalance } from "@/components/balance";
-import { HoroscopeSection } from "@/components/HoroscopeSection";
-import { UserXDetails } from "@/components/TwitterDetails";
-import { Toast } from "@/components/toast";
+import { type FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { HoroscopeReveal } from "@/components/HoroscopeReveal";
+import { TradeConfirm } from "@/components/TradeConfirm";
+import { TradeExecution, type TradeResult } from "@/components/TradeExecution";
+import { TradeResults } from "@/components/TradeResults";
 import { api } from "@/lib/api";
+import { FlashPrivyService } from "@/lib/flash-trade";
+import { buildEnterLotteryInstruction } from "@/lib/hastrology_program";
 import { useStore } from "@/store/useStore";
+import type { AstroCard } from "@/types";
 import { usePrivyWallet } from "../hooks/use-privy-wallet";
 
+type Screen = "loading" | "payment" | "reveal" | "confirm" | "execute" | "results";
+
+const PAYMENT_AMOUNT = 0.01; // SOL
+
+// Helper functions
+function deriveDirection(vibeStatus: string): "LONG" | "SHORT" {
+	const positiveKeywords = [
+		"confident", "optimistic", "energetic", "creative", "happy",
+		"excited", "bold", "adventurous", "passionate", "lucky",
+	];
+	const vibe = vibeStatus.toLowerCase();
+	return positiveKeywords.some((kw) => vibe.includes(kw)) ? "LONG" : "SHORT";
+}
+
+function extractNumber(numStr: string): number {
+	const match = numStr.match(/\d+/);
+	return match ? parseInt(match[0], 10) : 42;
+}
+
 const CardsPage: FC = () => {
-	const { publicKey, disconnect, connected } = usePrivyWallet();
-	const { fundWallet } = useFundWallet();
-	const { user } = useStore();
-	const { exportWallet } = useExportWallet();
-	const { setWallet, setUser, reset } = useStore();
-	const [toastMessage, setToastMessage] = useState<string | null>(null);
-
+	const {
+		publicKey,
+		connected,
+		sendTransaction,
+		isReady,
+		signTransaction,
+		signAllTransactions,
+	} = usePrivyWallet();
+	const { connection } = useConnection();
+	const { user, card, setCard, setWallet, setUser, reset, loading, setLoading } = useStore();
 	const router = useRouter();
+
+	const [currentScreen, setCurrentScreen] = useState<Screen>("loading");
+	const [tradeAmount, setTradeAmount] = useState(10);
+	const [tradeResult, setTradeResult] = useState<TradeResult | null>(null);
+	const [error, setError] = useState<string | null>(null);
+	const [balance, setBalance] = useState<number | null>(null);
+	const [flashService, setFlashService] = useState<FlashPrivyService | null>(null);
+
 	const wasConnected = useRef(false);
-	const [showDropdown, setShowDropdown] = useState(false);
-	const dropdownRef = useRef<HTMLDivElement>(null);
+	const hasCheckedRef = useRef(false);
 
-	useEffect(() => {
-		const checkUserProfile = async () => {
-			if (connected && publicKey) {
-				setWallet(publicKey);
-
-				try {
-					const profileResponse = await api.getUserProfile(publicKey);
-
-					if (profileResponse?.user) {
-						setUser(profileResponse.user);
-					} else {
-						setUser(null);
-					}
-				} catch (error) {
-					console.error("Error checking user profile:", error);
-					setUser(null);
-				}
-			} else {
-				reset();
-			}
+	// Derived trade params from card
+	const tradeParams = useMemo(() => {
+		if (!card) return null;
+		const vibeStatus = card.front.vibe_status || "Confident";
+		const luckyNumber = extractNumber(card.back.lucky_assets.number);
+		return {
+			direction: deriveDirection(vibeStatus),
+			leverage: Math.min(Math.max(luckyNumber, 2), 50), // Cap leverage between 2x and 50x
 		};
+	}, [card]);
 
-		checkUserProfile();
-	}, [connected, publicKey, reset, setUser, setWallet]);
+	// Stabilize wallet functions to prevent re-initialization
+	const walletFuncsRef = useRef({ signTransaction, signAllTransactions, sendTransaction });
+	useEffect(() => {
+		walletFuncsRef.current = { signTransaction, signAllTransactions, sendTransaction };
+	}, [signTransaction, signAllTransactions, sendTransaction]);
 
+	const walletAdapter = useMemo(() => {
+		if (!publicKey) return null;
+		return {
+			publicKey,
+			signTransaction: async (tx: any) => walletFuncsRef.current.signTransaction?.(tx),
+			signAllTransactions: async (txs: any) => walletFuncsRef.current.signAllTransactions?.(txs),
+			sendTransaction: async (tx: any) => walletFuncsRef.current.sendTransaction?.(tx)
+		};
+	}, [publicKey]);
+
+	// Initialize Flash service
+	useEffect(() => {
+		if (!walletAdapter || !connection) return;
+
+		const service = new FlashPrivyService({
+			connection,
+			wallet: walletAdapter,
+			env: "mainnet-beta",
+		});
+
+		service.initialize().then(() => {
+			setFlashService(service);
+		}).catch((err) => {
+			console.error("Flash service init error:", err);
+		});
+
+		return () => {
+			service.cleanup();
+		};
+	}, [walletAdapter, connection]);
+
+	// Redirect if disconnected
 	useEffect(() => {
 		if (wasConnected.current && !publicKey) {
 			router.push("/");
@@ -56,487 +114,288 @@ const CardsPage: FC = () => {
 		wasConnected.current = !!publicKey;
 	}, [publicKey, router]);
 
+	const generateFreeHoroscope = useCallback(async () => {
+		if (!publicKey) return;
+		setLoading(true);
+		setError(null);
+		try {
+			const result = await api.confirmHoroscope(publicKey, "FREE_HOROSCOPE");
+			setCard(result.card);
+			setCurrentScreen("reveal");
+		} catch (genErr) {
+			console.error("Error generating horoscope:", genErr);
+			setError("Failed to generate horoscope. Please try again.");
+			// Stay on error screen
+		} finally {
+			setLoading(false);
+		}
+	}, [publicKey, setCard, setLoading]);
+
+	// Check user profile and horoscope status
 	useEffect(() => {
-		const handleClickOutside = (event: MouseEvent) => {
-			if (
-				dropdownRef.current &&
-				!dropdownRef.current.contains(event.target as Node)
-			) {
-				setShowDropdown(false);
+		const checkStatus = async () => {
+			if (!connected || !publicKey || !isReady) {
+				hasCheckedRef.current = false;
+				return;
+			}
+
+			if (hasCheckedRef.current) return;
+			hasCheckedRef.current = true;
+
+			setWallet(publicKey);
+
+			try {
+				// Check user profile
+				const profileResponse = await api.getUserProfile(publicKey); // Use publicKey directly
+				console.log("Profile response:", profileResponse);
+
+				if (!profileResponse?.user) {
+					console.warn("User profile not found. Redirecting to home.");
+					router.push("/");
+					return;
+				}
+
+				setUser(profileResponse.user);
+
+				// Check horoscope status
+				const status = await api.getStatus(publicKey);
+				console.log("Horoscope status:", status);
+
+				if (status.status === "exists" && status.card) {
+					setCard(status.card);
+					setCurrentScreen("reveal");
+				} else {
+					// FREE HOROSCOPE: Auto-generate without payment
+					await generateFreeHoroscope();
+				}
+			} catch (err) {
+				console.error("Error checking status:", err);
+				setError("Failed to load your cosmic status.");
 			}
 		};
 
-		document.addEventListener("mousedown", handleClickOutside);
-		return () => {
-			document.removeEventListener("mousedown", handleClickOutside);
+		checkStatus();
+	}, [connected, publicKey, isReady, setCard, setUser, setWallet, generateFreeHoroscope, router]);
+
+	// Fetch balance
+	useEffect(() => {
+		const fetchBalance = async () => {
+			if (!publicKey) {
+				setBalance(null);
+				return;
+			}
+
+			try {
+				const endpoint = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+				const conn = new Connection(endpoint, "confirmed");
+				const pubKey = new PublicKey(publicKey);
+				const lamports = await conn.getBalance(pubKey);
+				setBalance(lamports / LAMPORTS_PER_SOL);
+			} catch (err) {
+				console.error("Error fetching balance:", err);
+			}
 		};
-	}, []);
 
-	const handleDisconnect = async () => {
-		try {
-			await disconnect();
-			reset();
-			setShowDropdown(false);
-			router.push("/");
-		} catch (error) {
-			console.error("Error disconnecting:", error);
+		fetchBalance();
+		const interval = setInterval(fetchBalance, 30000);
+		return () => clearInterval(interval);
+	}, [publicKey]);
+
+	// Handle verify trade click
+	const handleVerifyTrade = () => {
+		setCurrentScreen("confirm");
+	};
+
+	// Handle trade execution
+	const handleExecuteTrade = (amount: number) => {
+		setTradeAmount(amount);
+		setCurrentScreen("execute");
+	};
+
+	// Flash Trade callbacks
+	const handleOpenPosition = useCallback(async (): Promise<{ txSig: string; entryPrice: number }> => {
+		if (!flashService || !card || !tradeParams) {
+			throw new Error("Flash service not ready");
 		}
-	};
-	const copyAddress = async () => {
-		if (!publicKey) return;
 
-		try {
-			await navigator.clipboard.writeText(publicKey);
-			setToastMessage("Address copied to clipboard!");
-			setShowDropdown(false);
-		} catch (error) {
-			console.error("Failed to copy address:", error);
+		const result = await flashService.executeTrade({
+			card,
+			side: tradeParams.direction.toLowerCase() as "long" | "short",
+			inputAmount: tradeAmount,
+			leverage: tradeParams.leverage,
+		});
+
+		return {
+			txSig: result.txSig,
+			entryPrice: result.estimatedPrice,
+		};
+	}, [flashService, card, tradeParams, tradeAmount]);
+
+	const handleClosePosition = useCallback(async (): Promise<{ txSig: string; exitPrice: number; pnl: number }> => {
+		if (!flashService) {
+			throw new Error("Flash service not ready");
 		}
+
+		const positions = await flashService.getUserPositions();
+		const exitPrice = await flashService.getSolPrice();
+
+		if (positions.length === 0) {
+			// No position to close - return simulated result
+			return {
+				txSig: "",
+				exitPrice,
+				pnl: 0,
+			};
+		}
+
+		const result = await flashService.closeTrade(0, "USDC");
+		const currentPrice = await flashService.getSolPrice();
+
+		return {
+			txSig: result.txSig,
+			exitPrice: currentPrice,
+			pnl: positions[0]?.pnl || 0,
+		};
+	}, [flashService]);
+
+	const handleGetPrice = useCallback(async (): Promise<number> => {
+		if (!flashService) {
+			return 0;
+		}
+		return await flashService.getSolPrice();
+	}, [flashService]);
+
+	// Handle trade completion
+	const handleTradeComplete = (result: TradeResult) => {
+		setTradeResult(result);
+		setCurrentScreen("results");
 	};
 
-	const formatAddress = (address: string) => {
-		if (!address) return "";
-		return `${address.slice(0, 4)}...${address.slice(-4)}`;
+	// Handle return to home
+	const handleReturnHome = () => {
+		router.push("/");
 	};
 
-	return (
-		<>
-			<section className="relative min-h-screen flex flex-col bg-black pb-8 md:pb-24">
-				{/* Mobile top row */}
-				<div className="relative z-50 flex md:hidden items-center justify-between px-4 pt-4 gap-3">
-					{user?.twitterId && <UserXDetails />}
-					{publicKey && <WalletBalance />}
+	// Loading screen
+	if (!isReady || currentScreen === "loading") {
+		return (
+			<section className="min-h-screen flex flex-col items-center justify-center bg-[#0a0a0f] text-white">
+				<div className="w-14 h-14 mx-auto mb-8 relative animate-spin">
+					<div className="absolute inset-0 rounded-full border-4 border-white/10" />
+					<div className="absolute inset-0 rounded-full border-4 border-t-[#d4a017] border-r-[#d4a017] border-b-transparent border-l-transparent" />
 				</div>
+				<p className="animate-pulse text-xl text-white/60">
+					Connecting to the cosmos…
+				</p>
+			</section>
+		);
+	}
 
-				{/* Desktop layout (keep absolute positioning) */}
-				<div className="hidden md:block">
-					{user?.twitterId && <UserXDetails />}
-					{publicKey && <WalletBalance />}
-				</div>
-
-				{/* Desktop dropdown - top right */}
-				<div
-					className="cursor-pointer hidden md:block absolute top-6 right-6 z-999"
-					ref={dropdownRef}
-				>
-					<div className="cursor-pointer relative">
-						<button
-							onClick={() => setShowDropdown(!showDropdown)}
-							className="flex flex-row gap-2 items-center
-							bg-[#1F1F1F]
-							border border-[#FC5411]
-							text-white
-							px-4
-							py-2
-							rounded-xl
-							hover:scale-105 
-							text-sm md:text-base
-							font-medium
-							hover:bg-[#262626]
-							hover:shadow-[0_0_20px_rgba(252,84,17,0.35)]
-							transition-all duration-200
-							min-w-[140px]
-							cursor-pointer
-							justify-center
-						"
-							type="button"
-						>
-							<img
-								alt="Solana Logo"
-								className="w-4 h-5"
-								src="https://solana.com/src/img/branding/solanaLogoMark.svg"
-							/>
-							<span>{formatAddress(publicKey || "")}</span>
-							<svg
-								className={`w-4 h-4 transition-transform duration-200 ${showDropdown ? "rotate-180" : ""}`}
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
-								<title>svg</title>
-								<path
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									strokeWidth={2}
-									d="M19 9l-7 7-7-7"
-								/>
-							</svg>
-						</button>
-
-						{/* Desktop Dropdown Menu */}
-						{showDropdown && (
-							<div className="absolute top-full right-0 mt-2 w-full min-w-[160px] bg-[#1F1F1F] border border-[#FC5411] rounded-xl shadow-lg overflow-hidden z-50">
-								<div className="py-1">
-									{/* Copy Address */}
-									<button
-										onClick={copyAddress}
-										className="w-full px-4 py-3 text-left text-white hover:bg-[#262626] transition-colors duration-150 flex items-center gap-2"
-										type="button"
-									>
-										<svg
-											className="w-4 h-4"
-											fill="none"
-											stroke="currentColor"
-											viewBox="0 0 24 24"
-										>
-											<title>svg</title>
-											<path
-												strokeLinecap="round"
-												strokeLinejoin="round"
-												strokeWidth={2}
-												d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-											/>
-										</svg>
-										<span>Copy Address</span>
-									</button>
-
-									<button
-										onClick={() =>
-											fundWallet({
-												address: publicKey ?? "",
-												options: {
-													chain: "solana:devnet",
-												},
-											})
-										}
-										className="w-full px-4 py-3 text-left text-white hover:bg-[#262626] transition-colors duration-150 flex items-center gap-2"
-										type="button"
-									>
-										<svg
-											className="w-4 h-4"
-											fill="none"
-											stroke="currentColor"
-											viewBox="0 0 24 24"
-										>
-											<title>svg</title>
-											<path
-												strokeLinecap="round"
-												strokeLinejoin="round"
-												strokeWidth={2}
-												d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-											/>
-										</svg>
-										<span>Fund Wallet</span>
-									</button>
-
-									<button
-										onClick={() => exportWallet()}
-										className="w-full px-4 py-3 text-left text-white hover:bg-[#262626] transition-colors duration-150 flex items-center gap-2"
-										type="button"
-									>
-										<svg
-											className="w-4 h-4"
-											fill="none"
-											stroke="currentColor"
-											viewBox="0 0 24 24"
-										>
-											<title>Export Wallet</title>
-											<path
-												strokeLinecap="round"
-												strokeLinejoin="round"
-												strokeWidth={2}
-												d="M17 8V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-1"
-											/>
-											<path
-												strokeLinecap="round"
-												strokeLinejoin="round"
-												strokeWidth={2}
-												d="M21 12H10m0 0l3-3m-3 3l3 3"
-											/>
-										</svg>
-
-										<span>Export Wallet</span>
-									</button>
-
-									{/* View on Explorer */}
-									<a
-										href={`https://orbmarkets.io/address/${publicKey}?advanced=true&cluster=devnet&tab=summary`}
-										target="_blank"
-										rel="noopener noreferrer"
-										className="w-full px-4 py-3 text-left text-white hover:bg-[#262626] transition-colors duration-150 flex items-center gap-2"
-									>
-										<svg
-											className="w-4 h-4"
-											fill="none"
-											stroke="currentColor"
-											viewBox="0 0 24 24"
-										>
-											<title>svg</title>
-											<path
-												strokeLinecap="round"
-												strokeLinejoin="round"
-												strokeWidth={2}
-												d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-											/>
-										</svg>
-										<span>View on Explorer</span>
-									</a>
-
-									{/* Divider */}
-									<div className="border-t border-[#FC5411]/30 my-1"></div>
-
-									{/* Logout */}
-									<button
-										onClick={handleDisconnect}
-										className="w-full px-4 py-3 text-left text-red-400 hover:bg-red-500/10 transition-colors duration-150 flex items-center gap-2"
-										type="button"
-									>
-										<svg
-											className="w-4 h-4"
-											fill="none"
-											stroke="currentColor"
-											viewBox="0 0 24 24"
-										>
-											<title>svg</title>
-											<path
-												strokeLinecap="round"
-												strokeLinejoin="round"
-												strokeWidth={2}
-												d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-											/>
-										</svg>
-										<span>Disconnect</span>
-									</button>
-								</div>
-							</div>
-						)}
-					</div>
-				</div>
-
-				<div className="fixed inset-0 z-0 flex flex-col pointer-events-none">
-					<div className="relative h-full w-full">
-						<img
-							alt="Upper Background"
-							className="w-full h-full object-cover"
-							src="/bg-home-upper.png"
-						/>
-					</div>
-					<div className="relative h-full w-full">
-						<img
-							alt="Lower Background"
-							className="w-full h-full object-cover"
-							src="/bg-home-lower.png"
-						/>
-					</div>
-					<div className="absolute inset-0 bg-linear-to-b from-transparent via-transparent to-transparent" />
-				</div>
-
-				<div className="relative z-20 flex-1 flex items-start md:items-center justify-center">
-					<HoroscopeSection />
-				</div>
-
-				{/* Footer */}
-				<div className="block absolute bottom-4 md:bottom-11 left-0 w-full z-999 px-6">
-					{/* Mobile dropdown container - centered above footer */}
-					<div className="w-full flex md:hidden mt-0 mb-5 flex-col items-center gap-4 relative">
-						<div ref={dropdownRef} className="relative">
-							<button
-								onClick={() => setShowDropdown(!showDropdown)}
-								className="flex flex-row gap-2 items-center
-									bg-[#1F1F1F]
-									border border-[#FC5411]
-									text-white
-									px-4
-									py-2
-									rounded-xl
-									hover:scale-105
-									font-medium
-									hover:bg-[#262626]
-									hover:shadow-[0_0_20px_rgba(252,84,17,0.35)]
-									transition-all duration-200
-									min-w-[140px]
-									cursor-pointer
-									justify-center
-								"
-								type="button"
-							>
-								<img
-									alt="Solana Logo"
-									className="w-4 h-5"
-									src="https://solana.com/src/img/branding/solanaLogoMark.svg"
-								/>
-								<span>{formatAddress(publicKey || "")}</span>
-								<svg
-									className={`w-4 h-4 transition-transform duration-200 ${showDropdown ? "rotate-180" : ""}`}
-									fill="none"
-									stroke="currentColor"
-									viewBox="0 0 24 24"
-								>
-									<title>svg</title>
-									<path
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										strokeWidth={2}
-										d="M19 9l-7 7-7-7"
-									/>
-								</svg>
-							</button>
-
-							{/* Mobile Dropdown Menu - opens upward */}
-							{showDropdown && (
-								<div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-full min-w-[160px] bg-[#1F1F1F] border border-[#FC5411] rounded-xl shadow-lg overflow-hidden z-999">
-									<div className="py-1">
-										{/* Copy Address */}
-										<button
-											onClick={copyAddress}
-											className="w-full px-4 py-3 text-left text-white hover:bg-[#262626] transition-colors duration-150 flex items-center gap-2"
-											type="button"
-										>
-											<svg
-												className="w-4 h-4"
-												fill="none"
-												stroke="currentColor"
-												viewBox="0 0 24 24"
-											>
-												<title>svg</title>
-												<path
-													strokeLinecap="round"
-													strokeLinejoin="round"
-													strokeWidth={2}
-													d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-												/>
-											</svg>
-											<span>Copy Address</span>
-										</button>
-
-										<button
-											onClick={() =>
-												fundWallet({
-													address: publicKey ?? "",
-													options: {
-														chain: "solana:devnet",
-													},
-												})
-											}
-											className="w-full px-4 py-3 text-left text-white hover:bg-[#262626] transition-colors duration-150 flex items-center gap-2"
-											type="button"
-										>
-											<svg
-												className="w-4 h-4"
-												fill="none"
-												stroke="currentColor"
-												viewBox="0 0 24 24"
-											>
-												<title>svg</title>
-												<path
-													strokeLinecap="round"
-													strokeLinejoin="round"
-													strokeWidth={2}
-													d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-												/>
-											</svg>
-											<span>Fund Wallet</span>
-										</button>
-
-										<button
-											onClick={() => exportWallet()}
-											className="w-full px-4 py-3 text-left text-white hover:bg-[#262626] transition-colors duration-150 flex items-center gap-2"
-											type="button"
-										>
-											<svg
-												className="w-4 h-4"
-												fill="none"
-												stroke="currentColor"
-												viewBox="0 0 24 24"
-											>
-												<title>Export Wallet</title>
-												<path
-													strokeLinecap="round"
-													strokeLinejoin="round"
-													strokeWidth={2}
-													d="M17 8V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-1"
-												/>
-												<path
-													strokeLinecap="round"
-													strokeLinejoin="round"
-													strokeWidth={2}
-													d="M21 12H10m0 0l3-3m-3 3l3 3"
-												/>
-											</svg>
-
-											<span>Export Wallet</span>
-										</button>
-
-										{/* View on Explorer */}
-										<a
-											href={`https://orbmarkets.io/address/${publicKey}?advanced=true&cluster=devnet&tab=summary`}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="w-full px-4 py-3 text-left text-white hover:bg-[#262626] transition-colors duration-150 flex items-center gap-2"
-										>
-											<svg
-												className="w-4 h-4"
-												fill="none"
-												stroke="currentColor"
-												viewBox="0 0 24 24"
-											>
-												<title>svg</title>
-												<path
-													strokeLinecap="round"
-													strokeLinejoin="round"
-													strokeWidth={2}
-													d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-												/>
-											</svg>
-											<span>View on Explorer</span>
-										</a>
-
-										{/* Divider */}
-										<div className="border-t border-[#FC5411]/30 my-1"></div>
-
-										{/* Logout */}
-										<button
-											onClick={handleDisconnect}
-											className="w-full px-4 py-3 text-left text-red-400 hover:bg-red-500/10 transition-colors duration-150 flex items-center gap-2"
-											type="button"
-										>
-											<svg
-												className="w-4 h-4"
-												fill="none"
-												stroke="currentColor"
-												viewBox="0 0 24 24"
-											>
-												<title>svg</title>
-												<path
-													strokeLinecap="round"
-													strokeLinejoin="round"
-													strokeWidth={2}
-													d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-												/>
-											</svg>
-											<span>Disconnect</span>
-										</button>
-									</div>
-								</div>
-							)}
-						</div>
-					</div>
-
-					<div className="font-display max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2 md:gap-0 text-xs md:text-md text-[#8A8A8A]">
-						<span className="font-display">
-							©2025 <span className="text-white">Hashtro</span>
-						</span>
-						<div className="flex flex-wrap justify-center gap-3 md:gap-6">
-							<span className="text-white hidden sm:inline">
-								Your cosmic journey on Solana.
-							</span>
-							<a className="hover:text-white transition" href="/abc">
-								About us
-							</a>
-							<a className="hover:text-white transition" href="/abc">
-								Cookie Policy
-							</a>
-						</div>
-					</div>
+	// Not connected
+	if (!publicKey) {
+		return (
+			<section className="min-h-screen flex flex-col items-center justify-center bg-[#0a0a0f] text-white">
+				<div className="text-center">
+					<h2 className="text-3xl font-bold mb-4">Wallet Not Connected</h2>
+					<p className="text-white/50 mb-8">Please connect your wallet to access your cosmic reading</p>
+					<button onClick={() => router.push("/")} className="btn-primary" type="button">
+						Go to Home
+					</button>
 				</div>
 			</section>
-			<Toast
-				message={toastMessage}
-				type={"info"}
-				duration={4000}
-				onClose={() => setToastMessage(null)}
+		);
+	}
+
+	// Error / Retry Screen (Replaces Payment)
+	if (error) {
+		return (
+			<section className="min-h-screen flex flex-col items-center justify-center bg-[#0a0a0f] text-white px-4">
+				<div className="card-glass text-center max-w-md">
+					<h2 className="font-display text-2xl font-semibold mb-4 text-red-400">
+						Cosmic Interruption
+					</h2>
+					<p className="text-white/50 mb-6">
+						{error}
+					</p>
+
+					<button
+						onClick={generateFreeHoroscope}
+						disabled={loading}
+						className="btn-primary w-full"
+						type="button"
+					>
+						{loading ? "Aligning Stars..." : "Try Again"}
+					</button>
+				</div>
+			</section>
+		);
+	}
+
+	// Should not reach here if loading/error covers it, but for safety in "payment" logic removal
+	if (currentScreen === "payment") {
+		// Fallback if somehow state gets here, just show retry
+		return (
+			<section className="min-h-screen flex flex-col items-center justify-center bg-[#0a0a0f] text-white px-4">
+				<div className="card-glass text-center max-w-md">
+					<button
+						onClick={generateFreeHoroscope}
+						className="btn-primary w-full"
+					>
+						Reveal Horoscope
+					</button>
+				</div>
+			</section>
+		);
+	}
+
+	// Screen 3: Horoscope Reveal
+	if (currentScreen === "reveal" && card) {
+		return <HoroscopeReveal card={card} onVerifyTrade={handleVerifyTrade} />;
+	}
+
+	// Screen 4: Trade Confirm
+	if (currentScreen === "confirm" && card) {
+		return (
+			<TradeConfirm
+				card={card}
+				onBack={() => setCurrentScreen("reveal")}
+				onExecute={handleExecuteTrade}
 			/>
-		</>
+		);
+	}
+
+	// Screen 5: Trade Execution
+	if (currentScreen === "execute" && card && tradeParams) {
+		return (
+			<TradeExecution
+				card={card}
+				amount={tradeAmount}
+				leverage={tradeParams.leverage}
+				direction={tradeParams.direction}
+				onComplete={handleTradeComplete}
+				onOpenPosition={handleOpenPosition}
+				onClosePosition={handleClosePosition}
+				onGetPrice={handleGetPrice}
+			/>
+		);
+	}
+
+	// Screen 6: Trade Results
+	if (currentScreen === "results" && card && tradeResult) {
+		return (
+			<TradeResults
+				card={card}
+				result={tradeResult}
+				onReturnHome={handleReturnHome}
+			/>
+		);
+	}
+
+	// Fallback
+	return (
+		<section className="min-h-screen flex flex-col items-center justify-center bg-[#0a0a0f] text-white">
+			<p className="text-white/50">Loading...</p>
+		</section>
 	);
 };
 

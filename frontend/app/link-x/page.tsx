@@ -215,7 +215,7 @@ const XLoginContent: FC = () => {
               drop-shadow-[0_0_20px_rgba(251,146,60,0.35)]
             "
 						initial={{ scale: 0.9, opacity: 0 }}
-						src="/Hastrology.svg"
+						src="/logo/hast.svg"
 						transition={{ delay: 0.2, duration: 0.8 }}
 					/>
 				</Link>

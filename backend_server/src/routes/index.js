@@ -1,8 +1,6 @@
 const express = require('express');
 const userRoutes = require('./user.routes');
 const horoscopeRoutes = require('./horoscope.routes');
-const adminRoutes = require('./admin.routes');
-const lotteryRoutes = require('./lottery.routes');
 
 const router = express.Router();
 
@@ -22,7 +20,5 @@ router.get('/health', (req, res) => {
  */
 router.use('/user', userRoutes);
 router.use('/horoscope', horoscopeRoutes);
-router.use('/admin', adminRoutes);
-router.use('/lottery', lotteryRoutes);
 
 module.exports = router;

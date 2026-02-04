@@ -7,9 +7,8 @@ const logger = require('../config/logger');
 const BN = require('bn.js');
 
 // Hastrology Program Constants
+// Hastrology Program Constants
 const PROGRAM_ID = new PublicKey('A3voJRWMzoy1118ZmTjsoYAGXrM9zPySUPwcgUQ3PV76');
-const LOTTERY_STATE_SEED = Buffer.from('lottery_state');
-const USER_RECEIPT_SEED = Buffer.from('user-receipt');
 
 /**
  * Solana Service - Handles Solana blockchain verification
@@ -17,7 +16,7 @@ const USER_RECEIPT_SEED = Buffer.from('user-receipt');
 class SolanaService {
     constructor() {
         // Use devnet for development, mainnet-beta for production
-        const network = process.env.SOLANA_NETWORK || 'devnet';
+        const network = process.env.SOLANA_NETWORK || 'mainnet-beta';
         const endpoint = network === 'mainnet-beta'
             ? 'https://api.mainnet-beta.solana.com'
             : 'https://api.devnet.solana.com';
@@ -54,74 +53,9 @@ class SolanaService {
         }
     }
 
-    /**
-     * Get the current lottery ID from the on-chain state
-     * @returns {Promise<BN>} Current lottery ID
-     */
-    async getCurrentLotteryId() {
-        try {
-            const [lotteryStatePDA] = PublicKey.findProgramAddressSync(
-                [LOTTERY_STATE_SEED],
-                PROGRAM_ID
-            );
 
-            const accountInfo = await this.connection.getAccountInfo(lotteryStatePDA);
 
-            if (!accountInfo) {
-                throw new Error('Lottery state not found on-chain');
-            }
 
-            // Decode current_lottery_id from LotteryState account
-            // structure: discriminator(8) + authority(32) + pot_vault(32) + platform_wallet(32) 
-            // + platform_fee(2) + ticket_price(8) + winner(8) + current_lottery_id(8) ...
-            const offset = 8 + 32 + 32 + 32 + 2 + 8 + 8;
-
-            // Read u64 little-endian
-            const currentLotteryId = new BN(accountInfo.data.slice(offset, offset + 8), 'le');
-
-            return currentLotteryId;
-        } catch (error) {
-            logger.error('Error fetching lottery state:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Verify if a user has entered the current lottery
-     * @param {string} walletAddress - User's wallet address
-     * @returns {Promise<boolean>} True if entered
-     */
-    async verifyLotteryParticipation(walletAddress) {
-        try {
-            const userPubkey = new PublicKey(walletAddress);
-            const currentLotteryId = await this.getCurrentLotteryId();
-
-            // Derive UserEntryReceipt PDA
-            // Seeds: ["user-receipt", user_pubkey, lottery_id (u64 le)]
-            const lotteryIdBuffer = currentLotteryId.toArrayLike(Buffer, 'le', 8);
-
-            const [userReceiptPDA] = PublicKey.findProgramAddressSync(
-                [USER_RECEIPT_SEED, userPubkey.toBuffer(), lotteryIdBuffer],
-                PROGRAM_ID
-            );
-
-            // Check if account exists
-            const accountInfo = await this.connection.getAccountInfo(userReceiptPDA);
-
-            const hasEntered = accountInfo !== null;
-
-            logger.info('Verified lottery participation:', {
-                walletAddress,
-                lotteryId: currentLotteryId.toString(),
-                hasEntered
-            });
-
-            return hasEntered;
-        } catch (error) {
-            logger.error('Lottery verification error:', error);
-            return false;
-        }
-    }
 
     /**
      * Verify wallet address is valid

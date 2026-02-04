@@ -32,16 +32,7 @@ class HoroscopeController {
             // Get horoscope status from service (checks DB first)
             const status = await horoscopeService.getHoroscopeStatus(walletAddress);
 
-            // If not found in DB, check on-chain lottery participation
-            if (status.status === 'clear_to_pay') {
-                const hasParticipated = await solanaService.verifyLotteryParticipation(walletAddress);
-                if (hasParticipated) {
-                    return successResponse(res, {
-                        status: 'paid',
-                        message: 'Payment verified. Ready to generate.'
-                    });
-                }
-            }
+
 
             return successResponse(res, status);
         } catch (error) {
@@ -88,6 +79,9 @@ class HoroscopeController {
                 }
             }
 
+            // PAYMENT DISABLED: Horoscope generation is free for now
+            // Uncomment the block below to re-enable payment verification
+            /*
             // Verify lottery participation via on-chain PDA
             const hasParticipated = await solanaService.verifyLotteryParticipation(walletAddress);
 
@@ -102,8 +96,9 @@ class HoroscopeController {
             }
 
             logger.info('Payment/Lottery entry verified for:', { walletAddress, signature });
+            */
 
-            logger.info('Payment verified, generating horoscope card', { walletAddress });
+            logger.info('Generating horoscope card (free mode)', { walletAddress });
 
             // Fetch enriched X context for personalization (bio, tweets, persona)
             let xContext = { available: false, handle: user.twitter_username };

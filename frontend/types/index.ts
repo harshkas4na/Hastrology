@@ -15,10 +15,10 @@ export interface BirthDetails {
 export interface UpdateBirth {
 	walletAddress: string;
 	dob: string;
-	birthTime: string;
-	birthPlace: string;
-	latitude: number | null;
-	longitude: number | null;
+	birthTime?: string | null;
+	birthPlace?: string | null;
+	latitude?: number | null;
+	longitude?: number | null;
 	timezoneOffset?: number | null;
 }
 

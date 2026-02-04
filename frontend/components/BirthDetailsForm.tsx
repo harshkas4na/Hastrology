@@ -1,218 +1,186 @@
 "use client";
 
-import { useWallet } from "@solana/wallet-adapter-react";
-import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 import React, { FC, useState } from "react";
 import { api } from "@/lib/api";
 import { geocodePlace, getTimezoneOffset } from "@/lib/geocoding";
 import { useStore } from "@/store/useStore";
+import { StarBackground } from "./StarBackground";
 
 export const BirthDetailsForm: FC = () => {
-  const { publicKey } = useWallet();
-  const { setUser, setLoading } = useStore();
+  const { user, setUser, wallet } = useStore();
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
-    dob: "",
-    birthTime: "",
+    dob: user?.dob || "",
+    birthTime: user?.birthTime || "",
     birthPlace: "",
-    username: "",
   });
-  const [error, setError] = useState<string | null>(null);
-  const [isGeocoding, setIsGeocoding] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!wallet) return;
 
-    if (!publicKey) {
-      setError("Please connect your wallet first");
-      return;
-    }
-
+    setLoading(true);
     setError(null);
-    setIsGeocoding(true);
 
     try {
-      // Step 1: Geocode the birth place
-      const geoResult = await geocodePlace(formData.birthPlace);
+      let lat: number | null = null;
+      let lng: number | null = null;
+      let tzOffset: number | null = null;
 
-      if (!geoResult.success) {
-        setError(
-          geoResult.error ||
-          'Could not find location. Please try a more specific place name (e.g., "New Delhi, India")'
-        );
-        setIsGeocoding(false);
-        return;
+      // Geocode if place provided
+      if (formData.birthPlace.trim()) {
+        const geocodeResult = await geocodePlace(formData.birthPlace);
+        if (geocodeResult) {
+          lat = geocodeResult.latitude;
+          lng = geocodeResult.longitude;
+          // Get timezone offset for this location and birth date
+          if (formData.dob) {
+            const dateTime = formData.birthTime
+              ? `${formData.dob}T${formData.birthTime}`
+              : formData.dob;
+            tzOffset = getTimezoneOffset(formData.birthPlace, lng);
+          }
+        }
       }
 
-      setIsGeocoding(false);
-      setLoading(true);
-
-      // Step 2: Calculate timezone offset
-      const timezoneOffset = getTimezoneOffset(formData.birthPlace, geoResult.longitude);
-
-      // Step 3: Register user with geocoded coordinates
-      const result = await api.registerUser({
-        walletAddress: publicKey.toBase58(),
-        username: formData.username,
+      await api.updateBirthDetails({
+        walletAddress: wallet,
         dob: formData.dob,
         birthTime: formData.birthTime,
         birthPlace: formData.birthPlace,
-        latitude: geoResult.latitude,
-        longitude: geoResult.longitude,
-        timezoneOffset: timezoneOffset,
+        latitude: lat,
+        longitude: lng,
+        timezoneOffset: tzOffset,
       });
 
-      setUser(result.user);
-
-      // Scroll to next section
-      const horoscopeSection = document.getElementById("horoscope-section");
-      if (horoscopeSection) {
-        horoscopeSection.scrollIntoView({ behavior: "smooth" });
+      // Update local user state
+      if (user) {
+        setUser({
+          ...user,
+          dob: formData.dob,
+          birthTime: formData.birthTime,
+          birthPlace: formData.birthPlace,
+        });
       }
+
+      router.push("/cards");
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to register. Please try again.";
-      setError(errorMessage);
+      console.error("Error updating birth details:", err);
+      setError("Failed to save birth details. Please try again.");
     } finally {
-      setIsGeocoding(false);
       setLoading(false);
     }
   };
 
-  const isFormValid = formData.dob && formData.birthTime && formData.birthPlace && formData.username;
-  const isSubmitting = isGeocoding;
+  const handleSkip = () => {
+    router.push("/cards");
+  };
 
   return (
-    <section
-      className="min-h-screen flex items-center justify-center py-20 px-4 relative"
-      id="birth-form"
-    >
-      {/* Background Glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[120px] -z-10"></div>
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden px-4 py-10">
+      <StarBackground />
 
-      <motion.div
-        className="w-full max-w-lg"
-        initial={{ opacity: 0, y: 50 }}
-        transition={{ duration: 0.8 }}
-        viewport={{ once: true }}
-        whileInView={{ opacity: 1, y: 0 }}
-      >
-        <div className="glass-panel rounded-3xl p-8 md:p-10 relative overflow-hidden">
-          {/* Decorative top border */}
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-50"></div>
+      <div className="relative z-10 w-full max-w-[520px] screen-fade-in">
+        <div className="card-glass">
+          {/* Progress dots */}
+          <div className="progress-dots">
+            <div className="progress-dot" />
+            <div className="progress-dot active" />
+            <div className="progress-dot" />
+          </div>
 
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-3 text-center bg-clip-text text-transparent bg-gradient-to-r from-white to-purple-200">
-            Your Birth Details
-          </h2>
-          <p className="text-slate-400 text-center mb-10 text-lg">
-            Align your energy with the cosmos
-          </p>
+          {/* Header */}
+          <div className="text-center mb-10">
+            <h1 className="text-2xl md:text-3xl font-semibold mb-3 bg-gradient-to-r from-white to-[#d4a017] bg-clip-text text-transparent">
+              When were you born?
+            </h1>
+            <p className="text-sm text-white/50 leading-relaxed">
+              We need your birth details to calculate your personalized horoscope.
+            </p>
+          </div>
 
-          <form className="space-y-8" onSubmit={handleSubmit}>
-            {/* Username */}
-            <div className="group">
-              <label
-                className="block text-sm font-medium text-purple-300 mb-2 ml-1 group-focus-within:text-purple-400 transition-colors"
-                htmlFor="username"
-              >
-                Username
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Birth Date */}
+            <div>
+              <label className="form-label">
+                Birth Date
+                <span className="badge-required">Required</span>
               </label>
               <input
-                className="w-full px-5 py-4 bg-slate-900/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-600 focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all outline-none hover:bg-slate-900/70"
-                id="username"
-                onChange={(e) => setFormData((prev) => ({ ...prev, username: e.target.value }))}
-                placeholder="e.g., CosmicTraveler"
-                required
-                type="text"
-                value={formData.username}
-              />
-            </div>
-
-            {/* Date of Birth */}
-            <div className="group">
-              <label
-                className="block text-sm font-medium text-purple-300 mb-2 ml-1 group-focus-within:text-purple-400 transition-colors"
-                htmlFor="dob"
-              >
-                Date of Birth
-              </label>
-              <input
-                className="w-full px-5 py-4 bg-slate-900/50 border border-slate-700/50 rounded-xl text-white focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all outline-none hover:bg-slate-900/70"
-                id="dob"
-                onChange={(e) => setFormData((prev) => ({ ...prev, dob: e.target.value }))}
-                required
                 type="date"
+                className="form-input"
                 value={formData.dob}
-              />
-            </div>
-
-            {/* Birth Time */}
-            <div className="group">
-              <label
-                className="block text-sm font-medium text-purple-300 mb-2 ml-1 group-focus-within:text-purple-400 transition-colors"
-                htmlFor="birthTime"
-              >
-                Time of Birth
-              </label>
-              <input
-                className="w-full px-5 py-4 bg-slate-900/50 border border-slate-700/50 rounded-xl text-white focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all outline-none hover:bg-slate-900/70"
-                id="birthTime"
-                onChange={(e) => setFormData((prev) => ({ ...prev, birthTime: e.target.value }))}
+                onChange={(e) =>
+                  setFormData({ ...formData, dob: e.target.value })
+                }
                 required
-                type="time"
-                value={formData.birthTime}
               />
             </div>
 
             {/* Birth Place */}
-            <div className="group">
-              <label
-                className="block text-sm font-medium text-purple-300 mb-2 ml-1 group-focus-within:text-purple-400 transition-colors"
-                htmlFor="birthPlace"
-              >
-                Place of Birth
+            <div>
+              <label className="form-label">
+                Birth Place
+                <span className="badge-optional">Optional</span>
               </label>
               <input
-                className="w-full px-5 py-4 bg-slate-900/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-600 focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all outline-none hover:bg-slate-900/70"
-                id="birthPlace"
-                onChange={(e) => setFormData((prev) => ({ ...prev, birthPlace: e.target.value }))}
-                placeholder="e.g., New Delhi, India"
-                required
                 type="text"
+                className="form-input"
+                placeholder="e.g. New York, USA"
                 value={formData.birthPlace}
+                onChange={(e) =>
+                  setFormData({ ...formData, birthPlace: e.target.value })
+                }
               />
-              <p className="text-xs text-slate-500 mt-2 ml-1">
-                📍 Enter city and country for accurate cosmic alignment
-              </p>
             </div>
 
+            {/* Birth Time */}
+            <div>
+              <label className="form-label">
+                Birth Time
+                <span className="badge-optional">Optional</span>
+              </label>
+              <input
+                type="time"
+                className="form-input"
+                value={formData.birthTime}
+                onChange={(e) =>
+                  setFormData({ ...formData, birthTime: e.target.value })
+                }
+              />
+            </div>
+
+            {/* Error message */}
             {error && (
-              <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-300 text-sm flex items-center gap-2">
-                <span className="text-lg">⚠️</span> {error}
+              <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
+                {error}
               </div>
             )}
 
-            <button
-              className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:from-slate-700 disabled:to-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-bold text-lg rounded-xl transition-all duration-300 shadow-lg shadow-purple-900/20 hover:shadow-purple-600/40 hover:-translate-y-1 active:translate-y-0"
-              disabled={!isFormValid || !publicKey || isSubmitting}
-              type="submit"
-            >
-              {isGeocoding ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                  Locating your stars...
-                </span>
-              ) : (
-                "Continue Journey →"
-              )}
-            </button>
+            {/* Buttons */}
+            <div className="space-y-3 pt-4">
+              <button
+                type="submit"
+                className="btn-primary w-full"
+                disabled={loading || !formData.dob}
+              >
+                {loading ? "Saving..." : "Continue"}
+              </button>
+              <button
+                type="button"
+                className="btn-secondary w-full"
+                onClick={handleSkip}
+              >
+                Skip optional details
+              </button>
+            </div>
           </form>
-
-          <p className="text-xs text-slate-500 text-center mt-8 flex items-center justify-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-            Encrypted & Secure on Solana
-          </p>
         </div>
-      </motion.div>
+      </div>
     </section>
   );
 };

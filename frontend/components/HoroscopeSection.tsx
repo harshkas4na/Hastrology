@@ -145,7 +145,7 @@ export const HoroscopeSection: FC = () => {
 			} else {
 				const endpoint =
 					process.env.NEXT_PUBLIC_SOLANA_RPC_URL ||
-					"https://api.devnet.solana.com";
+					"https://api.mainnet-beta.solana.com";
 				connection = new Connection(endpoint, "confirmed");
 			}
 
@@ -206,7 +206,7 @@ export const HoroscopeSection: FC = () => {
 				} else {
 					const endpoint =
 						process.env.NEXT_PUBLIC_SOLANA_RPC_URL ||
-						"https://api.devnet.solana.com";
+						"https://api.mainnet-beta.solana.com";
 					connection = new Connection(endpoint, "confirmed");
 				}
 
@@ -283,7 +283,7 @@ export const HoroscopeSection: FC = () => {
 			await fundWallet({
 				address: publicKey,
 				options: {
-					chain: "solana:devnet",
+					chain: "solana:mainnet",
 				},
 			});
 			return;

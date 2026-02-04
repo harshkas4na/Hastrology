@@ -9,7 +9,7 @@ import { Transaction, VersionedTransaction } from "@solana/web3.js";
 import bs58 from "bs58";
 import { useCallback, useMemo } from "react";
 
-export function usePrivyWallet(isTestnet = true) {
+export function usePrivyWallet(isTestnet = false) {
 	const { user, authenticated, ready, logout: privyLogout } = usePrivy();
 	const { wallets, ready: walletsReady } = useWallets();
 	const { signMessage: signPrivyMessage } = useSignMessage();

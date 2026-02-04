@@ -1,5 +1,6 @@
 "use client";
 import { PrivyProvider } from "@privy-io/react-auth";
+import { toSolanaWalletConnectors } from "@privy-io/react-auth/solana";
 import { createSolanaRpc, createSolanaRpcSubscriptions } from "@solana/kit";
 import {
 	ConnectionProvider,
@@ -15,7 +16,7 @@ import { useMemo } from "react";
 export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
 	const network =
 		(process.env.NEXT_PUBLIC_SOLANA_NETWORK as "devnet" | "mainnet-beta") ||
-		"devnet";
+		"mainnet-beta";
 	const endpoint = useMemo(() => clusterApiUrl(network), [network]);
 	const wallets = useMemo(
 		() => [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
@@ -27,6 +28,12 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
 				<PrivyProvider
 					appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID ?? ""}
 					config={{
+						// Pass the Solana wallet connectors to Privy
+						externalWallets: {
+							solana: {
+								connectors: toSolanaWalletConnectors(),
+							},
+						},
 						solana: {
 							rpcs: {
 								"solana:mainnet": {
@@ -48,7 +55,7 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
 							showWalletLoginFirst: false,
 							walletChainType: "solana-only",
 							landingHeader: "Log in or sign up",
-							logo: "/Hastrology.svg",
+							logo: "/logo/hast.svg",
 						},
 						loginMethods: ["twitter"],
 						embeddedWallets: {
