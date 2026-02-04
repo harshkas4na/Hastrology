@@ -104,7 +104,7 @@ export class FlashPrivyService {
 		);
 
 		this.flashClient = new PerpetualsClient(
-			this.provider,
+			this.provider as any,
 			this.POOL_CONFIG.programId,
 			this.POOL_CONFIG.perpComposibilityProgramId,
 			this.POOL_CONFIG.fbNftRewardProgramId,
@@ -483,7 +483,7 @@ export class FlashPrivyService {
 			const allCustodies = await this.flashClient.program.account.custody.all();
 
 			const lpMintData = await getMint(
-				this.flashClient.provider.connection,
+				this.flashClient.provider.connection as any,
 				this.POOL_CONFIG.stakedLpTokenMint,
 			);
 
