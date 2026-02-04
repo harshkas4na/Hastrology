@@ -116,7 +116,7 @@ const CardsPage: FC = () => {
 
 				{/* Desktop dropdown - top right */}
 				<div
-					className="cursor-pointer hidden md:block absolute top-6 right-6 z-50"
+					className="cursor-pointer hidden md:block absolute top-6 right-6 z-999"
 					ref={dropdownRef}
 				>
 					<div className="cursor-pointer relative">

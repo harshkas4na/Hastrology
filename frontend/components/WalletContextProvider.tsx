@@ -30,9 +30,9 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
 						solana: {
 							rpcs: {
 								"solana:mainnet": {
-									rpc: createSolanaRpc("https://api.mainnet-beta.solana.com"),
+									rpc: createSolanaRpc("https://solana-rpc.publicnode.com"),
 									rpcSubscriptions: createSolanaRpcSubscriptions(
-										"wss://api.mainnet-beta.solana.com",
+										"wss://solana-rpc.publicnode.com",
 									),
 								},
 								"solana:devnet": {
@@ -47,8 +47,8 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
 							theme: "#000000",
 							showWalletLoginFirst: false,
 							walletChainType: "solana-only",
-							landingHeader:"Log in or sign up",
-							logo:"/Hastrology.svg"
+							landingHeader: "Log in or sign up",
+							logo: "/Hastrology.svg",
 						},
 						loginMethods: ["twitter"],
 						embeddedWallets: {

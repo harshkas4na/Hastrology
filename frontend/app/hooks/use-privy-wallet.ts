@@ -9,7 +9,7 @@ import { Transaction, VersionedTransaction } from "@solana/web3.js";
 import bs58 from "bs58";
 import { useCallback, useMemo } from "react";
 
-export function usePrivyWallet() {
+export function usePrivyWallet(isTestnet = true) {
 	const { user, authenticated, ready, logout: privyLogout } = usePrivy();
 	const { wallets, ready: walletsReady } = useWallets();
 	const { signMessage: signPrivyMessage } = useSignMessage();
@@ -38,6 +38,8 @@ export function usePrivyWallet() {
 
 	const isConnected = Boolean(authenticated && wallet && publicKey);
 	const isLoadingWallet = authenticated && walletsReady && !wallet;
+
+	const chain = isTestnet ? "solana:devnet" : "solana:mainnet";
 
 	const signMessage = useCallback(
 		async (message: string | Uint8Array): Promise<Uint8Array> => {
@@ -79,15 +81,21 @@ export function usePrivyWallet() {
 			const { signedTransaction } = await signPrivyTransaction({
 				transaction: transactionBytes,
 				wallet: wallet,
+				chain,
 			});
 
-			if (transaction instanceof VersionedTransaction) {
+			try {
 				return VersionedTransaction.deserialize(signedTransaction);
-			} else {
-				return Transaction.from(signedTransaction);
+			} catch (e) {
+				try {
+					return Transaction.from(signedTransaction);
+				} catch (e2) {
+					console.error("Failed to deserialize transaction:", e, e2);
+					throw new Error("Failed to deserialize signed transaction");
+				}
 			}
 		},
-		[wallet, signPrivyTransaction],
+		[wallet, signPrivyTransaction, chain],
 	);
 
 	const signAllTransactions = useCallback(
@@ -116,19 +124,19 @@ export function usePrivyWallet() {
 				const result = await signAndSendTransaction({
 					transaction: transaction,
 					wallet: wallet,
-					chain: "solana:devnet",
+					chain,
 				});
 
 				const signatureBytes = result.signature;
-
 				const signature = bs58.encode(signatureBytes);
+
 				return signature;
 			} catch (error) {
 				console.error("Failed to send transaction:", error);
 				throw error;
 			}
 		},
-		[wallet, signAndSendTransaction],
+		[wallet, signAndSendTransaction, chain],
 	);
 
 	return {
