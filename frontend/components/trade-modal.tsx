@@ -87,7 +87,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({ card, onClose }) => {
 			const service = new FlashPrivyService({
 				connection,
 				wallet: {
-					publicKey: wallet.publicKey,
+					publicKey: wallet.publicKey as string,
 					signTransaction: wallet.signTransaction,
 					signAllTransactions: wallet.signAllTransactions,
 					sendTransaction: wallet.sendTransaction,
