@@ -40,13 +40,13 @@ export const TradeConfirm: FC<TradeConfirmProps> = ({
     const direction = deriveDirection(vibeStatus);
 
     return (
-        <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden px-4 py-10">
+        <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden px-4 py-6 sm:py-10">
             <StarBackground />
 
             {/* Back button */}
             <button
                 onClick={onBack}
-                className="absolute top-10 left-10 flex items-center gap-2 text-white/60 text-sm hover:text-white transition-colors z-20"
+                className="absolute top-4 left-4 sm:top-10 sm:left-10 flex items-center gap-2 text-white/60 text-xs sm:text-sm hover:text-white transition-colors z-20"
             >
                 <svg
                     viewBox="0 0 24 24"
@@ -62,11 +62,11 @@ export const TradeConfirm: FC<TradeConfirmProps> = ({
 
             <div className="relative z-10 w-full max-w-[520px] screen-fade-in">
                 {/* Header */}
-                <div className="text-center mb-8">
-                    <h1 className="font-display text-3xl font-semibold mb-3 bg-gradient-to-r from-white to-[#d4a017] bg-clip-text text-transparent">
+                <div className="text-center mb-6 sm:mb-8">
+                    <h1 className="font-display text-2xl sm:text-3xl font-semibold mb-3 bg-gradient-to-r from-white to-[#d4a017] bg-clip-text text-transparent">
                         Confirm Your Trade
                     </h1>
-                    <p className="text-sm text-white/50">
+                    <p className="text-xs sm:text-sm text-white/50">
                         Review the details before verifying your horoscope
                     </p>
                 </div>
@@ -78,8 +78,8 @@ export const TradeConfirm: FC<TradeConfirmProps> = ({
                         {/* Direction badge */}
                         <div
                             className={`inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold uppercase tracking-wider mb-4 ${direction === "LONG"
-                                    ? "bg-[#22c55e]/15 text-[#22c55e] border border-[#22c55e]/30"
-                                    : "bg-[#ef4444]/15 text-[#ef4444] border border-[#ef4444]/30"
+                                ? "bg-[#22c55e]/15 text-[#22c55e] border border-[#22c55e]/30"
+                                : "bg-[#ef4444]/15 text-[#ef4444] border border-[#ef4444]/30"
                                 }`}
                         >
                             <svg
@@ -101,8 +101,8 @@ export const TradeConfirm: FC<TradeConfirmProps> = ({
                         </div>
 
                         {/* Ticker */}
-                        <div className="font-display text-5xl font-bold mb-2">SOL</div>
-                        <div className="text-xl text-white/60">
+                        <div className="font-display text-4xl sm:text-5xl font-bold mb-2">SOL</div>
+                        <div className="text-base sm:text-xl text-white/60">
                             at <span className="text-[#f5c842] font-semibold">{luckyNumber}x</span> leverage
                         </div>
                     </div>
@@ -124,12 +124,12 @@ export const TradeConfirm: FC<TradeConfirmProps> = ({
                                 className="w-full py-5 px-6 pl-11 bg-white/5 border border-white/10 rounded-xl text-2xl font-display font-semibold focus:outline-none focus:border-[#d4a017]/50"
                             />
                         </div>
-                        <div className="flex gap-2 mt-3">
+                        <div className="flex flex-wrap gap-2 mt-3">
                             {QUICK_AMOUNTS.map((qa) => (
                                 <button
                                     key={qa}
                                     onClick={() => setAmount(qa)}
-                                    className={`quick-btn ${amount === qa ? "active" : ""}`}
+                                    className={`quick-btn flex-1 min-w-[60px] ${amount === qa ? "active" : ""}`}
                                 >
                                     ${qa}
                                 </button>

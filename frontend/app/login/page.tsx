@@ -151,13 +151,13 @@ const LoginPage: FC = () => {
 	const isSubmittingForm = isSubmitting || isGeocoding;
 
 	return (
-		<section className="relative min-h-screen flex items-center justify-center overflow-hidden px-4 py-10">
+		<section className="relative min-h-screen flex items-center justify-center overflow-hidden px-4 py-6 sm:py-10">
 			<StarBackground />
 
 			{/* Back/Disconnect button */}
 			<button
 				onClick={handleDisconnect}
-				className="absolute top-6 left-6 flex items-center gap-2 text-white/60 text-sm hover:text-white transition-colors z-20"
+				className="absolute top-4 left-4 sm:top-6 sm:left-6 flex items-center gap-2 text-white/60 text-xs sm:text-sm hover:text-white transition-colors z-20"
 				type="button"
 			>
 				<svg
@@ -173,7 +173,7 @@ const LoginPage: FC = () => {
 			</button>
 
 			{/* Wallet badge top right */}
-			<div className="absolute top-6 right-6 z-20">
+			<div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20">
 				<div className="solana-badge">
 					<svg viewBox="0 0 397.7 311.7" className="w-4 h-4">
 						<path

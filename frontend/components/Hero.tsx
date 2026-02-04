@@ -81,29 +81,29 @@ export const Hero: FC = () => {
 			<StarBackground />
 
 			{/* Main content */}
-			<div className="relative z-10 text-center px-6 max-w-4xl screen-fade-in">
+			<div className="relative z-10 text-center px-4 sm:px-6 max-w-4xl screen-fade-in">
 				{/* Brand section */}
-				<div className="mb-12">
-					<div className="mb-6 relative w-64 h-24 mx-auto">
+				<div className="mb-8 sm:mb-12">
+					<div className="mb-6 relative w-48 h-16 sm:w-64 sm:h-24 mx-auto">
 						<Image
-							src="/logo/hast-transparent.svg"
+							src="/logo/hast.png"
 							alt="Hastrology Logo"
 							fill
 							className="object-contain"
 							priority
 						/>
 					</div>
-					<p className="text-lg text-white/60 mb-3">
+					<p className="text-base sm:text-lg text-white/60 mb-3">
 						Your daily horoscope, verified by a trade on Solana
 					</p>
-					<p className="text-sm text-white/40 max-w-md mx-auto leading-relaxed">
+					<p className="text-xs sm:text-sm text-white/40 max-w-md mx-auto leading-relaxed">
 						Get your personalized reading once a day. Verify it with a real trade.
 						See if the stars align.
 					</p>
 				</div>
 
 				{/* Login section */}
-				<div className="flex flex-col items-center gap-5">
+				<div className="flex flex-col items-center gap-4 sm:gap-5">
 					{isChecking ? (
 						<button
 							disabled
@@ -113,17 +113,17 @@ export const Hero: FC = () => {
 							Locating Your Stars...
 						</button>
 					) : address ? (
-						<div className="relative">
+						<div className="relative w-full sm:w-auto">
 							<button
 								onClick={() => setDropdownOpen((v) => !v)}
 								type="button"
-								className="btn-white"
+								className="btn-white w-full sm:w-auto"
 							>
 								{`${address.slice(0, 6)}...${address.slice(-4)}`}
 							</button>
 
 							{dropdownOpen && (
-								<div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 min-w-[200px] bg-[#0a0a0f] border border-white/10 rounded-xl shadow-lg z-50 overflow-hidden">
+								<div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-full sm:min-w-[200px] bg-[#0a0a0f] border border-white/10 rounded-xl shadow-lg z-50 overflow-hidden">
 									<div className="px-4 py-3 border-b border-white/10">
 										<span className="text-sm font-mono text-white/70">
 											{`${address.slice(0, 10)}...${address.slice(-6)}`}
@@ -151,7 +151,7 @@ export const Hero: FC = () => {
 							}}
 							disabled={isLoadingWallet}
 							type="button"
-							className="btn-white"
+							className="btn-white w-full sm:w-auto"
 						>
 							<svg
 								viewBox="0 0 24 24"
@@ -165,14 +165,14 @@ export const Hero: FC = () => {
 					)}
 
 
-					<p className="text-sm text-white/40">
+					<p className="text-xs sm:text-sm text-white/40">
 						One horoscope per day. Make it count.
 					</p>
 				</div>
 			</div>
 
 			{/* Footer */}
-			<div className="absolute bottom-8 left-0 right-0 flex flex-col items-center gap-2 text-sm text-white/30 z-10">
+			<div className="absolute bottom-4 sm:bottom-8 left-0 right-0 flex flex-col items-center gap-2 text-xs sm:text-sm text-white/30 z-10">
 				<div className="flex items-center gap-2">
 					<span>Powered by</span>
 					<div className="solana-badge">

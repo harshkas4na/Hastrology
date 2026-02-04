@@ -1044,7 +1044,7 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 										{/* Image Preview */}
 										<div className="mt-3 relative rounded-2xl overflow-hidden border border-white/20"										>
 											<img
-												src={"/logo/hast.svg"}
+												src={"/logo/hast.png"}
 												alt={"Hastrology"}
 												className="w-40 h-auto"
 											/>

@@ -107,16 +107,16 @@ export const HoroscopeReveal: FC<HoroscopeRevealProps> = ({
     };
 
     return (
-        <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden px-4 py-10">
+        <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden px-4 py-6 sm:py-10">
             <StarBackground />
 
             <div className="relative z-10 w-full max-w-[520px] screen-fade-in">
                 {/* Header */}
-                <div className="text-center mb-8">
-                    <p className="text-sm text-white/50 uppercase tracking-[2px] mb-2">
+                <div className="text-center mb-6 sm:mb-8">
+                    <p className="text-xs sm:text-sm text-white/50 uppercase tracking-[2px] mb-2">
                         {today}
                     </p>
-                    <h1 className="zodiac-title">
+                    <h1 className="zodiac-title text-2xl sm:text-3xl md:text-4xl">
                         <span className="zodiac-symbol">{zodiacSymbol}</span>
                         {zodiacSign}
                     </h1>
@@ -184,32 +184,34 @@ export const HoroscopeReveal: FC<HoroscopeRevealProps> = ({
                                 <p className="text-[10px] text-white/40 uppercase tracking-[1.5px] mb-4 text-center">
                                     How Your Trade is Derived
                                 </p>
-                                <div className="derivation-flow">
+                                <div className="derivation-flow flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-1">
                                     <div className="derivation-item">
                                         <span className="derivation-value">{luckyNumber}</span>
                                         <span className="derivation-label">Number</span>
                                     </div>
-                                    <span className="derivation-arrow">→</span>
+                                    <span className="derivation-arrow rotate-90 sm:rotate-0 transform">→</span>
                                     <div className="derivation-item">
                                         <span className="derivation-value">{luckyNumber}x</span>
                                         <span className="derivation-label">Leverage</span>
                                     </div>
-                                    <span className="derivation-arrow">|</span>
-                                    <div className="derivation-item">
+                                    <span className="derivation-arrow hidden sm:block">|</span>
+
+                                    <div className="derivation-item mt-2 sm:mt-0">
                                         <span className="derivation-value">{luckyColor}</span>
                                         <span className="derivation-label">Color</span>
                                     </div>
-                                    <span className="derivation-arrow">→</span>
+                                    <span className="derivation-arrow rotate-90 sm:rotate-0 transform">→</span>
                                     <div className="derivation-item">
                                         <span className="derivation-value">SOL</span>
                                         <span className="derivation-label">Ticker</span>
                                     </div>
-                                    <span className="derivation-arrow">|</span>
-                                    <div className="derivation-item">
+                                    <span className="derivation-arrow hidden sm:block">|</span>
+
+                                    <div className="derivation-item mt-2 sm:mt-0">
                                         <span className="derivation-value">{vibeStatus}</span>
                                         <span className="derivation-label">Mood</span>
                                     </div>
-                                    <span className="derivation-arrow">→</span>
+                                    <span className="derivation-arrow rotate-90 sm:rotate-0 transform">→</span>
                                     <div className="derivation-item">
                                         <span className={`derivation-value highlight`}>
                                             {direction}
@@ -260,7 +262,7 @@ export const HoroscopeReveal: FC<HoroscopeRevealProps> = ({
                                     e.stopPropagation();
                                     onVerifyTrade();
                                 }}
-                                className="btn-primary w-full"
+                                className="btn-primary w-full text-sm sm:text-base"
                             >
                                 <svg
                                     viewBox="0 0 24 24"
@@ -274,7 +276,7 @@ export const HoroscopeReveal: FC<HoroscopeRevealProps> = ({
                                 Verify with Trade
                             </button>
 
-                            <p className="text-center mt-4 text-xs text-white/40">
+                            <p className="text-center mt-4 text-[10px] sm:text-xs text-white/40">
                                 Minimum $10 required • Profits are yours to keep
                             </p>
                         </div>

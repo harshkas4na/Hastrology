@@ -55,7 +55,7 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
 							showWalletLoginFirst: false,
 							walletChainType: "solana-only",
 							landingHeader: "Log in or sign up",
-							logo: "/logo/hast.svg",
+							logo: "/logo/hast.png",
 						},
 						loginMethods: ["twitter"],
 						embeddedWallets: {

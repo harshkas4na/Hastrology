@@ -64,17 +64,17 @@ export const TradeResults: FC<TradeResultsProps> = ({
     };
 
     return (
-        <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden px-4 py-10">
+        <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden px-4 py-6 sm:py-10">
             <StarBackground showSuccessOrb={result.success} />
             {result.success && <Confetti />}
 
             <div className="relative z-10 w-full max-w-[520px] screen-fade-in">
                 {/* Header */}
-                <div className="text-center mb-8">
-                    <p className="text-sm text-white/50 uppercase tracking-[2px] mb-2">
+                <div className="text-center mb-6 sm:mb-8">
+                    <p className="text-xs sm:text-sm text-white/50 uppercase tracking-[2px] mb-2">
                         {today}
                     </p>
-                    <h1 className="zodiac-title">
+                    <h1 className="zodiac-title text-2xl sm:text-3xl md:text-4xl">
                         <span className="zodiac-symbol">{zodiacSymbol}</span>
                         {zodiacSign}
                     </h1>
@@ -147,7 +147,7 @@ export const TradeResults: FC<TradeResultsProps> = ({
                                 {result.pnl >= 0 ? "Profitable" : "Loss"}
                             </span>
                         </div>
-                        <div className="flex items-center justify-center gap-4 flex-wrap">
+                        <div className="flex items-center justify-center gap-2 sm:gap-4 flex-wrap">
                             <div className="text-center">
                                 <p className="font-display text-lg font-semibold">SOL</p>
                                 <p className="text-[10px] text-white/40 uppercase mt-1">
@@ -202,14 +202,14 @@ export const TradeResults: FC<TradeResultsProps> = ({
                 </div>
 
                 {/* Action buttons */}
-                <div className="flex gap-3 mt-7">
-                    <button onClick={handleShareX} className="btn-share">
+                <div className="flex flex-col sm:flex-row gap-3 mt-7">
+                    <button onClick={handleShareX} className="btn-share w-full justify-center">
                         <svg viewBox="0 0 24 24" fill="currentColor" className="w-[18px] h-[18px]">
                             <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                         </svg>
                         Share on X
                     </button>
-                    <button className="btn-copy">
+                    <button className="btn-copy w-full sm:w-auto justify-center">
                         <svg
                             viewBox="0 0 24 24"
                             fill="none"

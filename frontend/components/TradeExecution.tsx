@@ -175,7 +175,7 @@ export const TradeExecution: FC<TradeExecutionProps> = ({
     const timerClass = timeLeft <= 5 ? "critical" : timeLeft <= 10 ? "warning" : "";
 
     return (
-        <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden px-4 py-10">
+        <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden px-4 py-6 sm:py-10">
             <StarBackground />
 
             <div className="relative z-10 w-full max-w-[560px] screen-fade-in">
@@ -196,7 +196,7 @@ export const TradeExecution: FC<TradeExecutionProps> = ({
                 </div>
 
                 {/* Card */}
-                <div className="card-glass" style={{ maxWidth: "560px" }}>
+                <div className="card-glass w-full" style={{ maxWidth: "560px" }}>
                     {/* Trade Header */}
                     <div className="flex justify-between items-center pb-5 mb-5 border-b border-white/[0.08]">
                         <div className="flex items-center gap-3">
@@ -228,7 +228,7 @@ export const TradeExecution: FC<TradeExecutionProps> = ({
                     </div>
 
                     {/* PnL Section */}
-                    <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6">
                         <div className="pnl-card">
                             <p className="pnl-label">Unrealized P&L</p>
                             <p className={`pnl-value ${pnl >= 0 ? "positive" : "negative"}`}>

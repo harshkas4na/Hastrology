@@ -35,7 +35,7 @@ export const metadata: Metadata = {
 		type: "website",
 		images: [
 			{
-				url: "/logo/hast.svg",
+				url: "/logo/hast.png",
 				width: 1200,
 				height: 630,
 				alt: "Hashtro",
@@ -46,7 +46,7 @@ export const metadata: Metadata = {
 		card: "summary_large_image",
 		title: "Hashtro",
 		description: "AI-Powered Horoscopes on Solana",
-		images: ["/logo/hast.svg"],
+		images: ["/logo/hast.png"],
 	},
 };
 
