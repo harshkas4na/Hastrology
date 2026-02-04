@@ -614,6 +614,137 @@ export class FlashPrivyService {
 		}
 	}
 
+	async closeTrade(
+		positionIndex: number = 0,
+		receivingTokenSymbol: string = "USDC",
+	): Promise<{ txSig: string }> {
+		if (!this.POOL_CONFIG || !this.flashClient) {
+			throw new Error("Client not initialized. Call initialize() first.");
+		}
+
+		try {
+			const slippageBps = 800; // 0.8%
+
+			const instructions: TransactionInstruction[] = [];
+			let additionalSigners: Signer[] = [];
+
+			// Get all user positions
+			const walletPubkey = new PublicKey(this.config.wallet.publicKey);
+			const positions = await this.flashClient.getUserPositions(
+				walletPubkey,
+				this.POOL_CONFIG,
+			);
+
+			if (positions.length === 0) {
+				throw new Error("No positions found to close");
+			}
+
+			// Choose the position to close
+			if (positionIndex >= positions.length) {
+				throw new Error(
+					`Position index ${positionIndex} out of range. User has ${positions.length} positions`,
+				);
+			}
+
+			const positionToClose = positions[positionIndex];
+
+			// Find market config for this position
+			const marketConfig = this.POOL_CONFIG.markets.find((f) =>
+				f.marketAccount.equals(positionToClose.market),
+			);
+
+			if (!marketConfig) {
+				throw new Error("Market config not found for position");
+			}
+
+			// Get tokens and custody accounts
+			const receivingToken = this.POOL_CONFIG.tokens.find(
+				(t) => t.symbol === receivingTokenSymbol,
+			);
+			if (!receivingToken) {
+				throw new Error(`Receiving token ${receivingTokenSymbol} not found`);
+			}
+
+			const side = marketConfig.side!;
+
+			const targetToken = this.POOL_CONFIG.tokens.find((t) =>
+				t.mintKey.equals(marketConfig.targetMint),
+			);
+
+			const collateralToken = this.POOL_CONFIG.tokens.find((t) =>
+				t.mintKey.equals(marketConfig.collateralMint),
+			);
+
+			if (!targetToken || !collateralToken) {
+				throw new Error("Target or collateral token not found");
+			}
+
+			const priceMap = await this.getPrices();
+
+			const targetTokenPrice = priceMap.get(targetToken.symbol)!.price;
+
+			const priceAfterSlippage = this.flashClient.getPriceAfterSlippage(
+				false,
+				new BN(slippageBps),
+				targetTokenPrice,
+				side,
+			);
+
+			const closePositionWithSwapData = await this.flashClient.closeAndSwap(
+				targetToken.symbol,
+				receivingToken.symbol,
+				collateralToken.symbol,
+				priceAfterSlippage,
+				side,
+				this.POOL_CONFIG,
+				Privilege.None,
+			);
+
+			instructions.push(...closePositionWithSwapData.instructions);
+			additionalSigners.push(...closePositionWithSwapData.additionalSigners);
+
+			// Add compute budget
+			instructions.unshift(
+				ComputeBudgetProgram.setComputeUnitLimit({ units: 600_000 }),
+			);
+
+			instructions.unshift(
+				ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 100000 }),
+			);
+
+			// Get address lookup tables
+			const addressLookupTables: AddressLookupTableAccount[] = (
+				await this.flashClient.getOrLoadAddressLookupTable(this.POOL_CONFIG)
+			).addressLookupTables;
+
+			// Build and send transaction
+			const trxId = await this.buildAndSendTransaction(
+				instructions,
+				addressLookupTables,
+				additionalSigners,
+			);
+
+			return { txSig: trxId };
+		} catch (error: any) {
+			console.error("❌ Close trade failed:", error);
+
+			if (error.message?.includes("No positions found")) {
+				throw new Error("No open positions found to close");
+			}
+			if (error.message?.includes("insufficient")) {
+				throw new Error("Insufficient balance to close position");
+			}
+			if (error.message?.includes("slippage")) {
+				throw new Error("Price moved too much. Please try again.");
+			}
+			if (error.message?.includes("User rejected")) {
+				throw new Error("Transaction was cancelled.");
+			}
+
+			throw error;
+		}
+	}
+
 	async cleanup() {
 		console.log("✅ Flash client cleanup complete");
 	}
