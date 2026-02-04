@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { useStore } from "@/store/useStore";
 import { StarBackground } from "./StarBackground";
 import Image from "next/image";
+import LoadingSpinner from "./LoadingSpinner";
 
 export const Hero: FC = () => {
 	const {
@@ -108,8 +109,9 @@ export const Hero: FC = () => {
 						<button
 							disabled
 							type="button"
-							className="btn-white opacity-50 cursor-not-allowed"
+							className="btn-white opacity-80 cursor-not-allowed flex items-center justify-center gap-3"
 						>
+							<LoadingSpinner size={24} />
 							Locating Your Stars...
 						</button>
 					) : address ? (

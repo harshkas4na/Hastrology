@@ -7,6 +7,7 @@ import { Connection, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { FC, useCallback, useEffect, useState } from "react";
 import { usePrivyWallet } from "@/app/hooks/use-privy-wallet";
 import { useStore } from "@/store/useStore";
+import LoadingSpinner from "./LoadingSpinner";
 
 export const WalletBalance: FC = () => {
 	const { publicKey } = usePrivyWallet();
@@ -200,7 +201,7 @@ md:top-6 md:right-55
 						</div>
 					) : (
 						<div className="flex items-center gap-2">
-							<div className="w-3 h-3 rounded-full border-2 border-white/20 border-t-white animate-spin" />
+							<LoadingSpinner size={16} />
 							<span className="text-sm md:text-lg">Connecting...</span>
 						</div>
 					)}

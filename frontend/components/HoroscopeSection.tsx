@@ -22,6 +22,7 @@ import { useStore } from "@/store/useStore";
 import { AstroCard } from "./AstroCard";
 import { LotteryCountdown } from "./LotteryCountdown";
 import { Toast } from "./toast";
+import LoadingSpinner from "./LoadingSpinner";
 
 const WalletMultiButtonDynamic = dynamic(
 	async () =>
@@ -508,25 +509,7 @@ export const HoroscopeSection: FC = () => {
 	};
 
 	if (isWalletLoading || !isReady) {
-		return (
-			<section className="min-h-screen flex flex-col items-center justify-center bg-transparent text-white">
-				<motion.div
-					animate={{ rotate: 360 }}
-					transition={{
-						duration: 3,
-						repeat: Infinity,
-						ease: "linear",
-					}}
-					className="w-14 h-14 md:w-24 md:h-24 mx-auto mb-8 relative"
-				>
-					<div className="absolute inset-0 rounded-full border-4 border-black"></div>
-					<div className="absolute inset-0 rounded-full border-4 border-t-[#FC5411] border-r-[#FC5411] border-b-transparent border-l-transparent"></div>
-				</motion.div>
-				<p className="animate-pulse text-xl md:text-3xl text-[#CCCCCC]">
-					Connecting to the cosmos…
-				</p>
-			</section>
-		);
+		return <LoadingSpinner fullScreen />;
 	}
 
 	if (!publicKey && isReady) {
@@ -763,19 +746,7 @@ export const HoroscopeSection: FC = () => {
 								<div className="absolute inset-0 rounded-[3rem] bg-[#FC5411] blur-sm animate-pulse"></div>
 
 								<div className="relative backdrop-blur-2xl bg-black border border-white/10 rounded-[3rem] p-16 text-center shadow-2xl">
-									{/* Cosmic Loader */}
-									<motion.div
-										animate={{ rotate: 360 }}
-										transition={{
-											duration: 3,
-											repeat: Infinity,
-											ease: "linear",
-										}}
-										className="w-24 h-24 mx-auto mb-8 relative"
-									>
-										<div className="absolute inset-0 rounded-full border-4 border-black"></div>
-										<div className="absolute inset-0 rounded-full border-4 border-t-[#FC5411] border-r-[#FC5411] border-b-transparent border-l-transparent"></div>
-									</motion.div>
+									<LoadingSpinner className="mb-8" size={80} />
 
 									<motion.h3
 										animate={{ opacity: [0.5, 1, 0.5] }}

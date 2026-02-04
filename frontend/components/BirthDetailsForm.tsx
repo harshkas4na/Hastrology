@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { geocodePlace, getTimezoneOffset } from "@/lib/geocoding";
 import { useStore } from "@/store/useStore";
 import { StarBackground } from "./StarBackground";
+import LoadingSpinner from "./LoadingSpinner";
 
 export const BirthDetailsForm: FC = () => {
   const { user, setUser, wallet } = useStore();
@@ -165,10 +166,17 @@ export const BirthDetailsForm: FC = () => {
             <div className="space-y-3 pt-4">
               <button
                 type="submit"
-                className="btn-primary w-full"
+                className="btn-primary w-full flex items-center justify-center gap-2"
                 disabled={loading || !formData.dob}
               >
-                {loading ? "Saving..." : "Continue"}
+                {loading ? (
+                  <>
+                    <LoadingSpinner size={20} />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  "Continue"
+                )}
               </button>
               <button
                 type="button"

@@ -8,6 +8,7 @@ import { TwitterSignInButton } from "@/components/TwitterButton";
 import { api } from "@/lib/api";
 import { useStore } from "@/store/useStore";
 import { usePrivyWallet } from "../hooks/use-privy-wallet";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 const XLoginContent: FC = () => {
 	const { publicKey, connected, disconnect } = usePrivyWallet();
@@ -375,7 +376,7 @@ const XLoginContent: FC = () => {
 
 const XLoginPage: FC = () => {
 	return (
-		<Suspense fallback={<div>Loading...</div>}>
+		<Suspense fallback={<LoadingSpinner fullScreen />}>
 			<XLoginContent />
 		</Suspense>
 	);

@@ -8,6 +8,7 @@ import Link from "next/link";
 import { FC, useCallback, useEffect, useState } from "react";
 import { usePrivyWallet } from "@/app/hooks/use-privy-wallet";
 import { api } from "@/lib/api";
+import LoadingSpinner from "./LoadingSpinner";
 import {
 	fetchLotteryState,
 	fetchUserReceipt,
@@ -429,14 +430,7 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({
 
 	// Loading state
 	if (!state) {
-		return (
-			<section className="min-h-[600px] flex items-center justify-center">
-				<div className="text-center">
-					<div className="w-16 h-16 border-4 border-black border-t-[#fc5411] rounded-full animate-spin mx-auto mb-4" />
-					<p className="text-slate-400">Loading lottery data...</p>
-				</div>
-			</section>
-		);
+		return <LoadingSpinner size={64} className="min-h-[600px]" />;
 	}
 
 	return (
@@ -450,9 +444,9 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({
 							initial={{ opacity: 0 }}
 							animate={{ opacity: 1 }}
 							exit={{ opacity: 0 }}
-							className="text-center"
+							className="text-center py-12"
 						>
-							<div className="w-16 h-16 border-4 border-black border-t-[#fc5411] rounded-full animate-spin mx-auto mb-4" />
+							<LoadingSpinner size={64} className="mb-4" />
 							<p className="text-slate-400">Loading lottery data...</p>
 						</motion.div>
 					)}
@@ -666,7 +660,7 @@ export const LotteryCountdown: FC<LotteryCountdownProps> = ({
 							exit={{ opacity: 0 }}
 							className="text-center py-12"
 						>
-							<div className="w-16 h-16 border-4 border-yellow-500/30 border-t-yellow-500 rounded-full animate-spin mx-auto mb-6" />
+							<LoadingSpinner size={64} className="mb-6" />
 							<p className="text-xl text-slate-300 mb-2">
 								Reading the cosmos...
 							</p>

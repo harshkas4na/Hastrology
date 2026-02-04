@@ -15,6 +15,7 @@ import { buildEnterLotteryInstruction } from "@/lib/hastrology_program";
 import { useStore } from "@/store/useStore";
 import type { AstroCard } from "@/types";
 import { usePrivyWallet } from "../hooks/use-privy-wallet";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 type Screen = "loading" | "payment" | "reveal" | "confirm" | "execute" | "results";
 
@@ -278,17 +279,7 @@ const CardsPage: FC = () => {
 
 	// Loading screen
 	if (!isReady || currentScreen === "loading") {
-		return (
-			<section className="min-h-screen flex flex-col items-center justify-center bg-[#0a0a0f] text-white">
-				<div className="w-14 h-14 mx-auto mb-8 relative animate-spin">
-					<div className="absolute inset-0 rounded-full border-4 border-white/10" />
-					<div className="absolute inset-0 rounded-full border-4 border-t-[#d4a017] border-r-[#d4a017] border-b-transparent border-l-transparent" />
-				</div>
-				<p className="animate-pulse text-xl text-white/60">
-					Connecting to the cosmos…
-				</p>
-			</section>
-		);
+		return <LoadingSpinner fullScreen />;
 	}
 
 	// Not connected

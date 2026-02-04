@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { usePrivyWallet } from "@/app/hooks/use-privy-wallet";
 import { FlashPrivyService } from "@/lib/flash-trade";
 import type { AstroCard } from "@/types";
+import LoadingSpinner from "./LoadingSpinner";
 
 interface TradeModalProps {
 	card: AstroCard;
@@ -314,11 +315,10 @@ export const TradeModal: React.FC<TradeModalProps> = ({ card, onClose }) => {
 						<div className="flex items-center justify-between">
 							<span className="text-neutral-400">DIRECTION</span>
 							<div
-								className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-bold ${
-									success.direction === "LONG"
+								className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-bold ${success.direction === "LONG"
 										? "bg-green-500/10 border border-green-500/30 text-green-400"
 										: "bg-red-500/10 border border-red-500/30 text-red-400"
-								}`}
+									}`}
 							>
 								{success.direction}
 							</div>
@@ -329,18 +329,16 @@ export const TradeModal: React.FC<TradeModalProps> = ({ card, onClose }) => {
 								<span className="text-neutral-400">RESULT</span>
 								<div className="flex items-center gap-2">
 									<span
-										className={`font-bold text-xl ${
-											isProfitable ? "text-green-400" : "text-red-400"
-										}`}
+										className={`font-bold text-xl ${isProfitable ? "text-green-400" : "text-red-400"
+											}`}
 									>
 										{isProfitable ? "+" : ""}${Math.abs(success.pnl).toFixed(2)}
 									</span>
 									<span
-										className={`text-sm px-2 py-1 rounded-full ${
-											isProfitable
+										className={`text-sm px-2 py-1 rounded-full ${isProfitable
 												? "bg-green-500/10 text-green-400"
 												: "bg-red-500/10 text-red-400"
-										}`}
+											}`}
 									>
 										{resultText}
 									</span>
@@ -457,7 +455,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({ card, onClose }) => {
 					{isInitialLoading && (
 						<div className="flex items-center justify-center py-8">
 							<div className="flex flex-col items-center gap-3">
-								<div className="w-8 h-8 border-4 border-neutral-700 border-t-blue-500 rounded-full animate-spin" />
+								<LoadingSpinner size={32} />
 								<p className="text-neutral-400 text-sm">
 									Loading trade data...
 								</p>
@@ -516,11 +514,10 @@ export const TradeModal: React.FC<TradeModalProps> = ({ card, onClose }) => {
 												<button
 													key={amt}
 													onClick={() => setTradeAmount(amt)}
-													className={`py-2 rounded-xl font-semibold transition ${
-														tradeAmount === amt
+													className={`py-2 rounded-xl font-semibold transition ${tradeAmount === amt
 															? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/40"
 															: "bg-white/5 text-neutral-300 border border-white/10 hover:bg-white/10"
-													}`}
+														}`}
 												>
 													${amt}
 												</button>
@@ -569,11 +566,10 @@ export const TradeModal: React.FC<TradeModalProps> = ({ card, onClose }) => {
 											isFetchingPrice ||
 											isFetchingPosition
 										}
-										className={`w-full flex-1 px-4 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${
-											latestPosition
+										className={`w-full flex-1 px-4 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${latestPosition
 												? "bg-red-500 hover:bg-red-600 text-white"
 												: "bg-yellow-500 hover:bg-yellow-600 text-black"
-										} disabled:opacity-50 disabled:cursor-not-allowed`}
+											} disabled:opacity-50 disabled:cursor-not-allowed`}
 										type="button"
 									>
 										{isTrading ? (
@@ -634,11 +630,10 @@ const PositionDetailsView = ({ position }: { position: any }) => {
 			{/* Hero */}
 			<div className="text-center space-y-2">
 				<div
-					className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-sm font-bold ${
-						position.direction === "LONG"
+					className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-sm font-bold ${position.direction === "LONG"
 							? "bg-green-500/10 border-green-500/30 text-green-400"
 							: "bg-red-500/10 border-red-500/30 text-red-400"
-					}`}
+						}`}
 				>
 					{position.direction}
 				</div>
@@ -666,17 +661,15 @@ const PositionDetailsView = ({ position }: { position: any }) => {
 
 			{/* PnL */}
 			<div
-				className={`rounded-2xl p-4 border ${
-					isProfit
+				className={`rounded-2xl p-4 border ${isProfit
 						? "bg-green-500/10 border-green-500/30"
 						: "bg-red-500/10 border-red-500/30"
-				}`}
+					}`}
 			>
 				<div className="text-neutral-400 text-sm">Unrealized PnL</div>
 				<div
-					className={`text-3xl font-extrabold ${
-						isProfit ? "text-green-400" : "text-red-400"
-					}`}
+					className={`text-3xl font-extrabold ${isProfit ? "text-green-400" : "text-red-400"
+						}`}
 				>
 					${position.pnl.toFixed(2)}
 				</div>
