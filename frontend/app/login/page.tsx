@@ -259,6 +259,16 @@ const LoginPage: FC = () => {
 							/>
 						</div>
 
+						{/* Hint Warning - Subtle & Integrated */}
+						<div className="flex items-center gap-2 text-amber-500/60 transition-opacity duration-300">
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+								<circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
+							</svg>
+							<p className="text-[10px] uppercase tracking-wider font-medium">
+								Tip: Adding time & place enables professional-grade accuracy
+							</p>
+						</div>
+
 						{/* Error message */}
 						{error && (
 							<div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
@@ -275,14 +285,7 @@ const LoginPage: FC = () => {
 							>
 								{isSubmittingForm ? "Locating your stars..." : "Continue"}
 							</button>
-							<button
-								type="button"
-								className="btn-secondary w-full"
-								onClick={handleSkip}
-								disabled={isSubmittingForm || !birthDate}
-							>
-								Skip optional details
-							</button>
+
 						</div>
 					</form>
 				</div>

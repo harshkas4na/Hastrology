@@ -272,7 +272,7 @@ class UserController {
       }
 
       let formattedBirthTime = birthTime;
-      if (!/^([01]\d|2[0-3]):([0-5]\d)$/.test(birthTime)) {
+      if (birthTime && !/^([01]\d|2[0-3]):([0-5]\d)$/.test(birthTime)) {
         return errorResponse(
           res,
           "Birth time must be in HH:MM format (24-hour)",
@@ -291,8 +291,8 @@ class UserController {
       const birthDetails = {
         walletAddress,
         dob,
-        birthTime: formattedBirthTime,
-        birthPlace,
+        birthTime: formattedBirthTime || null,
+        birthPlace: birthPlace || null,
         latitude: latitude || null,
         longitude: longitude || null,
         timezoneOffset: timezoneOffset || null,
