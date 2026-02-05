@@ -13,8 +13,8 @@ class HoroscopeRequest(BaseModel):
     Accepts date of birth, birth time, place, and geolocation for topocentric calculations.
     """
     dob: str = Field(..., description="Date of birth (e.g., 'April 20, 1995' or '1995-04-20')")
-    birth_time: str = Field(..., description="Time of birth (e.g., '4:30 PM' or '16:30')")
-    birth_place: str = Field(..., description="Place of birth (e.g., 'New Delhi, India')")
+    birth_time: Optional[str] = Field(default="", description="Time of birth (e.g., '4:30 PM' or '16:30')")
+    birth_place: Optional[str] = Field(default="", description="Place of birth (e.g., 'New Delhi, India')")
     latitude: float = Field(
         ..., 
         ge=-90, 
@@ -37,12 +37,20 @@ class HoroscopeRequest(BaseModel):
     x_recent_tweets: Optional[list[str]] = Field(default=None, description="User's recent tweets (max 5)")
     x_persona: Optional[str] = Field(default=None, description="Inferred persona type (degen, builder, whale, analyst, etc.)")
     
-    @field_validator('dob', 'birth_time', 'birth_place')
+    @field_validator('dob')
     @classmethod
-    def not_empty(cls, v: str) -> str:
-        """Validate that fields are not empty"""
+    def not_empty_dob(cls, v: str) -> str:
+        """Validate that DOB is not empty"""
         if not v or not v.strip():
-            raise ValueError('Field cannot be empty')
+            raise ValueError('Date of birth cannot be empty')
+        return v.strip()
+    
+    @field_validator('birth_time', 'birth_place')
+    @classmethod
+    def allow_empty(cls, v: Optional[str]) -> Optional[str]:
+        """Allow birth time and place to be empty"""
+        if v is None:
+            return ""
         return v.strip()
     
     @field_validator('dob')
