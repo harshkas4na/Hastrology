@@ -30,7 +30,8 @@ const WalletMultiButtonDynamic = dynamic(
 	{ ssr: false },
 );
 
-const PAYMENT_AMOUNT = 0.01; // SOL
+// PAYMENT DISABLED: Horoscope generation is now free
+// const PAYMENT_AMOUNT = 0.01; // SOL
 
 // Planetary theme configurations
 export const getPlanetaryTheme = (planet: string) => {
@@ -263,202 +264,25 @@ export const HoroscopeSection: FC = () => {
 		setWalletWarning(null);
 		setError(null);
 
-		const paymentCheck = onboarding.canPay();
-		if (!paymentCheck.allowed) {
-			setWalletWarning(paymentCheck.reason);
-			return;
-		}
-
 		if (!publicKey) {
 			setWalletWarning("Please connect your wallet to continue");
 			return;
 		}
 
-		if (balance === null) {
-			setWalletWarning("Fetching wallet balance, please wait...");
-			return;
-		}
-
-		if (balance < PAYMENT_AMOUNT) {
-			setWalletWarning("Insufficient balance. Please fund your wallet.");
-			await fundWallet({
-				address: publicKey,
-				options: {
-					chain: "solana:mainnet",
-				},
-			});
-			return;
-		}
-
-		if (!sendTransaction) {
-			setWalletWarning(
-				"Unable to send transaction. Please unlock your wallet and try again.",
-			);
-			return;
-		}
-
 		setLoading(true);
 
-		let signature: string = "";
-
 		try {
-			if (!isPaid) {
-				setStatus("paying");
-				const key = new PublicKey(publicKey);
-				if (!connection) {
-					throw new Error("Connection to Solana network is not available");
-				}
-
-				const instruction = await buildEnterLotteryInstruction(key, connection);
-				const transaction = new Transaction().add(instruction);
-
-				// Set the fee payer
-				transaction.feePayer = key;
-
-				// Get recent blockhash and set it on the transaction
-				try {
-					const { blockhash } = await connection.getLatestBlockhash();
-					transaction.recentBlockhash = blockhash;
-				} catch (blockhashError) {
-					console.error("Failed to get blockhash:", blockhashError);
-					throw new Error(
-						"Failed to connect to Solana network. Please try again.",
-					);
-				}
-
-				// Serialize the transaction to Uint8Array
-				const transactionBytes = transaction.serialize({
-					requireAllSignatures: false,
-					verifySignatures: false,
-				});
-
-				try {
-					// sendTransaction should now return a base58 string
-					signature = await sendTransaction(transactionBytes);
-
-					// Validate it's a proper base58 string
-					try {
-						bs58.decode(signature);
-					} catch (base58Error) {
-						console.error("Invalid base58 signature:", signature);
-						throw new Error("Invalid transaction signature format");
-					}
-				} catch (txError: unknown) {
-					// Handle specific wallet errors with user-friendly messages
-					const errorMessage =
-						txError instanceof Error ? txError.message : String(txError);
-
-					console.error("Transaction sending error:", errorMessage);
-
-					if (
-						errorMessage.includes("User rejected") ||
-						errorMessage.includes("rejected") ||
-						errorMessage.includes("cancelled")
-					) {
-						setWalletWarning(
-							"Transaction was cancelled. Please approve the transaction in your wallet.",
-						);
-					} else if (
-						errorMessage.includes("insufficient") ||
-						errorMessage.includes("Insufficient")
-					) {
-						setWalletWarning(
-							"Insufficient SOL balance. Please add funds to your wallet.",
-						);
-					} else if (
-						errorMessage.includes("not connected") ||
-						errorMessage.includes("disconnected")
-					) {
-						setWalletWarning(
-							"Wallet disconnected. Please reconnect your wallet.",
-						);
-					} else if (
-						errorMessage.includes("locked") ||
-						errorMessage.includes("unlock")
-					) {
-						setWalletWarning("Please unlock your wallet and try again.");
-					} else {
-						setError(`Transaction failed: ${errorMessage}`);
-					}
-					setStatus("ready");
-					setLoading(false);
-					return;
-				}
-
-				// Wait for confirmation using getSignatureStatuses
-				try {
-					// Poll for confirmation with timeout
-					const timeout = 30000; // 30 seconds
-					const startTime = Date.now();
-					let isConfirmed = false;
-
-					while (Date.now() - startTime < timeout) {
-						try {
-							// Use getSignatureStatuses with searchTransactionHistory
-							const statuses = await connection.getSignatureStatuses(
-								[signature],
-								{ searchTransactionHistory: true },
-							);
-
-							if (statuses && statuses.value && statuses.value[0]) {
-								const status = statuses.value[0];
-
-								if (status.err) {
-									// Transaction failed
-									throw new Error(
-										`Transaction failed: ${JSON.stringify(status.err)}`,
-									);
-								}
-
-								if (
-									status.confirmationStatus === "confirmed" ||
-									status.confirmationStatus === "finalized"
-								) {
-									isConfirmed = true;
-									break;
-								}
-							}
-
-							// Wait 1 second before checking again
-							await new Promise((resolve) => setTimeout(resolve, 1000));
-						} catch (statusError) {
-							console.error("Error checking status:", statusError);
-							// Continue polling
-						}
-					}
-
-					if (!isConfirmed) {
-						throw new Error("Transaction confirmation timeout");
-					} else {
-						await fetchBalance();
-					}
-				} catch (confirmationError) {
-					console.error("Transaction confirmation error:", confirmationError);
-
-					// Try one more check with just getSignatureStatus
-					try {
-						const status = await connection.getSignatureStatus(signature);
-
-						if (status && !status.value?.err) {
-						} else {
-							throw new Error(
-								"Transaction confirmation failed. Please try again.",
-							);
-						}
-					} catch (finalError) {
-						console.error("Final status check failed:", finalError);
-						throw new Error(
-							"Transaction confirmation failed. Please check Solana Explorer and try again.",
-						);
-					}
-				}
-			}
-
+			// Skip payment transaction logic
+			// setStatus("paying"); -> No longer paying
+			// DIRECTLY GO TO GENERATING
 			setStatus("generating");
+
+			// Call API with a placeholder signature to verify free access
+			const signature = "FREE_ACCESS_bypass_payment";
 
 			const result = await api.confirmHoroscope(
 				publicKey,
-				signature || "ALREADY_PAID",
+				signature,
 			);
 
 			await fetchBalance();
@@ -473,27 +297,10 @@ export const HoroscopeSection: FC = () => {
 
 			// Convert technical errors to user-friendly messages
 			if (
-				errorMessage.includes("0x1") ||
-				errorMessage.includes("insufficient")
-			) {
-				setError("Insufficient SOL balance. Please add funds to your wallet.");
-			} else if (
 				errorMessage.includes("timeout") ||
 				errorMessage.includes("Timeout")
 			) {
 				setError("Transaction timed out. Please try again.");
-			} else if (errorMessage.includes("recentBlockhash")) {
-				setError("Network connection issue. Please try again.");
-			} else if (
-				errorMessage.includes("base58") ||
-				errorMessage.includes("signature")
-			) {
-				setError("Transaction signature error. Please try again.");
-			} else if (
-				errorMessage.includes("cancelled") ||
-				errorMessage.includes("rejected")
-			) {
-				setError("Transaction was cancelled. Please try again.");
 			} else {
 				setError(errorMessage);
 			}
@@ -635,13 +442,16 @@ export const HoroscopeSection: FC = () => {
 														</span>
 													</div>
 
-													{/* Price */}
-													<div className="flex items-baseline gap-2">
-														<span className="text-2xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-br from-white to-purple-200">
-															{PAYMENT_AMOUNT}
-														</span>
-														<span className="text-2xl font-semibold">SOL</span>
-													</div>
+													{/* Price - HIDDEN/REMOVED */
+														/*
+																											<div className="flex items-baseline gap-2">
+																												<span className="text-2xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-br from-white to-purple-200">
+																													{PAYMENT_AMOUNT}
+																												</span>
+																												<span className="text-2xl font-semibold">SOL</span>
+																											</div>
+														*/
+													}
 
 													{/* CTA */}
 													<div className="relative w-full py-4 px-8 rounded-xl font-bold text-white group-hover:shadow-amber-600/50 transition-all flex items-center justify-center gap-2">

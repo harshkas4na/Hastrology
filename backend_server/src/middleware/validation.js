@@ -125,7 +125,7 @@ const horoscopeConfirmSchema = Joi.object({
       "any.required": "Wallet address is required",
     }),
 
-  signature: Joi.string().required().min(1).messages({
+  signature: Joi.string().optional().allow(null, '').messages({
     "string.empty": "Transaction signature is required",
     "any.required": "Transaction signature is required",
   }),
