@@ -1,31 +1,58 @@
 "use client";
 
 import { useConnection } from "@solana/wallet-adapter-react";
-import { Connection, LAMPORTS_PER_SOL, PublicKey, Transaction } from "@solana/web3.js";
+import {
+	Connection,
+	LAMPORTS_PER_SOL,
+	PublicKey,
+	Transaction,
+} from "@solana/web3.js";
 import bs58 from "bs58";
 import { useRouter } from "next/navigation";
-import { type FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+	type FC,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { HoroscopeReveal } from "@/components/HoroscopeReveal";
+import LoadingSpinner from "@/components/LoadingSpinner";
 import { TradeConfirm } from "@/components/TradeConfirm";
 import { TradeExecution, type TradeResult } from "@/components/TradeExecution";
 import { TradeResults } from "@/components/TradeResults";
+import { TradeModal } from "@/components/trade-modal";
 import { api } from "@/lib/api";
 import { FlashPrivyService } from "@/lib/flash-trade";
 import { buildEnterLotteryInstruction } from "@/lib/hastrology_program";
 import { useStore } from "@/store/useStore";
 import type { AstroCard } from "@/types";
 import { usePrivyWallet } from "../hooks/use-privy-wallet";
-import LoadingSpinner from "@/components/LoadingSpinner";
 
-type Screen = "loading" | "payment" | "reveal" | "confirm" | "execute" | "results";
+type Screen =
+	| "loading"
+	| "payment"
+	| "reveal"
+	| "confirm"
+	| "execute"
+	| "results";
 
 const PAYMENT_AMOUNT = 0.01; // SOL
 
 // Helper functions
 function deriveDirection(vibeStatus: string): "LONG" | "SHORT" {
 	const positiveKeywords = [
-		"confident", "optimistic", "energetic", "creative", "happy",
-		"excited", "bold", "adventurous", "passionate", "lucky",
+		"confident",
+		"optimistic",
+		"energetic",
+		"creative",
+		"happy",
+		"excited",
+		"bold",
+		"adventurous",
+		"passionate",
+		"lucky",
 	];
 	const vibe = vibeStatus.toLowerCase();
 	return positiveKeywords.some((kw) => vibe.includes(kw)) ? "LONG" : "SHORT";
@@ -45,8 +72,16 @@ const CardsPage: FC = () => {
 		signTransaction,
 		signAllTransactions,
 	} = usePrivyWallet();
-	const { connection } = useConnection();
-	const { user, card, setCard, setWallet, setUser, reset, loading, setLoading } = useStore();
+	const {
+		user,
+		card,
+		setCard,
+		setWallet,
+		setUser,
+		reset,
+		loading,
+		setLoading,
+	} = useStore();
 	const router = useRouter();
 
 	const [currentScreen, setCurrentScreen] = useState<Screen>("loading");
@@ -54,7 +89,9 @@ const CardsPage: FC = () => {
 	const [tradeResult, setTradeResult] = useState<TradeResult | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [balance, setBalance] = useState<number | null>(null);
-	const [flashService, setFlashService] = useState<FlashPrivyService | null>(null);
+	const [flashService, setFlashService] = useState<FlashPrivyService | null>(
+		null,
+	);
 
 	const wasConnected = useRef(false);
 	const hasCheckedRef = useRef(false);
@@ -71,24 +108,40 @@ const CardsPage: FC = () => {
 	}, [card]);
 
 	// Stabilize wallet functions to prevent re-initialization
-	const walletFuncsRef = useRef({ signTransaction, signAllTransactions, sendTransaction });
+	const walletFuncsRef = useRef({
+		signTransaction,
+		signAllTransactions,
+		sendTransaction,
+	});
 	useEffect(() => {
-		walletFuncsRef.current = { signTransaction, signAllTransactions, sendTransaction };
+		walletFuncsRef.current = {
+			signTransaction,
+			signAllTransactions,
+			sendTransaction,
+		};
 	}, [signTransaction, signAllTransactions, sendTransaction]);
 
 	const walletAdapter = useMemo(() => {
 		if (!publicKey) return null;
 		return {
 			publicKey,
-			signTransaction: async (tx: any) => walletFuncsRef.current.signTransaction?.(tx),
-			signAllTransactions: async (txs: any) => walletFuncsRef.current.signAllTransactions?.(txs),
-			sendTransaction: async (tx: any) => walletFuncsRef.current.sendTransaction?.(tx)
+			signTransaction: async (tx: any) =>
+				walletFuncsRef.current.signTransaction?.(tx),
+			signAllTransactions: async (txs: any) =>
+				walletFuncsRef.current.signAllTransactions?.(txs),
+			sendTransaction: async (tx: any) =>
+				walletFuncsRef.current.sendTransaction?.(tx),
 		};
 	}, [publicKey]);
 
 	// Initialize Flash service
 	useEffect(() => {
-		if (!walletAdapter || !connection) return;
+		if (!walletAdapter) return;
+
+		const endpoint =
+			process.env.NEXT_PUBLIC_SOLANA_RPC_URL ||
+			"https://solana-rpc.publicnode.com";
+		const connection = new Connection(endpoint, "confirmed");
 
 		const service = new FlashPrivyService({
 			connection,
@@ -96,16 +149,19 @@ const CardsPage: FC = () => {
 			env: "mainnet-beta",
 		});
 
-		service.initialize().then(() => {
-			setFlashService(service);
-		}).catch((err) => {
-			console.error("Flash service init error:", err);
-		});
+		service
+			.initialize()
+			.then(() => {
+				setFlashService(service);
+			})
+			.catch((err) => {
+				console.error("Flash service init error:", err);
+			});
 
 		return () => {
 			service.cleanup();
 		};
-	}, [walletAdapter, connection]);
+	}, [walletAdapter]);
 
 	// Redirect if disconnected
 	useEffect(() => {
@@ -176,7 +232,16 @@ const CardsPage: FC = () => {
 		};
 
 		checkStatus();
-	}, [connected, publicKey, isReady, setCard, setUser, setWallet, generateFreeHoroscope, router]);
+	}, [
+		connected,
+		publicKey,
+		isReady,
+		setCard,
+		setUser,
+		setWallet,
+		generateFreeHoroscope,
+		router,
+	]);
 
 	// Fetch balance
 	useEffect(() => {
@@ -187,7 +252,9 @@ const CardsPage: FC = () => {
 			}
 
 			try {
-				const endpoint = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+				const endpoint =
+					process.env.NEXT_PUBLIC_SOLANA_RPC_URL ||
+					"https://solana-rpc.publicnode.com";
 				const conn = new Connection(endpoint, "confirmed");
 				const pubKey = new PublicKey(publicKey);
 				const lamports = await conn.getBalance(pubKey);
@@ -204,7 +271,7 @@ const CardsPage: FC = () => {
 
 	// Handle verify trade click
 	const handleVerifyTrade = () => {
-		setCurrentScreen("confirm");
+		setCurrentScreen("execute");
 	};
 
 	// Handle trade execution
@@ -214,7 +281,10 @@ const CardsPage: FC = () => {
 	};
 
 	// Flash Trade callbacks
-	const handleOpenPosition = useCallback(async (): Promise<{ txSig: string; entryPrice: number }> => {
+	const handleOpenPosition = useCallback(async (): Promise<{
+		txSig: string;
+		entryPrice: number;
+	}> => {
 		if (!flashService || !card || !tradeParams) {
 			throw new Error("Flash service not ready");
 		}
@@ -232,7 +302,11 @@ const CardsPage: FC = () => {
 		};
 	}, [flashService, card, tradeParams, tradeAmount]);
 
-	const handleClosePosition = useCallback(async (): Promise<{ txSig: string; exitPrice: number; pnl: number }> => {
+	const handleClosePosition = useCallback(async (): Promise<{
+		txSig: string;
+		exitPrice: number;
+		pnl: number;
+	}> => {
 		if (!flashService) {
 			throw new Error("Flash service not ready");
 		}
@@ -288,8 +362,14 @@ const CardsPage: FC = () => {
 			<section className="min-h-screen flex flex-col items-center justify-center bg-[#0a0a0f] text-white">
 				<div className="text-center">
 					<h2 className="text-3xl font-bold mb-4">Wallet Not Connected</h2>
-					<p className="text-white/50 mb-8">Please connect your wallet to access your cosmic reading</p>
-					<button onClick={() => router.push("/")} className="btn-primary" type="button">
+					<p className="text-white/50 mb-8">
+						Please connect your wallet to access your cosmic reading
+					</p>
+					<button
+						onClick={() => router.push("/")}
+						className="btn-primary"
+						type="button"
+					>
 						Go to Home
 					</button>
 				</div>
@@ -305,9 +385,7 @@ const CardsPage: FC = () => {
 					<h2 className="font-display text-2xl font-semibold mb-4 text-red-400">
 						Cosmic Interruption
 					</h2>
-					<p className="text-white/50 mb-6">
-						{error}
-					</p>
+					<p className="text-white/50 mb-6">{error}</p>
 
 					<button
 						onClick={generateFreeHoroscope}
@@ -358,15 +436,13 @@ const CardsPage: FC = () => {
 	// Screen 5: Trade Execution
 	if (currentScreen === "execute" && card && tradeParams) {
 		return (
-			<TradeExecution
+			<TradeModal
 				card={card}
-				amount={tradeAmount}
-				leverage={tradeParams.leverage}
+				onClose={() => {
+					setCurrentScreen("reveal");
+				}}
 				direction={tradeParams.direction}
 				onComplete={handleTradeComplete}
-				onOpenPosition={handleOpenPosition}
-				onClosePosition={handleClosePosition}
-				onGetPrice={handleGetPrice}
 			/>
 		);
 	}
