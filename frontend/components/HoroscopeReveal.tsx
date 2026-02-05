@@ -283,72 +283,133 @@ export const HoroscopeReveal: FC<HoroscopeRevealProps> = ({
 
                         {/* ==================== BACK FACE ==================== */}
                         <div
-                            className="card-glass absolute inset-0 w-full"
+                            className="card-glass absolute inset-0 w-full flex flex-col"
                             style={{
                                 backfaceVisibility: "hidden",
                                 WebkitBackfaceVisibility: "hidden",
                                 transform: "rotateY(180deg)",
                             }}
                         >
-                            {/* Header */}
-                            <div className="flex items-center justify-between mb-6">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-[#d4a017]/20 flex items-center justify-center">
-                                        <span className="text-xl">{zodiacSymbol}</span>
+                            {/* Content Wrapper */}
+                            <div className="flex-1 overflow-y-auto custom-scrollbar no-visible-scrollbar">
+                                {/* Header */}
+                                <div className="flex items-center justify-between mb-6">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-xl bg-[#d4a017]/20 flex items-center justify-center">
+                                            <span className="text-xl">{zodiacSymbol}</span>
+                                        </div>
+                                        <div>
+                                            <h3 className="text-lg font-bold text-white">Deep Insights</h3>
+                                            <p className="text-xs text-white/40 uppercase tracking-widest">{zodiacSign}</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h3 className="text-lg font-bold text-white">Deep Insights</h3>
-                                        <p className="text-xs text-white/40 uppercase tracking-widest">{zodiacSign}</p>
+                                    <div className="px-3 py-1.5 rounded-full text-xs font-bold bg-[#d4a017]/20 text-[#f5c842]">
+                                        {vibeStatus}
                                     </div>
                                 </div>
-                                <div className="px-3 py-1.5 rounded-full text-xs font-bold bg-[#d4a017]/20 text-[#f5c842]">
-                                    {vibeStatus}
+
+                                {/* Cosmic Insight */}
+                                <div className="mb-5">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <span className="text-base">🔮</span>
+                                        <h4 className="text-xs font-bold text-white/70 uppercase tracking-widest">
+                                            Cosmic Insight
+                                        </h4>
+                                    </div>
+                                    <p className="text-sm leading-relaxed text-white/80 pl-6">
+                                        {card.back.detailed_reading}
+                                    </p>
+                                </div>
+
+                                {/* Hustle Alpha */}
+                                <div className="mb-5 p-4 rounded-2xl bg-white/[0.04] border border-white/10">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <span className="text-base">💼</span>
+                                        <h4 className="text-xs font-bold text-white/60 uppercase tracking-widest">
+                                            Hustle Alpha
+                                        </h4>
+                                    </div>
+                                    <p className="text-sm text-white/90 font-medium leading-relaxed pl-6">
+                                        {card.back.hustle_alpha}
+                                    </p>
+                                </div>
+
+                                {/* Shadow Warning */}
+                                <div className="mb-5 p-4 rounded-2xl bg-gradient-to-br from-red-500/[0.08] to-orange-500/[0.05] border border-red-500/20">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <span className="text-base">⚠️</span>
+                                        <h4 className="text-xs font-bold text-red-300/70 uppercase tracking-widest">
+                                            Shadow Warning
+                                        </h4>
+                                    </div>
+                                    <p className="text-sm text-white/85 leading-relaxed pl-6">
+                                        {card.back.shadow_warning}
+                                    </p>
                                 </div>
                             </div>
 
-                            {/* Cosmic Insight */}
+                            {/* Lucky Assets */}
                             <div className="mb-5">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <span className="text-base">🔮</span>
+                                    <span className="text-base">🍀</span>
                                     <h4 className="text-xs font-bold text-white/70 uppercase tracking-widest">
-                                        Cosmic Insight
+                                        Lucky Assets
                                     </h4>
                                 </div>
-                                <p className="text-sm leading-relaxed text-white/80 pl-6">
-                                    {card.back.detailed_reading}
-                                </p>
-                            </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {/* Asset */}
+                                    <div className="p-3 rounded-xl bg-white/[0.04] border border-white/10 text-center">
+                                        <div className="flex items-center justify-center gap-1 mb-1 opacity-60">
+                                            <span className="text-sm">{card.back.lucky_assets.emoji || "💎"}</span>
+                                            <span className="text-[9px] uppercase font-bold">Asset</span>
+                                        </div>
+                                        <div className="font-bold text-white truncate">
+                                            {card.back.lucky_assets.ticker || "CRYPTO"}
+                                        </div>
+                                        {card.back.lucky_assets.name && (
+                                            <div className="text-[10px] text-white/40 truncate">
+                                                {card.back.lucky_assets.name}
+                                            </div>
+                                        )}
+                                    </div>
 
-                            {/* Hustle Alpha */}
-                            <div className="mb-5 p-4 rounded-2xl bg-white/[0.04] border border-white/10">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <span className="text-base">💼</span>
-                                    <h4 className="text-xs font-bold text-white/60 uppercase tracking-widest">
-                                        Hustle Alpha
-                                    </h4>
+                                    {/* Leverage */}
+                                    <div className="p-3 rounded-xl bg-white/[0.04] border border-white/10 text-center">
+                                        <div className="flex items-center justify-center gap-1 mb-1 opacity-60">
+                                            <span className="text-sm">🚀</span>
+                                            <span className="text-[9px] uppercase font-bold">Max Lev</span>
+                                        </div>
+                                        <div className="font-bold text-white truncate">
+                                            {card.back.lucky_assets.max_leverage ? `${card.back.lucky_assets.max_leverage}x` : "1x"}
+                                        </div>
+                                    </div>
+
+                                    {/* Color */}
+                                    <div className="p-3 rounded-xl bg-white/[0.04] border border-white/10 text-center">
+                                        <div className="flex items-center justify-center gap-1 mb-1 opacity-60">
+                                            <span className="text-sm">🎨</span>
+                                            <span className="text-[9px] uppercase font-bold">Color</span>
+                                        </div>
+                                        <div className="font-bold text-white text-xs truncate">
+                                            {card.back.lucky_assets.color}
+                                        </div>
+                                    </div>
+
+                                    {/* Power Hour */}
+                                    <div className="p-3 rounded-xl bg-white/[0.04] border border-white/10 text-center">
+                                        <div className="flex items-center justify-center gap-1 mb-1 opacity-60">
+                                            <span className="text-sm">⚡</span>
+                                            <span className="text-[9px] uppercase font-bold">Power Hour</span>
+                                        </div>
+                                        <div className="font-bold text-white text-xs truncate">
+                                            {card.back.lucky_assets.power_hour}
+                                        </div>
+                                    </div>
                                 </div>
-                                <p className="text-sm text-white/90 font-medium leading-relaxed pl-6">
-                                    {card.back.hustle_alpha}
-                                </p>
                             </div>
-
-                            {/* Shadow Warning */}
-                            <div className="mb-5 p-4 rounded-2xl bg-gradient-to-br from-red-500/[0.08] to-orange-500/[0.05] border border-red-500/20">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <span className="text-base">⚠️</span>
-                                    <h4 className="text-xs font-bold text-red-300/70 uppercase tracking-widest">
-                                        Shadow Warning
-                                    </h4>
-                                </div>
-                                <p className="text-sm text-white/85 leading-relaxed pl-6">
-                                    {card.back.shadow_warning}
-                                </p>
-                            </div>
-
-
 
                             {/* Flip Back Hint */}
-                            <div className="flex items-center justify-center gap-2 text-white/40 pt-3 border-t border-white/10">
+                            <div className="flex items-center justify-center gap-2 text-white/40 pt-3 border-t border-white/10 mt-auto shrink-0">
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v5h5" />

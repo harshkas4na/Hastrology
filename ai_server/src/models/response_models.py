@@ -10,6 +10,14 @@ class LuckyAssets(BaseModel):
     number: str = Field(..., description="Lucky number")
     color: str = Field(..., description="Lucky color")
     power_hour: str = Field(..., description="Power hour (e.g. '3-4 PM')")
+    
+    # Enriched fields (populated by service)
+    ticker: Optional[str] = Field(default=None, description="Asset ticker symbol")
+    name: Optional[str] = Field(default=None, description="Asset full name")
+    max_leverage: Optional[int] = Field(default=None, description="Max leverage allowed")
+    emoji: Optional[str] = Field(default=None, description="Asset emoji")
+    category: Optional[str] = Field(default=None, description="Asset category")
+
 
 
 class HoroscopeCardFront(BaseModel):

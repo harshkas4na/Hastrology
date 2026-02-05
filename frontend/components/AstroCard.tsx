@@ -433,7 +433,7 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 
 	return (
 		<div
-			className={`mt-0 md:mt-10 w-full h-full flex flex-col ${showShare ? "lg:grid lg:grid-cols-2" : ""} gap-6 lg:gap-16 items-center`}
+			className={`w-full min-h-[min(100vh,800px)] flex flex-col ${showShare ? "lg:grid lg:grid-cols-2" : ""} gap-10 items-center justify-center p-4 md:p-8`}
 		>
 			{/* LEFT SIDE - Heading & Share Button */}
 			{showShare && (
@@ -441,27 +441,26 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 					initial={{ opacity: 0, x: -50 }}
 					animate={{ opacity: 1, x: 0 }}
 					transition={{ delay: 0.2 }}
-					className="mt-5 flex flex-col justify-center space-y-3 md:space-y-6 lg:space-y-8 md:mt-8 lg:mt-16 order-2 lg:order-1"
+					className="flex flex-col justify-center space-y-4 md:space-y-6 lg:space-y-8 w-full max-w-md mx-auto order-2 lg:order-1"
 				>
 					{!showTweetSuccess ? (
 						/* ================= NORMAL SHARE STATE ================= */
 						<>
 							{/* Heading */}
 							<div
-								className="text-center md:text-left space-y-3 lg:space-y-4 text-sm md:text-lg
-                invisible md:visible h-0 md:h-auto"
+								className="text-center md:text-left space-y-2 lg:space-y-4"
 							>
-								<h1 className="text-lg md:text-2xl lg:text-4xl font-bold text-white">
+								<h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white">
 									Share Your Card On X
 								</h1>
-								<p className="text-slate-400 text-base lg:text-lg md:text-xl max-w-lg">
+								<p className="text-slate-400 text-sm md:text-lg lg:text-xl">
 									Get your personalized daily horoscope cards. A card for your
 									vibe, health, wealth, love & more.
 								</p>
 							</div>
 
 							{/* Share Button */}
-							<motion.div className="w-full flex flex-col gap-4 md:gap-6 pb-8">
+							<motion.div className="w-full flex flex-col gap-3 md:gap-4 lg:gap-6">
 								{/* Share / Sign-in */}
 								{isTwitterExpired ? (
 									<TwitterSignInButton
@@ -478,10 +477,10 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 									<button
 										onClick={handleGenerateDraft}
 										disabled={shareStatus.show && shareStatus.type === "info"}
-										className="cursor-pointer group relative w-full px-8 py-4 border border-[#FC5411]
+										className="cursor-pointer group relative w-full px-8 py-3 md:py-4 border border-[#FC5411]
       bg-white/5 hover:bg-white/10 rounded-2xl transition-all"
 									>
-										<span className="text-white text-sm md:text-lg font-medium">
+										<span className="text-white text-base md:text-lg font-medium">
 											{shareStatus.show && shareStatus.type === "info"
 												? shareStatus.message
 												: "Share on X"}
@@ -492,7 +491,7 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 								{/* Download */}
 								<button
 									onClick={downloadFrontAndBackCard}
-									className="cursor-pointer text-sm md:text-lg group relative w-full px-8 py-4 border border-[#FC5411]
+									className="cursor-pointer text-base md:text-lg group relative w-full px-8 py-3 md:py-4 border border-[#FC5411]
     hover:bg-white/10 rounded-2xl transition-all"
 								>
 									Download Card
@@ -500,8 +499,8 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 
 								<button
 									onClick={() => setOpenModal(true)}
-									className="cursor-pointer text-sm md:text-lg w-full border border-[#FC5411]
-    flex items-center justify-center gap-3 px-8 py-4
+									className="cursor-pointer text-base md:text-lg w-full border border-[#FC5411]
+    flex items-center justify-center gap-3 px-8 py-3 md:py-4
      hover:bg-white/10 rounded-2xl transition-all"
 								>
 									Trade based on luck
@@ -559,10 +558,10 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 			<div
 				className={`w-full relative order-1 lg:order-2 ${!showShare ? "mx-auto max-w-xl" : ""}`}
 			>
-				<div className="w-full h-[765px] md:min-h-[650px] lg:h-[765px] perspective-1000 relative">
+				<div className="w-full md:aspect-[9/16] md:max-h-[765px] perspective-1000 relative mx-auto">
 					{/* Card Content */}
 					<div
-						className="w-full max-w-sm md:max-w-md h-full cursor-pointer mx-auto lg:mx-0"
+						className="w-full h-full cursor-pointer"
 						onClick={() => !showTweetSuccess && setIsFlipped(!isFlipped)}
 					>
 						<motion.div
@@ -574,7 +573,7 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 							{/* ==================== FRONT FACE ==================== */}
 							<motion.div
 								data-card-front
-								className={`absolute w-full h-full rounded-[2.5rem] overflow-hidden shadow-2xl ${isFlipped ? "pointer-events-none" : "pointer-events-auto"}`}
+								className={`relative md:absolute w-full min-h-[550px] md:h-full rounded-[2rem] md:rounded-[2.5rem] overflow-hidden shadow-2xl ${isFlipped ? "pointer-events-none" : "pointer-events-auto"}`}
 								style={{
 									backfaceVisibility: "hidden",
 									WebkitBackfaceVisibility: "hidden",
@@ -609,22 +608,22 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 								{/* Noise Texture Overlay */}
 
 								{/* Content */}
-								<div className="relative z-20 h-full flex flex-col justify-between p-6 md:p-8">
+								<div className="relative z-20 h-full flex flex-col justify-between p-5 md:p-8">
 									{/* Top Section: User & Constellation */}
 									<div className="flex justify-between items-start">
-										<div className="space-y-4">
+										<div className="space-y-3 md:space-y-4">
 											{/* User Info */}
 											<div>
-												<h2 className="text-2xl md:text-3xl font-black text-white tracking-tight leading-none">
+												<h2 className="text-xl md:text-3xl font-black text-white tracking-tight leading-none">
 													{user?.username || card.front.zodiac_sign}
 												</h2>
-												<h3 className="text-sm md:text-base font-medium text-white/50 tracking-wide mt-1">
+												<h3 className="text-xs md:text-base font-medium text-white/50 tracking-wide mt-1">
 													@{user?.twitterUsername || user?.username}
 												</h3>
 											</div>
 
 											{/* Constellation */}
-											<div className="relative w-32 h-24 md:w-40 md:h-28 opacity-90">
+											<div className="relative w-28 h-20 md:w-40 md:h-28 opacity-90">
 												<img
 													src={`/stars/${card.front.zodiac_sign.toLowerCase()}.svg`}
 													alt={`${card.front.zodiac_sign} Constellation`}
@@ -648,14 +647,14 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 														),
 													)}`}
 													alt={user?.username || "Profile"}
-													className="relative w-12 h-12 md:w-16 md:h-16 rounded-2xl object-cover border border-white/20 shadow-xl"
+													className="relative w-10 h-10 md:w-16 md:h-16 rounded-xl md:rounded-2xl object-cover border border-white/20 shadow-xl"
 												/>
 											</div>
 										)}
 									</div>
 
 									{/* Middle Section: Vibe & Hooks */}
-									<div className="space-y-6 mt-4">
+									<div className="space-y-4 md:space-y-6 mt-4">
 										{/* Vibe Status - Large Display */}
 										<div>
 											<h1 className="text-3xl md:text-4xl font-light text-white tracking-wide">
@@ -664,22 +663,22 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 										</div>
 
 										{/* Hooks - Typography */}
-										<div className="space-y-4">
-											<p className="text-lg md:text-xl text-white/90 font-medium leading-snug">
+										<div className="space-y-3 md:space-y-4">
+											<p className="text-base md:text-xl text-white/90 font-medium leading-snug">
 												{card.front.hook_1}
 											</p>
-											<p className="text-base md:text-lg text-white/60 font-light leading-relaxed">
+											<p className="text-sm md:text-lg text-white/60 font-light leading-relaxed">
 												{card.front.hook_2}
 											</p>
 										</div>
 									</div>
 
 									{/* Bottom Section: Lucky Assets */}
-									<div className="mt-auto pt-5 border-t border-white/10">
-										<div className="grid grid-cols-3 gap-2 md:gap-3">
-											{/* Lucky Number */}
+									<div className="mt-auto pt-4 md:pt-5 border-t border-white/10">
+										<div className="grid grid-cols-2 gap-2 md:gap-3">
+											{/* Asset */}
 											<div
-												className="relative overflow-hidden backdrop-blur-sm rounded-2xl p-3 md:p-4 text-center group transition-all duration-300 hover:scale-[1.02]"
+												className="relative overflow-hidden backdrop-blur-sm rounded-xl md:rounded-2xl p-2 md:p-3 text-center group transition-all duration-300 hover:scale-[1.02]"
 												style={{
 													background: `linear-gradient(135deg, ${accent}15 0%, transparent 100%)`,
 													border: `1px solid ${accent}25`,
@@ -688,23 +687,51 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 												<div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 												<div className="relative">
 													<div className="flex items-center justify-center gap-1 mb-1">
-														<span className="text-xs opacity-60">🎯</span>
-														<span className="text-[8px] md:text-[9px] text-white/50 uppercase tracking-widest font-bold">
-															Number
+														<span className="text-[10px] md:text-xs opacity-60">
+															{card.back.lucky_assets.emoji || "💎"}
+														</span>
+														<span className="text-[7px] md:text-[9px] text-white/50 uppercase tracking-widest font-bold">
+															Asset
 														</span>
 													</div>
-													<div
-														className="text-2xl md:text-3xl font-black group-hover:scale-110 transition-transform"
-														style={{ color: accent }}
-													>
-														{card.back.lucky_assets.number}
+													<div className="text-sm md:text-lg font-bold text-white leading-tight truncate">
+														{card.back.lucky_assets.ticker || "CRYPTO"}
+													</div>
+													{card.back.lucky_assets.name && (
+														<div className="text-[8px] md:text-[10px] text-white/40 truncate">
+															{card.back.lucky_assets.name}
+														</div>
+													)}
+												</div>
+											</div>
+
+											{/* Leverage */}
+											<div
+												className="relative overflow-hidden backdrop-blur-sm rounded-xl md:rounded-2xl p-2 md:p-3 text-center group transition-all duration-300 hover:scale-[1.02]"
+												style={{
+													background: `linear-gradient(135deg, ${accent}15 0%, transparent 100%)`,
+													border: `1px solid ${accent}25`,
+												}}
+											>
+												<div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+												<div className="relative">
+													<div className="flex items-center justify-center gap-1 mb-1">
+														<span className="text-[10px] md:text-xs opacity-60">
+															🚀
+														</span>
+														<span className="text-[7px] md:text-[9px] text-white/50 uppercase tracking-widest font-bold">
+															Max Lev
+														</span>
+													</div>
+													<div className="text-sm md:text-lg font-bold text-white leading-tight truncate">
+														{card.back.lucky_assets.max_leverage ? `${card.back.lucky_assets.max_leverage}x` : "1x"}
 													</div>
 												</div>
 											</div>
 
-											{/* Lucky Color */}
+											{/* Color */}
 											<div
-												className="relative overflow-hidden backdrop-blur-sm rounded-2xl p-3 md:p-4 text-center group transition-all duration-300 hover:scale-[1.02]"
+												className="relative overflow-hidden backdrop-blur-sm rounded-xl md:rounded-2xl p-2 md:p-3 text-center group transition-all duration-300 hover:scale-[1.02]"
 												style={{
 													background: `linear-gradient(135deg, ${accent}15 0%, transparent 100%)`,
 													border: `1px solid ${accent}25`,
@@ -713,12 +740,14 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 												<div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 												<div className="relative">
 													<div className="flex items-center justify-center gap-1 mb-1">
-														<span className="text-xs opacity-60">🎨</span>
-														<span className="text-[8px] md:text-[9px] text-white/50 uppercase tracking-widest font-bold">
+														<span className="text-[10px] md:text-xs opacity-60">
+															🎨
+														</span>
+														<span className="text-[7px] md:text-[9px] text-white/50 uppercase tracking-widest font-bold">
 															Color
 														</span>
 													</div>
-													<div className="text-sm md:text-base font-bold text-white leading-tight break-words">
+													<div className="text-xs md:text-sm font-bold text-white leading-tight truncate">
 														{card.back.lucky_assets.color}
 													</div>
 												</div>
@@ -726,7 +755,7 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 
 											{/* Power Hour */}
 											<div
-												className="relative overflow-hidden backdrop-blur-sm rounded-2xl p-3 md:p-4 text-center group transition-all duration-300 hover:scale-[1.02]"
+												className="relative overflow-hidden backdrop-blur-sm rounded-xl md:rounded-2xl p-2 md:p-3 text-center group transition-all duration-300 hover:scale-[1.02]"
 												style={{
 													background: `linear-gradient(135deg, ${accent}15 0%, transparent 100%)`,
 													border: `1px solid ${accent}25`,
@@ -735,12 +764,14 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 												<div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 												<div className="relative">
 													<div className="flex items-center justify-center gap-1 mb-1">
-														<span className="text-xs opacity-60">⚡</span>
-														<span className="text-[8px] md:text-[9px] text-white/50 uppercase tracking-widest font-bold">
-															Power
+														<span className="text-[10px] md:text-xs opacity-60">
+															⚡
+														</span>
+														<span className="text-[7px] md:text-[9px] text-white/50 uppercase tracking-widest font-bold">
+															Power Hour
 														</span>
 													</div>
-													<div className="text-sm md:text-base font-bold text-white leading-tight">
+													<div className="text-xs md:text-sm font-bold text-white leading-tight truncate">
 														{card.back.lucky_assets.power_hour}
 													</div>
 												</div>
@@ -755,7 +786,7 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 							{/* ==================== BACK FACE ==================== */}
 							<motion.div
 								data-card-back
-								className={`absolute w-full h-full rounded-[2.5rem] overflow-hidden shadow-2xl ${isFlipped ? "pointer-events-auto" : "pointer-events-none"
+								className={`absolute w-full h-full rounded-[2rem] md:rounded-[2.5rem] overflow-hidden shadow-2xl ${isFlipped ? "pointer-events-auto" : "pointer-events-none"
 									}`}
 								style={{
 									transform: isFlipped
@@ -786,27 +817,27 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 								/>
 
 								{/* Content */}
-								<div className="relative z-20 h-full flex flex-col p-6 md:p-8">
+								<div className="relative z-20 h-full flex flex-col p-5 md:p-8">
 									{/* Header with title */}
-									<div className="flex items-center justify-between mb-4">
-										<div className="flex items-center gap-3">
+									<div className="flex items-center justify-between mb-2 md:mb-4">
+										<div className="flex items-center gap-2 md:gap-3">
 											<div
-												className="w-10 h-10 rounded-xl flex items-center justify-center"
+												className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl flex items-center justify-center"
 												style={{ backgroundColor: `${accent}30` }}
 											>
-												<span className="text-xl">{zodiacEmoji}</span>
+												<span className="text-lg md:text-xl">{zodiacEmoji}</span>
 											</div>
 											<div>
-												<h3 className="text-lg md:text-xl font-bold text-white">
+												<h3 className="text-base md:text-xl font-bold text-white">
 													Deep Dive
 												</h3>
-												<p className="text-xs text-white/40 uppercase tracking-widest">
+												<p className="text-[10px] md:text-xs text-white/40 uppercase tracking-widest">
 													{card.front.zodiac_sign}
 												</p>
 											</div>
 										</div>
 										<div
-											className="px-3 py-1.5 rounded-full text-xs font-bold"
+											className="px-2 md:px-3 py-1 md:py-1.5 rounded-full text-[10px] md:text-xs font-bold"
 											style={{
 												backgroundColor: `${accent}20`,
 												color: accent
@@ -817,21 +848,21 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 									</div>
 
 									{/* Scrollable Content */}
-									<div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-4 custom-scrollbar">
+									<div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-3 md:space-y-4 custom-scrollbar">
 										{/* Detailed Reading */}
 										<motion.div
 											animate={{ opacity: 1, y: 0 }}
-											className="space-y-3"
+											className="space-y-2 md:space-y-3"
 											initial={{ opacity: 0, y: 10 }}
 											transition={{ delay: 0.2 }}
 										>
 											<div className="flex items-center gap-2">
-												<span className="text-lg">🔮</span>
-												<h4 className="text-xs font-bold text-white/70 uppercase tracking-widest">
+												<span className="text-base md:text-lg">🔮</span>
+												<h4 className="text-[10px] md:text-xs font-bold text-white/70 uppercase tracking-widest">
 													Cosmic Insight
 												</h4>
 											</div>
-											<p className="text-sm md:text-base leading-relaxed text-white/90 font-light pl-7">
+											<p className="text-sm md:text-base leading-relaxed text-white/90 font-light pl-6 md:pl-7">
 												{card.back.detailed_reading}
 											</p>
 										</motion.div>
@@ -849,14 +880,14 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 													background: `linear-gradient(135deg, ${accent}, transparent)`,
 												}}
 											/>
-											<div className="relative p-4 md:p-5 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-sm space-y-2 hover:bg-white/[0.06] transition-colors">
+											<div className="relative p-3 md:p-5 rounded-xl md:rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-sm space-y-2 hover:bg-white/[0.06] transition-colors">
 												<div className="flex items-center gap-2">
-													<span className="text-base">💼</span>
-													<h4 className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-white/60">
+													<span className="text-sm md:text-base">💼</span>
+													<h4 className="text-[9px] md:text-[10px] lg:text-xs font-bold uppercase tracking-widest text-white/60">
 														Hustle Alpha
 													</h4>
 												</div>
-												<p className="text-sm md:text-base text-white/90 font-medium leading-relaxed pl-6">
+												<p className="text-sm md:text-base text-white/90 font-medium leading-relaxed pl-5 md:pl-6">
 													{card.back.hustle_alpha}
 												</p>
 											</div>
@@ -865,17 +896,17 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 										{/* Shadow Warning */}
 										<motion.div
 											animate={{ opacity: 1, y: 0 }}
-											className="p-4 md:p-5 rounded-2xl bg-gradient-to-br from-red-500/[0.08] to-orange-500/[0.05] border border-red-500/20 backdrop-blur-sm space-y-2 hover:from-red-500/[0.12] transition-all"
+											className="p-3 md:p-5 rounded-xl md:rounded-2xl bg-gradient-to-br from-red-500/[0.08] to-orange-500/[0.05] border border-red-500/20 backdrop-blur-sm space-y-2 hover:from-red-500/[0.12] transition-all"
 											initial={{ opacity: 0, y: 10 }}
 											transition={{ delay: 0.4 }}
 										>
 											<div className="flex items-center gap-2">
-												<span className="text-base">⚠️</span>
-												<h4 className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-red-300/70">
+												<span className="text-sm md:text-base">⚠️</span>
+												<h4 className="text-[9px] md:text-[10px] lg:text-xs font-bold uppercase tracking-widest text-red-300/70">
 													Shadow Warning
 												</h4>
 											</div>
-											<p className="text-sm md:text-base text-white/85 leading-relaxed pl-6">
+											<p className="text-sm md:text-base text-white/85 leading-relaxed pl-5 md:pl-6">
 												{card.back.shadow_warning}
 											</p>
 										</motion.div>
@@ -883,7 +914,7 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 									</div>
 
 									{/* Footer hint */}
-									<div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-center gap-2 text-white/40">
+									<div className="mt-2 md:mt-3 pt-2 md:pt-3 border-t border-white/10 flex items-center justify-center gap-2 text-white/40">
 										<svg
 											fill="none"
 											height="14"
@@ -897,7 +928,7 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 											<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
 											<path d="M3 3v5h5" />
 										</svg>
-										<span className="text-xs font-medium">Tap to flip back</span>
+										<span className="text-[10px] md:text-xs font-medium">Tap to flip back</span>
 									</div>
 								</div>
 							</motion.div>

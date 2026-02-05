@@ -41,6 +41,11 @@ export interface LuckyAssets {
 	number: string;
 	color: string;
 	power_hour: string;
+	ticker?: string;
+	name?: string;
+	max_leverage?: number;
+	emoji?: string;
+	category?: string;
 }
 
 export interface TelescopeCardFront {

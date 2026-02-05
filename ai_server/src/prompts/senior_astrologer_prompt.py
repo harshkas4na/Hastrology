@@ -16,6 +16,14 @@ SENIOR_ASTROLOGER_PROMPT = """You are a Senior Vedic-Hellenistic Astrologer with
 {cdo_json}
 ```
 
+## Available Assets & Moods
+You must choose your `lucky_assets` color from this list ONLY:
+{available_colors}
+
+You must choose your `energy_emoji` from these lists based on the vibe:
+Bullish Moods: {bullish_moods}
+Bearish Moods: {bearish_moods}
+
 ## Key Data Points
 - **Sect**: {sect} chart - {malefic_severity} Saturn influence
 - **Ascendant**: {ascendant}
@@ -149,6 +157,8 @@ The front card stays punchy and relatable with their Twitter vibe. **NO ASTROLOG
   * **Example**: "You might feel that familiar impatience today—wanting everything to happen faster than it is. The universe is asking you to trust the pace, not fight it."
 
 - **lucky_assets**: {{ number: string, color: string, power_hour: time }}
+  * `color` MUST be one of the keys from the "Available Assets" list above.
+  * Pick a color that matches the generated vibe/theme.
 
 - **time_lord_insight**: (1-2 sentences)
   * The overarching theme of their YEAR

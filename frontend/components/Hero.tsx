@@ -77,7 +77,7 @@ export const Hero: FC = () => {
 	}, [connected, publicKey, setUser, setWallet, router]);
 
 	return (
-		<section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+		<section className="relative min-h-screen flex items-center justify-center overflow-hidden py-12">
 			{/* Animated background */}
 			<StarBackground />
 
@@ -153,16 +153,32 @@ export const Hero: FC = () => {
 							}}
 							disabled={isLoadingWallet}
 							type="button"
-							className="btn-white w-full sm:w-auto"
+							className="btn-white w-auto flex-col gap-0.5 py-3 px-8 h-auto"
 						>
-							<svg
-								viewBox="0 0 24 24"
-								aria-hidden="true"
-								className="w-5 h-5 fill-current"
-							>
-								<path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-							</svg>
-							Continue with X
+							<div className="flex items-center gap-3">
+								<svg
+									viewBox="0 0 24 24"
+									aria-hidden="true"
+									className="w-5 h-5 fill-current"
+								>
+									<path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+								</svg>
+								<span>Continue with X</span>
+							</div>
+							<div className="flex items-center gap-1 mt-0.5">
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									viewBox="0 0 20 20"
+									fill="currentColor"
+									className="w-3 h-3 text-green-600"
+								>
+									<path fillRule="evenodd" d="M10 2a.75.75 0 0 1 .75.75v1.5h1.5a.75.75 0 0 1 0 1.5h-1.5v5a.75.75 0 0 1-1.5 0v-5h-1.5a.75.75 0 0 1 0-1.5h1.5v-1.5A.75.75 0 0 1 10 2Zm0 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clipRule="evenodd" />
+									<path d="M10 12a2 2 0 1 1 0-4 2 2 0 0 1 0 4Z" />
+									{/* Simple Shield Check Icon */}
+									<path fillRule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1Zm3 8V5.5a3 3 0 10-6 0V9h6Z" clipRule="evenodd" />
+								</svg>
+								<span className="text-[10px] text-gray-500 font-medium">Protected by Privy</span>
+							</div>
 						</button>
 					)}
 

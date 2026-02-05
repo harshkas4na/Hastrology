@@ -20,8 +20,28 @@ from .cache_service import cache_service
 from ..prompts.senior_astrologer_prompt import (
     SENIOR_ASTROLOGER_PROMPT, 
     calculate_vibe_status, 
+    SENIOR_ASTROLOGER_PROMPT, 
+    calculate_vibe_status, 
     get_energy_emoji
 )
+from pathlib import Path
+import random
+
+# Load asset mappings
+KNOWLEDGE_DIR = Path(__file__).parent.parent / "knowledge"
+ASSET_MAPPINGS = {}
+try:
+    with open(KNOWLEDGE_DIR / "asset_mappings.json", "r") as f:
+        ASSET_MAPPINGS = json.load(f)
+except Exception as e:
+    logger.warning(f"Failed to load asset mappings: {e}")
+    # Minimal fallback
+    ASSET_MAPPINGS = {
+        "colors_to_tickers": {"Gold": {"ticker": "SOL", "name": "Solana", "emoji": "☀️"}},
+        "bullish_moods": [{"mood": "Good", "emoji": "👍"}],
+        "bearish_moods": [{"mood": "Bad", "emoji": "👎"}]
+    }
+
 
 # Try to import ephemeris services (optional - falls back gracefully)
 try:
@@ -230,14 +250,46 @@ class HoroscopeService:
         return cdo.model_dump(), cdo_summary.model_dump()
     
     def _get_fallback_zodiac(self, day: int, month: int) -> str:
-        """Get zodiac sign for fallback mode (tropical)"""
+        """Get zodiac sign for fallback mode (tropical) - Corrected Date Ranges"""
+        # (End Day of Month, Sign)
         zodiac_map = [
-            (20, "Capricorn"), (19, "Aquarius"), (20, "Pisces"), (20, "Aries"),
-            (21, "Taurus"), (21, "Gemini"), (22, "Cancer"), (23, "Leo"),
-            (23, "Virgo"), (23, "Libra"), (22, "Scorpio"), (21, "Sagittarius"),
+            (19, "Capricorn"), (18, "Aquarius"), (20, "Pisces"), (19, "Aries"),
+            (20, "Taurus"), (20, "Gemini"), (22, "Cancer"), (22, "Leo"),
+            (22, "Virgo"), (23, "Libra"), (21, "Scorpio"), (21, "Sagittarius"),
             (31, "Capricorn")
         ]
-        return zodiac_map[month-1][1] if day > zodiac_map[month-1][0] else zodiac_map[month-2][1]
+        # Adjust for array index (month - 1)
+        # If day is greater than cutoff, it's the next sign (which is stored in current month index in this map structure logic)
+        # Wait, let's fix the logic to be clearer.
+        
+        # Ranges based on user request:
+        # Aries: March 21 – April 19
+        # Taurus: April 20 – May 20
+        # Gemini: May 21 – June 21
+        # Cancer: June 22 – July 22
+        # Leo: July 23 – August 22
+        # Virgo: August 23 – September 22
+        # Libra: September 23 – October 23
+        # Scorpio: October 24 – November 22
+        # Sagittarius: November 23 – December 21
+        # Capricorn: December 22 – January 19
+        # Aquarius: January 20 – February 18
+        # Pisces: February 19 – March 20
+        
+        if (month == 3 and day >= 21) or (month == 4 and day <= 19): return "Aries"
+        if (month == 4 and day >= 20) or (month == 5 and day <= 20): return "Taurus"
+        if (month == 5 and day >= 21) or (month == 6 and day <= 21): return "Gemini"
+        if (month == 6 and day >= 22) or (month == 7 and day <= 22): return "Cancer"
+        if (month == 7 and day >= 23) or (month == 8 and day <= 22): return "Leo"
+        if (month == 8 and day >= 23) or (month == 9 and day <= 22): return "Virgo"
+        if (month == 9 and day >= 23) or (month == 10 and day <= 23): return "Libra"
+        if (month == 10 and day >= 24) or (month == 11 and day <= 22): return "Scorpio"
+        if (month == 11 and day >= 23) or (month == 12 and day <= 21): return "Sagittarius"
+        if (month == 12 and day >= 22) or (month == 1 and day <= 19): return "Capricorn"
+        if (month == 1 and day >= 20) or (month == 2 and day <= 18): return "Aquarius"
+        if (month == 2 and day >= 19) or (month == 3 and day <= 20): return "Pisces"
+        
+        return "Aries" # Default should not happen with valid dates
     
     def _get_fallback_ruler(self, sign: str) -> str:
         """Get planetary ruler for fallback mode"""
@@ -347,6 +399,30 @@ class HoroscopeService:
             "cusp_alert": f"**Cosmic Cusp Alert**: Ascendant on sign boundary" if cdo_summary.get("is_cusp") else "",
             "dignity_warning": cdo_summary.get("dignity_warning", ""),
             "x_context": x_context,
+        # Prepare asset lists for prompt
+        available_colors_list = list(ASSET_MAPPINGS.get("colors_to_tickers", {}).keys())
+        available_colors_str = ", ".join(available_colors_list)
+        
+        bullish_moods_str = ", ".join([f"{m['mood']} {m['emoji']}" for m in ASSET_MAPPINGS.get("bullish_moods", [])])
+        bearish_moods_str = ", ".join([f"{m['mood']} {m['emoji']}" for m in ASSET_MAPPINGS.get("bearish_moods", [])])
+
+        # Build prompt variables
+        prompt_vars = {
+            "cdo_json": cdo_json,
+            "sect": cdo_summary.get("sect", "Diurnal"),
+            "malefic_severity": cdo_summary.get("malefic_severity", "constructive"),
+            "ascendant": cdo_summary.get("ascendant", "Unknown"),
+            "time_lord": cdo_summary.get("time_lord", "Sun"),
+            "profection_house": cdo_summary.get("profection_house", 1),
+            "profection_theme": cdo_summary.get("profection_theme", "Self and Identity"),
+            "major_aspect": cdo_summary.get("major_aspect", "No major aspects"),
+            "time_lord_activation": cdo_summary.get("time_lord_activation", "No direct activations"),
+            "cusp_alert": f"**Cosmic Cusp Alert**: Ascendant on sign boundary" if cdo_summary.get("is_cusp") else "",
+            "dignity_warning": cdo_summary.get("dignity_warning", ""),
+            "x_context": x_context,
+            "available_colors": available_colors_str,
+            "bullish_moods": bullish_moods_str,
+            "bearish_moods": bearish_moods_str
         }
         
         try:
@@ -377,6 +453,45 @@ class HoroscopeService:
             if not card_data.get("ruling_planet_theme"):
                 card_data["ruling_planet_theme"] = card_data.get("ruling_planet", front_data.get("time_lord", "Sun"))
                 
+            # Enrich Lucky Assets
+            if "back" in card_data and "lucky_assets" in card_data["back"]:
+                assets = card_data["back"]["lucky_assets"]
+                color = assets.get("color")
+                # Fuzzy match or direct match color
+                mapping = ASSET_MAPPINGS.get("colors_to_tickers", {})
+                
+                # Try direct match
+                asset_info = mapping.get(color)
+                
+                # Try simple case-insensitive match if direct fails
+                if not asset_info and color:
+                    for k, v in mapping.items():
+                        if k.lower() == color.lower():
+                            asset_info = v
+                            # Update color name to official one
+                            card_data["back"]["lucky_assets"]["color"] = k
+                            break
+                            
+                if asset_info:
+                    card_data["back"]["lucky_assets"]["ticker"] = asset_info.get("ticker")
+                    card_data["back"]["lucky_assets"]["name"] = asset_info.get("name")
+                    card_data["back"]["lucky_assets"]["max_leverage"] = asset_info.get("max_leverage")
+                    card_data["back"]["lucky_assets"]["emoji"] = asset_info.get("emoji")
+                    card_data["back"]["lucky_assets"]["category"] = asset_info.get("category")
+                else:
+                    # Fallback if AI picked a hallucinated color
+                    # Pick a random one deterministic based on color string
+                    idx = len(color or "") % len(mapping) if mapping else 0
+                    fallback_key = list(mapping.keys())[idx] if mapping else "Gold"
+                    asset_info = mapping.get(fallback_key)
+                    if asset_info:
+                        card_data["back"]["lucky_assets"]["color"] = fallback_key
+                        card_data["back"]["lucky_assets"]["ticker"] = asset_info.get("ticker")
+                        card_data["back"]["lucky_assets"]["name"] = asset_info.get("name")
+                        card_data["back"]["lucky_assets"]["max_leverage"] = asset_info.get("max_leverage")
+                        card_data["back"]["lucky_assets"]["emoji"] = asset_info.get("emoji")
+                        card_data["back"]["lucky_assets"]["category"] = asset_info.get("category")
+
             # Validate and enhance
             validated_card = AstroCard(**card_data)
             
@@ -441,7 +556,9 @@ class HoroscopeService:
                 detailed_reading="Mercury retrograde in the cosmic servers. Your chart is being processed through the ethers. Check back soon for your personalized reading.",
                 hustle_alpha="Focus on grounding activities today. The stars will align shortly.",
                 shadow_warning="Avoid making major decisions until the cosmic connection stabilizes.",
-                lucky_assets=LuckyAssets(number="7", color="Silver", power_hour="Soon"),
+                shadow_warning="Avoid making major decisions until the cosmic connection stabilizes.",
+                lucky_assets=self._generate_random_lucky_assets(),
+                time_lord_insight="Your Time Lord is gathering cosmic data.",
                 time_lord_insight="Your Time Lord is gathering cosmic data.",
                 planetary_blame="Technical Mercury square Digital Saturn (Temporary)",
                 remedy="Take 5 deep breaths and try again.",
@@ -453,6 +570,34 @@ class HoroscopeService:
             cdo_summary=None
         ).model_dump()
 
+
+    def _generate_random_lucky_assets(self) -> Dict[str, Any]:
+        """Generate random lucky assets from mapping"""
+        mapping = ASSET_MAPPINGS.get("colors_to_tickers", {})
+        if mapping:
+            color = random.choice(list(mapping.keys()))
+            info = mapping[color]
+            return {
+                "number": str(random.randint(1, 99)),
+                "color": color,
+                "power_hour": f"{random.randint(1,12)}:00 PM",
+                "ticker": info.get("ticker"),
+                "name": info.get("name"),
+                "max_leverage": info.get("max_leverage"),
+                "emoji": info.get("emoji"),
+                "category": info.get("category")
+            }
+        
+        return {
+            "number": "7", 
+            "color": "Gold", 
+            "power_hour": "11:11",
+            "ticker": "SOL",
+            "name": "Solana",
+            "max_leverage": 100,
+            "emoji": "☀️",
+            "category": "crypto"
+        }
 
 # Global service instance
 horoscope_service = HoroscopeService()
