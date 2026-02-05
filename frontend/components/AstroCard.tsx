@@ -8,6 +8,7 @@ import type { AstroCard as AstroCardType } from "@/types";
 import { getPlanetaryTheme } from "./HoroscopeSection";
 import { TwitterSignInButton } from "./TwitterButton";
 import { TradeModal } from "./trade-modal";
+import { TradeResult } from "./TradeExecution";
 
 interface AstroCardProps {
 	card: AstroCardType;
@@ -1156,9 +1157,10 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 				<TradeModal
 					card={card}
 					onClose={() => setOpenModal(false)}
-					onTradeComplete={() => {
+					onComplete={(result: TradeResult) => {
 						setOpenModal(false);
 					}}
+					direction={card.front.luck_score > 50 ? "LONG" : "SHORT"}
 				/>
 			)}
 		</div>

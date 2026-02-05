@@ -833,7 +833,7 @@ export class FlashPrivyService {
 			const allCustodies = await this.flashClient.program.account.custody.all();
 
 			const lpMintData = await getMint(
-				this.flashClient.provider.connection,
+				this.flashClient.provider.connection as any,
 				this.POOL_CONFIG.stakedLpTokenMint,
 			);
 
