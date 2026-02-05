@@ -32,7 +32,7 @@ type SuccessState = {
 
 const TRADE_DURATION = 30; // seconds
 
-const QUICK_AMOUNTS = [10, 25, 50, 100];
+const QUICK_AMOUNTS = [0.1, 0.25, 0.5, 1];
 
 export const TradeModal: React.FC<TradeModalProps> = ({
 	card,
@@ -44,7 +44,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 	const [isFetchingPrice, setIsFetchingPrice] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [success, setSuccess] = useState<SuccessState | null>(null);
-	const [amount, setTradeAmount] = useState(10);
+	const [amount, setTradeAmount] = useState(0.1);
 	const [pnl, setPnl] = useState(0);
 	const [pnlPercent, setPnlPercent] = useState(0);
 	const [currentPrice, setCurrentPrice] = useState(0);
@@ -91,6 +91,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 				setEntryPrice(positions[0].entryPrice);
 				setPnl(positions[0].unrealizedPnl);
 				setPnlPercent(positions[0].pnlPercent);
+				setCurrentPrice(positions[0].currentPrice);
 				setLatestPosition(positions[0]);
 			} else {
 				setLatestPosition(null);
@@ -195,7 +196,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 			const result = await flashServiceRef.current.executeTradeWithAutoClose(
 				{
 					card,
-					side: direction === "LONG" ? "long" : "short",
+					side: card.front.luck_score > 50 ? "long" : "short",
 					inputAmount: amount,
 					leverage,
 				},

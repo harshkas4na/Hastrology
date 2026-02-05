@@ -766,7 +766,7 @@ export class FlashPrivyService {
 			const { side: normalSide, inputAmount, leverage } = params;
 			const side = normalSide === "long" ? Side.Long : Side.Short;
 
-			const inputTokenSymbol = "USDC";
+			const inputTokenSymbol = "SOL";
 			const outputTokenSymbol = "SOL";
 			const slippageBps = 800;
 
@@ -793,6 +793,11 @@ export class FlashPrivyService {
 				10 ** Math.abs(outputTokenPrice.exponent.toNumber());
 
 			await this.flashClient.loadAddressLookupTable(this.POOL_CONFIG);
+
+			// Get the address lookup tables for use in both transactions
+			const addressLookupTablesData =
+				await this.flashClient.getOrLoadAddressLookupTable(this.POOL_CONFIG);
+			const addressLookupTables = addressLookupTablesData.addressLookupTables;
 
 			const priceAfterSlippage = this.flashClient.getPriceAfterSlippage(
 				true,
@@ -859,41 +864,34 @@ export class FlashPrivyService {
 				custodies[1]!,
 			);
 
-			const size = this.flashClient.getSizeAmountWithSwapSync(
-				collateralWithFee,
-				leverage.toString(),
-				side,
-				poolAccount,
-				inputTokenPrice,
-				inputTokenPriceEma,
-				inputCustodyAccount,
-				outputTokenPrice,
-				outputTokenPriceEma,
-				outputCustodyAccount,
-				outputTokenPrice,
-				outputTokenPriceEma,
-				outputCustodyAccount,
-				outputTokenPrice,
-				outputTokenPriceEma,
-				outputCustodyAccount,
-				lpStats.totalPoolValueUsd,
-				this.POOL_CONFIG,
-				uiDecimalsToNative("0", 2),
-			);
+			// Use openPosition instead of swapAndOpen when tokens are the same
+			const outputAmount =
+				this.flashClient.getSizeAmountFromLeverageAndCollateral(
+					collateralWithFee,
+					leverage.toString(),
+					outputToken,
+					inputToken,
+					side,
+					outputTokenPrice,
+					outputTokenPriceEma,
+					outputCustodyAccount,
+					inputTokenPrice,
+					inputTokenPriceEma,
+					inputCustodyAccount,
+					uiDecimalsToNative("5", 2),
+				);
 
-			const openPositionData = await this.flashClient.swapAndOpen(
-				outputToken.symbol,
-				outputToken.symbol,
-				inputToken.symbol,
-				collateralWithFee,
+			const openPositionData = await this.flashClient.openPosition(
+				outputToken.symbol, // SOL
+				inputToken.symbol, // SOL
 				priceAfterSlippage,
-				size,
+				collateralWithFee,
+				outputAmount,
 				side,
 				this.POOL_CONFIG,
 				Privilege.None,
 			);
 
-			// Get blockhash ONCE for both transactions
 			const { blockhash, lastValidBlockHeight } =
 				await this.config.connection.getLatestBlockhash("confirmed");
 
@@ -909,16 +907,12 @@ export class FlashPrivyService {
 			);
 			openInstructions.push(...openPositionData.instructions);
 
-			const addresslookupTables: AddressLookupTableAccount[] = (
-				await this.flashClient.getOrLoadAddressLookupTable(this.POOL_CONFIG)
-			).addressLookupTables;
-
-			// Create open transaction
+			// Create open transaction with the SAME address lookup tables
 			const openMessageV0 = new TransactionMessage({
 				payerKey: walletPubkey,
 				recentBlockhash: blockhash,
 				instructions: openInstructions,
-			}).compileToV0Message(addresslookupTables);
+			}).compileToV0Message(addressLookupTables);
 
 			const openTransaction = new VersionedTransaction(openMessageV0);
 
@@ -931,13 +925,16 @@ export class FlashPrivyService {
 			const closeInstructions = await this.buildCloseInstructionsOptimistic(
 				params,
 				"SOL",
+				blockhash, // Pass blockhash to use the same one
+				addressLookupTables, // Pass address lookup tables to use the same ones
 			);
 
+			console.log("Creating close transaction message...");
 			const closeMessageV0 = new TransactionMessage({
 				payerKey: walletPubkey,
 				recentBlockhash: blockhash,
 				instructions: closeInstructions.instructions,
-			}).compileToV0Message(closeInstructions.addressLookupTables);
+			}).compileToV0Message(addressLookupTables); // Use SAME address lookup tables
 
 			const closeTransaction = new VersionedTransaction(closeMessageV0);
 
@@ -976,7 +973,7 @@ export class FlashPrivyService {
 			return {
 				openTxSig,
 				direction: side === Side.Long ? "LONG" : "SHORT",
-				size: Number(size.toString()) / 10 ** outputToken.decimals,
+				size: Number(outputAmount.toString()) / 10 ** outputToken.decimals,
 				estimatedPrice,
 				signedCloseTransaction: serializedCloseTransaction,
 				closeAtTimestamp: Date.now() + autoCloseDelaySeconds * 1000,
@@ -987,6 +984,86 @@ export class FlashPrivyService {
 			console.error("❌ Trade with auto-close failed:", error);
 			throw error;
 		}
+	}
+
+	private async buildCloseInstructionsOptimistic(
+		params: TradeParams,
+		receivingTokenSymbol: string = "SOL",
+		blockhash?: string, // Added parameter
+		addressLookupTables?: AddressLookupTableAccount[], // Added parameter
+	): Promise<{
+		instructions: TransactionInstruction[];
+		additionalSigners: Signer[];
+		addressLookupTables: AddressLookupTableAccount[];
+	}> {
+		const slippageBps = 800;
+
+		const instructions: TransactionInstruction[] = [];
+		let additionalSigners: Signer[] = [];
+
+		const outputTokenSymbol = "SOL";
+		const side = params.side === "long" ? Side.Long : Side.Short;
+
+		const targetToken = this.POOL_CONFIG!.tokens.find(
+			(t) => t.symbol === outputTokenSymbol,
+		);
+
+		const receivingToken = this.POOL_CONFIG!.tokens.find(
+			(t) => t.symbol === receivingTokenSymbol,
+		);
+
+		if (!targetToken || !receivingToken) {
+			throw new Error("Target or receiving token not found");
+		}
+
+		const priceMap = await this.getPrices();
+		const targetTokenPrice = priceMap.get(targetToken.symbol)!.price;
+		const priceAfterSlippage = this.flashClient!.getPriceAfterSlippage(
+			false,
+			new BN(slippageBps),
+			targetTokenPrice,
+			side,
+		);
+
+		// Use closePosition when target and receiving tokens are the same (SOL to SOL)
+		console.log("Building close position data...");
+		const closePositionData = await this.flashClient!.closePosition(
+			targetToken.symbol, // SOL
+			receivingToken.symbol, // SOL
+			priceAfterSlippage,
+			side,
+			this.POOL_CONFIG!,
+			Privilege.None,
+		);
+
+		instructions.push(...closePositionData.instructions);
+		additionalSigners.push(...closePositionData.additionalSigners);
+
+		// Add compute budget
+		instructions.unshift(
+			ComputeBudgetProgram.setComputeUnitLimit({ units: 600_000 }),
+		);
+		instructions.unshift(
+			ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 100000 }),
+		);
+
+		// Get address lookup tables if not provided
+		let lookupTables: AddressLookupTableAccount[];
+		if (addressLookupTables) {
+			// Use the provided address lookup tables
+			lookupTables = addressLookupTables;
+		} else {
+			// Fallback: load them fresh (shouldn't happen with the updated flow)
+			const lookupTablesData =
+				await this.flashClient!.getOrLoadAddressLookupTable(this.POOL_CONFIG!);
+			lookupTables = lookupTablesData.addressLookupTables;
+		}
+
+		return {
+			instructions,
+			additionalSigners,
+			addressLookupTables: lookupTables,
+		};
 	}
 
 	async sendPreSignedCloseTransaction(
@@ -1058,77 +1135,6 @@ export class FlashPrivyService {
 
 			throw error;
 		}
-	}
-
-	private async buildCloseInstructionsOptimistic(
-		params: TradeParams,
-		receivingTokenSymbol: string = "SOL",
-	): Promise<{
-		instructions: TransactionInstruction[];
-		additionalSigners: Signer[];
-		addressLookupTables: AddressLookupTableAccount[];
-	}> {
-		const slippageBps = 800;
-
-		const instructions: TransactionInstruction[] = [];
-		let additionalSigners: Signer[] = [];
-
-		const outputTokenSymbol = "SOL";
-		const side = params.side === "long" ? Side.Long : Side.Short;
-
-		const targetToken = this.POOL_CONFIG!.tokens.find(
-			(t) => t.symbol === outputTokenSymbol,
-		);
-
-		const receivingToken = this.POOL_CONFIG!.tokens.find(
-			(t) => t.symbol === receivingTokenSymbol,
-		);
-
-		if (!targetToken || !receivingToken) {
-			throw new Error("Target or receiving token not found");
-		}
-
-		const priceMap = await this.getPrices();
-		const targetTokenPrice = priceMap.get(targetToken.symbol)!.price;
-		const priceAfterSlippage = this.flashClient!.getPriceAfterSlippage(
-			false,
-			new BN(slippageBps),
-			targetTokenPrice,
-			side,
-		);
-
-		// Use closePosition when target and receiving tokens are the same (SOL to SOL)
-		// This is the "Close a Position and Receive Collateral in the Same Token" pattern from docs
-		const closePositionData = await this.flashClient!.closePosition(
-			targetToken.symbol, // SOL
-			receivingToken.symbol, // SOL
-			priceAfterSlippage,
-			side,
-			this.POOL_CONFIG!,
-			Privilege.None,
-		);
-
-		instructions.push(...closePositionData.instructions);
-		additionalSigners.push(...closePositionData.additionalSigners);
-
-		// Add compute budget
-		instructions.unshift(
-			ComputeBudgetProgram.setComputeUnitLimit({ units: 600_000 }),
-		);
-		instructions.unshift(
-			ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 100000 }),
-		);
-
-		// Get address lookup tables
-		const addressLookupTables: AddressLookupTableAccount[] = (
-			await this.flashClient!.getOrLoadAddressLookupTable(this.POOL_CONFIG!)
-		).addressLookupTables;
-
-		return {
-			instructions,
-			additionalSigners,
-			addressLookupTables,
-		};
 	}
 
 	async cleanup() {
