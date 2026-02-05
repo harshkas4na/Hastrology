@@ -19,9 +19,9 @@ const spaceGrotesk = Space_Grotesk({
 
 
 export const metadata: Metadata = {
-	title: "Hashtro - AI-Powered Horoscopes on Solana",
+	title: "Hashtro - Trade Verified Horoscopes on Solana",
 	description:
-		"Discover your cosmic path with AI-generated horoscopes. Pay with Solana, share on X, and enter daily lottery.",
+		"Trade Verified Horoscopes on Solana",
 	keywords: ["horoscope", "astrology", "solana", "crypto", "AI", "web3"],
 	authors: [{ name: "Hashtro" }],
 	icons: {
@@ -30,8 +30,8 @@ export const metadata: Metadata = {
 		apple: "/logo/logo.svg",
 	},
 	openGraph: {
-		title: "Hashtro - Your Cosmic Path On-Chain",
-		description: "AI-Powered Horoscopes on Solana",
+		title: "Hashtro - Trade Verified Horoscopes on Solana",
+		description: "Trade Verified Horoscopes on Solana",
 		type: "website",
 		images: [
 			{
@@ -44,8 +44,8 @@ export const metadata: Metadata = {
 	},
 	twitter: {
 		card: "summary_large_image",
-		title: "Hashtro",
-		description: "AI-Powered Horoscopes on Solana",
+		title: "Hashtro - Trade Verified Horoscopes on Solana",
+		description: "Trade Verified Horoscopes on Solana",
 		images: ["/logo/hast.png"],
 	},
 };
