@@ -385,20 +385,7 @@ class HoroscopeService:
         
         x_context = "\n".join(x_context_parts) if x_context_parts else "No X context provided"
         
-        # Build prompt variables
-        prompt_vars = {
-            "cdo_json": cdo_json,
-            "sect": cdo_summary.get("sect", "Diurnal"),
-            "malefic_severity": cdo_summary.get("malefic_severity", "constructive"),
-            "ascendant": cdo_summary.get("ascendant", "Unknown"),
-            "time_lord": cdo_summary.get("time_lord", "Sun"),
-            "profection_house": cdo_summary.get("profection_house", 1),
-            "profection_theme": cdo_summary.get("profection_theme", "Self and Identity"),
-            "major_aspect": cdo_summary.get("major_aspect", "No major aspects"),
-            "time_lord_activation": cdo_summary.get("time_lord_activation", "No direct activations"),
-            "cusp_alert": f"**Cosmic Cusp Alert**: Ascendant on sign boundary" if cdo_summary.get("is_cusp") else "",
-            "dignity_warning": cdo_summary.get("dignity_warning", ""),
-            "x_context": x_context,
+
         # Prepare asset lists for prompt
         available_colors_list = list(ASSET_MAPPINGS.get("colors_to_tickers", {}).keys())
         available_colors_str = ", ".join(available_colors_list)
@@ -556,9 +543,7 @@ class HoroscopeService:
                 detailed_reading="Mercury retrograde in the cosmic servers. Your chart is being processed through the ethers. Check back soon for your personalized reading.",
                 hustle_alpha="Focus on grounding activities today. The stars will align shortly.",
                 shadow_warning="Avoid making major decisions until the cosmic connection stabilizes.",
-                shadow_warning="Avoid making major decisions until the cosmic connection stabilizes.",
                 lucky_assets=self._generate_random_lucky_assets(),
-                time_lord_insight="Your Time Lord is gathering cosmic data.",
                 time_lord_insight="Your Time Lord is gathering cosmic data.",
                 planetary_blame="Technical Mercury square Digital Saturn (Temporary)",
                 remedy="Take 5 deep breaths and try again.",
