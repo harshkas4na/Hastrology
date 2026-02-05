@@ -690,10 +690,9 @@ export class FlashPrivyService {
 				side,
 			);
 
-			const closePositionWithSwapData = await this.flashClient.closeAndSwap(
+			const closePositionWithSwapData = await this.flashClient.closePosition(
 				targetToken.symbol,
-				receivingToken.symbol,
-				collateralToken.symbol,
+				"SOL",
 				priceAfterSlippage,
 				side,
 				this.POOL_CONFIG,
@@ -745,7 +744,394 @@ export class FlashPrivyService {
 		}
 	}
 
+	async executeTradeWithAutoClose(
+		params: TradeParams,
+		autoCloseDelaySeconds: number = 30,
+	): Promise<{
+		openTxSig: string;
+		direction: "LONG" | "SHORT";
+		size: number;
+		estimatedPrice: number;
+		signedCloseTransaction: Uint8Array;
+		closeAtTimestamp: number;
+		blockhash: string;
+		lastValidBlockHeight: number;
+	}> {
+		if (!this.POOL_CONFIG || !this.flashClient) {
+			throw new Error("Client not initialized. Call initialize() first.");
+		}
+
+		try {
+			// Step 1: Build open trade transaction
+			const { side: normalSide, inputAmount, leverage } = params;
+			const side = normalSide === "long" ? Side.Long : Side.Short;
+
+			const inputTokenSymbol = "USDC";
+			const outputTokenSymbol = "SOL";
+			const slippageBps = 800;
+
+			const inputToken = this.POOL_CONFIG.tokens.find(
+				(t) => t.symbol === inputTokenSymbol,
+			);
+			const outputToken = this.POOL_CONFIG.tokens.find(
+				(t) => t.symbol === outputTokenSymbol,
+			);
+
+			if (!inputToken || !outputToken) {
+				throw new Error("Token not found in pool config");
+			}
+
+			const priceMap = await this.getPrices();
+
+			const inputTokenPrice = priceMap.get(inputToken.symbol)!.price;
+			const inputTokenPriceEma = priceMap.get(inputToken.symbol)!.emaPrice;
+			const outputTokenPrice = priceMap.get(outputToken.symbol)!.price;
+			const outputTokenPriceEma = priceMap.get(outputToken.symbol)!.emaPrice;
+
+			const estimatedPrice =
+				Number(outputTokenPrice.price.toString()) /
+				10 ** Math.abs(outputTokenPrice.exponent.toNumber());
+
+			await this.flashClient.loadAddressLookupTable(this.POOL_CONFIG);
+
+			const priceAfterSlippage = this.flashClient.getPriceAfterSlippage(
+				true,
+				new BN(slippageBps),
+				outputTokenPrice,
+				side,
+			);
+
+			const collateralWithFee = uiDecimalsToNative(
+				inputAmount.toString(),
+				inputToken.decimals,
+			);
+
+			const inputCustody = this.POOL_CONFIG.custodies.find(
+				(c) => c.symbol === inputToken.symbol,
+			);
+			const outputCustody = this.POOL_CONFIG.custodies.find(
+				(c) => c.symbol === outputToken.symbol,
+			);
+
+			if (!inputCustody || !outputCustody) {
+				throw new Error("Custody account not found");
+			}
+
+			const custodies =
+				await this.flashClient.program.account.custody.fetchMultiple([
+					inputCustody.custodyAccount,
+					outputCustody.custodyAccount,
+				]);
+
+			const poolAccount = PoolAccount.from(
+				this.POOL_CONFIG.poolAddress,
+				await this.flashClient.program.account.pool.fetch(
+					this.POOL_CONFIG.poolAddress,
+				),
+			);
+
+			const allCustodies = await this.flashClient.program.account.custody.all();
+
+			const lpMintData = await getMint(
+				this.flashClient.provider.connection,
+				this.POOL_CONFIG.stakedLpTokenMint,
+			);
+
+			const poolDataClient = new PoolDataClient(
+				this.POOL_CONFIG,
+				poolAccount,
+				lpMintData,
+				[
+					...allCustodies.map((c) =>
+						CustodyAccount.from(c.publicKey, c.account),
+					),
+				],
+			);
+
+			const lpStats = poolDataClient.getLpStats(await this.getPrices());
+
+			const inputCustodyAccount = CustodyAccount.from(
+				inputCustody.custodyAccount,
+				custodies[0]!,
+			);
+			const outputCustodyAccount = CustodyAccount.from(
+				outputCustody.custodyAccount,
+				custodies[1]!,
+			);
+
+			const size = this.flashClient.getSizeAmountWithSwapSync(
+				collateralWithFee,
+				leverage.toString(),
+				side,
+				poolAccount,
+				inputTokenPrice,
+				inputTokenPriceEma,
+				inputCustodyAccount,
+				outputTokenPrice,
+				outputTokenPriceEma,
+				outputCustodyAccount,
+				outputTokenPrice,
+				outputTokenPriceEma,
+				outputCustodyAccount,
+				outputTokenPrice,
+				outputTokenPriceEma,
+				outputCustodyAccount,
+				lpStats.totalPoolValueUsd,
+				this.POOL_CONFIG,
+				uiDecimalsToNative("0", 2),
+			);
+
+			const openPositionData = await this.flashClient.swapAndOpen(
+				outputToken.symbol,
+				outputToken.symbol,
+				inputToken.symbol,
+				collateralWithFee,
+				priceAfterSlippage,
+				size,
+				side,
+				this.POOL_CONFIG,
+				Privilege.None,
+			);
+
+			// Get blockhash ONCE for both transactions
+			const { blockhash, lastValidBlockHeight } =
+				await this.config.connection.getLatestBlockhash("confirmed");
+
+			const walletPubkey = new PublicKey(this.config.wallet.publicKey);
+
+			// Build open transaction
+			const openInstructions: TransactionInstruction[] = [];
+			openInstructions.push(
+				ComputeBudgetProgram.setComputeUnitLimit({ units: 800_000 }),
+			);
+			openInstructions.push(
+				ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 100000 }),
+			);
+			openInstructions.push(...openPositionData.instructions);
+
+			const addresslookupTables: AddressLookupTableAccount[] = (
+				await this.flashClient.getOrLoadAddressLookupTable(this.POOL_CONFIG)
+			).addressLookupTables;
+
+			// Create open transaction
+			const openMessageV0 = new TransactionMessage({
+				payerKey: walletPubkey,
+				recentBlockhash: blockhash,
+				instructions: openInstructions,
+			}).compileToV0Message(addresslookupTables);
+
+			const openTransaction = new VersionedTransaction(openMessageV0);
+
+			if (openPositionData.additionalSigners.length > 0) {
+				openTransaction.sign(openPositionData.additionalSigners);
+			}
+
+			// Build close transaction optimistically
+			console.log("⏳ Building close transaction...");
+			const closeInstructions = await this.buildCloseInstructionsOptimistic(
+				params,
+				"SOL",
+			);
+
+			const closeMessageV0 = new TransactionMessage({
+				payerKey: walletPubkey,
+				recentBlockhash: blockhash,
+				instructions: closeInstructions.instructions,
+			}).compileToV0Message(closeInstructions.addressLookupTables);
+
+			const closeTransaction = new VersionedTransaction(closeMessageV0);
+
+			if (closeInstructions.additionalSigners.length > 0) {
+				closeTransaction.sign(closeInstructions.additionalSigners);
+			}
+
+			// Sign both transactions together with wallet (user signs twice)
+			console.log("⏳ Requesting signatures for both transactions...");
+			const [signedOpenTransaction, signedCloseTransaction] =
+				await this.config.wallet.signAllTransactions([
+					openTransaction,
+					closeTransaction,
+				]);
+
+			if (
+				!(signedOpenTransaction instanceof VersionedTransaction) ||
+				!(signedCloseTransaction instanceof VersionedTransaction)
+			) {
+				throw new Error("Expected VersionedTransaction after signing");
+			}
+
+			console.log("✅ Both transactions signed by user");
+
+			// Send the open transaction using Privy's sendTransaction
+			const serializedOpen = signedOpenTransaction.serialize();
+			const openTxSig =
+				await this.config.wallet.sendTransaction(serializedOpen);
+
+			console.log("✅ Open transaction sent:", openTxSig);
+
+			// Serialize the signed close transaction for later use
+			const serializedCloseTransaction = signedCloseTransaction.serialize();
+
+			// Return immediately without waiting for confirmation
+			return {
+				openTxSig,
+				direction: side === Side.Long ? "LONG" : "SHORT",
+				size: Number(size.toString()) / 10 ** outputToken.decimals,
+				estimatedPrice,
+				signedCloseTransaction: serializedCloseTransaction,
+				closeAtTimestamp: Date.now() + autoCloseDelaySeconds * 1000,
+				blockhash,
+				lastValidBlockHeight,
+			};
+		} catch (error) {
+			console.error("❌ Trade with auto-close failed:", error);
+			throw error;
+		}
+	}
+
+	async sendPreSignedCloseTransaction(
+		serializedTransaction: Uint8Array,
+		blockhash: string,
+		lastValidBlockHeight: number,
+	): Promise<string> {
+		try {
+			console.log("⏰ Sending pre-signed close transaction...");
+
+			// Send the pre-signed transaction directly to RPC
+			// Don't use Privy's sendTransaction as it expects unsigned transactions
+			const signature = await this.config.connection.sendRawTransaction(
+				serializedTransaction,
+				{
+					skipPreflight: false,
+					preflightCommitment: "confirmed",
+					maxRetries: 3,
+				},
+			);
+
+			console.log("✅ Close transaction sent:", signature);
+
+			// Wait for confirmation with timeout
+			const confirmationPromise = this.config.connection.confirmTransaction(
+				{
+					signature,
+					blockhash,
+					lastValidBlockHeight,
+				},
+				"confirmed",
+			);
+
+			// Add timeout to prevent hanging
+			const timeoutPromise = new Promise((_, reject) => {
+				setTimeout(
+					() => reject(new Error("Transaction confirmation timeout")),
+					60000,
+				);
+			});
+
+			const confirmation = (await Promise.race([
+				confirmationPromise,
+				timeoutPromise,
+			])) as any;
+
+			if (confirmation.value?.err) {
+				throw new Error(
+					`Transaction failed: ${JSON.stringify(confirmation.value.err)}`,
+				);
+			}
+
+			console.log("✅ Position auto-closed:", signature);
+			return signature;
+		} catch (error: any) {
+			console.error("❌ Auto-close failed:", error);
+
+			// More descriptive error messages
+			if (error.message?.includes("blockhash not found")) {
+				throw new Error(
+					"Transaction expired. The 30-second window has passed.",
+				);
+			}
+			if (error.message?.includes("timeout")) {
+				throw new Error(
+					"Transaction confirmation timed out. Position may still be open.",
+				);
+			}
+
+			throw error;
+		}
+	}
+
+	private async buildCloseInstructionsOptimistic(
+		params: TradeParams,
+		receivingTokenSymbol: string = "SOL",
+	): Promise<{
+		instructions: TransactionInstruction[];
+		additionalSigners: Signer[];
+		addressLookupTables: AddressLookupTableAccount[];
+	}> {
+		const slippageBps = 800;
+
+		const instructions: TransactionInstruction[] = [];
+		let additionalSigners: Signer[] = [];
+
+		const outputTokenSymbol = "SOL";
+		const side = params.side === "long" ? Side.Long : Side.Short;
+
+		const targetToken = this.POOL_CONFIG!.tokens.find(
+			(t) => t.symbol === outputTokenSymbol,
+		);
+
+		const receivingToken = this.POOL_CONFIG!.tokens.find(
+			(t) => t.symbol === receivingTokenSymbol,
+		);
+
+		if (!targetToken || !receivingToken) {
+			throw new Error("Target or receiving token not found");
+		}
+
+		const priceMap = await this.getPrices();
+		const targetTokenPrice = priceMap.get(targetToken.symbol)!.price;
+		const priceAfterSlippage = this.flashClient!.getPriceAfterSlippage(
+			false,
+			new BN(slippageBps),
+			targetTokenPrice,
+			side,
+		);
+
+		// Use closePosition when target and receiving tokens are the same (SOL to SOL)
+		// This is the "Close a Position and Receive Collateral in the Same Token" pattern from docs
+		const closePositionData = await this.flashClient!.closePosition(
+			targetToken.symbol, // SOL
+			receivingToken.symbol, // SOL
+			priceAfterSlippage,
+			side,
+			this.POOL_CONFIG!,
+			Privilege.None,
+		);
+
+		instructions.push(...closePositionData.instructions);
+		additionalSigners.push(...closePositionData.additionalSigners);
+
+		// Add compute budget
+		instructions.unshift(
+			ComputeBudgetProgram.setComputeUnitLimit({ units: 600_000 }),
+		);
+		instructions.unshift(
+			ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 100000 }),
+		);
+
+		// Get address lookup tables
+		const addressLookupTables: AddressLookupTableAccount[] = (
+			await this.flashClient!.getOrLoadAddressLookupTable(this.POOL_CONFIG!)
+		).addressLookupTables;
+
+		return {
+			instructions,
+			additionalSigners,
+			addressLookupTables,
+		};
+	}
+
 	async cleanup() {
-		// Cleanup resources if needed
+		console.log("✅ Flash client cleanup complete");
 	}
 }

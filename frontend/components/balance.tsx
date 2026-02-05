@@ -46,7 +46,7 @@ export const WalletBalance: FC = () => {
 			} else {
 				const endpoint =
 					process.env.NEXT_PUBLIC_SOLANA_RPC_URL ||
-					"https://api.mainnet-beta.solana.com";
+					"https://solana-rpc.publicnode.com";
 				connection = new Connection(endpoint, "confirmed");
 			}
 

@@ -1,17 +1,19 @@
 "use client";
 
 import { Connection } from "@solana/web3.js";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePrivyWallet } from "@/app/hooks/use-privy-wallet";
 import { FlashPrivyService } from "@/lib/flash-trade";
 import type { AstroCard } from "@/types";
-import LoadingSpinner from "./LoadingSpinner";
+import { StarBackground } from "./StarBackground";
+import { TradeResult } from "./TradeExecution";
 
 interface TradeModalProps {
 	card: AstroCard;
 	onClose: () => void;
-	onTradeComplete?: (result: any) => void;
+	onComplete: (result: TradeResult) => void;
+	direction: "LONG" | "SHORT";
 }
 
 type SuccessState = {
@@ -24,15 +26,31 @@ type SuccessState = {
 	entryPrice?: number;
 	exitPrice?: number;
 	message: string;
+	closeAtTimestamp?: number;
+	closeTxSig?: string;
 };
 
-export const TradeModal: React.FC<TradeModalProps> = ({ card, onClose }) => {
+const TRADE_DURATION = 30; // seconds
+
+const QUICK_AMOUNTS = [10, 25, 50, 100];
+
+export const TradeModal: React.FC<TradeModalProps> = ({
+	card,
+	onClose,
+	direction,
+	onComplete,
+}) => {
 	const [isTrading, setIsTrading] = useState(false);
 	const [isFetchingPrice, setIsFetchingPrice] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [success, setSuccess] = useState<SuccessState | null>(null);
-	const [tradeAmount, setTradeAmount] = useState(10);
+	const [amount, setTradeAmount] = useState(10);
+	const [pnl, setPnl] = useState(0);
+	const [pnlPercent, setPnlPercent] = useState(0);
+	const [currentPrice, setCurrentPrice] = useState(0);
+	const [entryPrice, setEntryPrice] = useState(0);
 	const leverage = parseInt(card.back.lucky_assets.number, 10) ?? 1;
+	const [statusMessage, setStatusMessage] = useState("Opening position...");
 	const [tradeDetails, setTradeDetails] = useState<{
 		direction: "LONG" | "SHORT";
 		size: number;
@@ -50,8 +68,14 @@ export const TradeModal: React.FC<TradeModalProps> = ({ card, onClose }) => {
 	const [latestPosition, setLatestPosition] = useState<UserPosition | null>(
 		null,
 	);
-
 	const [isFetchingPosition, setIsFetchingPosition] = useState(false);
+	const [countdown, setCountdown] = useState<number | null>(null);
+	const autoCloseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+	const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+	const [phase, setPhase] = useState<"opening" | "active" | "closing" | "done">(
+		"opening",
+	);
+	const [timeLeft, setTimeLeft] = useState(TRADE_DURATION);
 
 	const wallet = usePrivyWallet(false);
 
@@ -64,6 +88,9 @@ export const TradeModal: React.FC<TradeModalProps> = ({ card, onClose }) => {
 			const positions = await flashServiceRef.current.getUserPositions();
 
 			if (positions.length > 0) {
+				setEntryPrice(positions[0].entryPrice);
+				setPnl(positions[0].unrealizedPnl);
+				setPnlPercent(positions[0].pnlPercent);
 				setLatestPosition(positions[0]);
 			} else {
 				setLatestPosition(null);
@@ -120,12 +147,8 @@ export const TradeModal: React.FC<TradeModalProps> = ({ card, onClose }) => {
 
 			let solPrice = 100;
 
-			console.log(flashServiceRef.current);
-
 			if (flashServiceRef.current) {
 				solPrice = await flashServiceRef.current.getSolPrice();
-				const pos = await flashServiceRef.current.getUserPositions();
-				console.log(pos);
 			}
 
 			const direction: "LONG" | "SHORT" =
@@ -151,7 +174,6 @@ export const TradeModal: React.FC<TradeModalProps> = ({ card, onClose }) => {
 	}, [card.front.luck_score]);
 
 	useEffect(() => {
-		console.log(flashReady);
 		if (!wallet.publicKey || !flashReady) return;
 
 		fetchSolPriceAndCalculateDetails();
@@ -170,16 +192,142 @@ export const TradeModal: React.FC<TradeModalProps> = ({ card, onClose }) => {
 			setIsTrading(true);
 			setError(null);
 
-			const result = await flashServiceRef.current.executeTrade({
-				card,
-				side: card.front.luck_score > 50 ? "long" : "short",
-				inputAmount: tradeAmount,
+			const result = await flashServiceRef.current.executeTradeWithAutoClose(
+				{
+					card,
+					side: direction === "LONG" ? "long" : "short",
+					inputAmount: amount,
+					leverage,
+				},
+				30,
+			);
+
+			setPhase("active");
+			setStatusMessage("Trade is live...");
+			setTimeLeft(TRADE_DURATION);
+
+			const initialCountdown = Math.ceil(
+				(result.closeAtTimestamp - Date.now()) / 1000,
+			);
+			setCountdown(initialCountdown);
+
+			setSuccess({
+				type: "open",
+				txSig: result.openTxSig,
+				direction: result.direction,
 				leverage,
+				size: result.size,
+				entryPrice: result.estimatedPrice,
+				message: "Position opened! Auto-closing in 30s",
+				closeAtTimestamp: result.closeAtTimestamp,
 			});
 
-			await loadLatestPosition();
+			setTimeout(async () => {
+				await loadLatestPosition();
+			}, 3000);
+
+			countdownIntervalRef.current = setInterval(() => {
+				const remaining = Math.max(
+					0,
+					Math.ceil((result.closeAtTimestamp - Date.now()) / 1000),
+				);
+
+				setCountdown(remaining);
+				setTimeLeft(remaining);
+
+				if (remaining === 0 && countdownIntervalRef.current) {
+					clearInterval(countdownIntervalRef.current);
+				}
+			}, 100);
+
+			// Schedule auto-close
+			const delay = result.closeAtTimestamp - Date.now();
+			autoCloseTimeoutRef.current = setTimeout(async () => {
+				try {
+					setPhase("closing");
+					setStatusMessage("Closing position...");
+
+					const closeTxSig =
+						await flashServiceRef.current!.sendPreSignedCloseTransaction(
+							result.signedCloseTransaction,
+							result.blockhash,
+							result.lastValidBlockHeight,
+						);
+
+					// Get final price for PnL calculation
+					const exitPrice = await flashServiceRef.current!.getSolPrice();
+
+					// Calculate final PnL
+					const finalPriceDiff =
+						direction === "LONG"
+							? exitPrice - result.estimatedPrice
+							: result.estimatedPrice - exitPrice;
+					const finalPnl = finalPriceDiff * result.size;
+					const finalPercent = (finalPnl / amount) * 100;
+
+					setStatusMessage("✨ Trade complete!");
+
+					if (countdownIntervalRef.current) {
+						clearInterval(countdownIntervalRef.current);
+					}
+
+					// Complete with results
+					setTimeout(() => {
+						onComplete({
+							success: finalPnl > 0,
+							pnl: finalPnl,
+							pnlPercent: finalPercent,
+							entryPrice: result.estimatedPrice,
+							exitPrice: exitPrice,
+							direction,
+							leverage,
+							txSig: closeTxSig,
+						});
+					}, 1000);
+
+					// Update success state with close info
+					setSuccess((prev) => {
+						if (!prev) return null;
+
+						// Calculate PnL
+						const priceDiff =
+							prev.direction === "LONG"
+								? exitPrice - (prev.entryPrice || 0)
+								: (prev.entryPrice || 0) - exitPrice;
+						const pnl = (prev.size || 0) * priceDiff;
+
+						return {
+							...prev,
+							type: "close",
+							closeTxSig,
+							exitPrice,
+							pnl,
+							message: "Position automatically closed!",
+						};
+					});
+
+					// Stop countdown
+					setCountdown(null);
+					if (countdownIntervalRef.current) {
+						clearInterval(countdownIntervalRef.current);
+					}
+
+					// Reload positions to confirm closure
+					await loadLatestPosition();
+				} catch (error: any) {
+					console.error("❌ Auto-close failed:", error);
+					setError(
+						error.message ??
+							"Auto-close failed. Please close position manually.",
+					);
+					setCountdown(null);
+					if (countdownIntervalRef.current) {
+						clearInterval(countdownIntervalRef.current);
+					}
+				}
+			}, delay);
 		} catch (err: any) {
-			console.error(err);
+			console.error("❌ Trade execution failed:", err);
 			setError(err.message ?? "Trade failed");
 		} finally {
 			setIsTrading(false);
@@ -230,462 +378,306 @@ export const TradeModal: React.FC<TradeModalProps> = ({ card, onClose }) => {
 		}
 	};
 
-	const getButtonText = () => {
-		if (isTrading) {
-			return latestPosition
-				? "Closing position..."
-				: "Processing your trade...";
-		}
-		return latestPosition ? "Close your position" : "Confirm and execute trade";
-	};
+	const progress = ((TRADE_DURATION - timeLeft) / TRADE_DURATION) * 100;
 
-	const isInitialLoading =
-		isFetchingPosition || (isFetchingPrice && !tradeDetails && !latestPosition);
+	const timerClass =
+		timeLeft <= 5 ? "critical" : timeLeft <= 10 ? "warning" : "";
 
-	const SuccessView = ({ success }: { success: SuccessState }) => {
-		const isProfitable = success.pnl ? success.pnl >= 0 : false;
-		const resultText = success.pnl
-			? isProfitable
-				? "Profitable"
-				: "Loss"
-			: "Executed";
-
-		return (
-			<div className="space-y-6">
-				<div className="text-center space-y-4">
-					<div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-green-500/10 border border-green-500/30 text-green-400 text-sm font-bold">
-						✓ VERIFIED BY TRADE
-					</div>
-
-					<p className="text-neutral-300 italic text-center">
-						"The stars align in your favor today. Mercury's retrograde shadow
-						lifts, bringing clarity to financial decisions. Trust your instincts
-						— the universe rewards bold moves."
-					</p>
-				</div>
-
-				{/* Trade Details Grid */}
-				<div className="flex flex-row gap-2 items-center justify-between">
-					<div className="space-y-2">
-						<div className="text-neutral-400 text-xs uppercase tracking-wider">
-							LUCKY NUMBER
-						</div>
-						<div className="text-white font-bold text-xl">
-							{card.back.lucky_assets.number}
-						</div>
-					</div>
-					<div className="space-y-2">
-						<div className="text-neutral-400 text-xs uppercase tracking-wider">
-							LUCKY COLOR
-						</div>
-						<div className="text-white font-bold text-xl">
-							{card.back.lucky_assets.color}
-						</div>
-					</div>
-
-					<div className="space-y-2">
-						<div className="text-neutral-400 text-xs uppercase tracking-wider">
-							MOOD
-						</div>
-						<div className="text-white font-bold text-xl">
-							{card.front.vibe_status}
-						</div>
-					</div>
-				</div>
-
-				{/* Trade Verification Section */}
-				<div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-4">
-					<div className="text-center text-neutral-400 text-sm uppercase tracking-wider">
-						VERIFICATION TRADE
-					</div>
-
-					<div className="space-y-4">
-						<div className="flex items-center justify-between">
-							<span className="text-neutral-400">TICKER</span>
-							<span className="text-white font-bold text-xl">SOL</span>
-						</div>
-
-						<div className="flex items-center justify-between">
-							<span className="text-neutral-400">LEVERAGE</span>
-							<span className="text-white font-bold text-xl">
-								{success.leverage}x
-							</span>
-						</div>
-
-						<div className="flex items-center justify-between">
-							<span className="text-neutral-400">DIRECTION</span>
-							<div
-								className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-bold ${success.direction === "LONG"
-										? "bg-green-500/10 border border-green-500/30 text-green-400"
-										: "bg-red-500/10 border border-red-500/30 text-red-400"
-									}`}
-							>
-								{success.direction}
-							</div>
-						</div>
-
-						{success.pnl && (
-							<div className="flex items-center justify-between">
-								<span className="text-neutral-400">RESULT</span>
-								<div className="flex items-center gap-2">
-									<span
-										className={`font-bold text-xl ${isProfitable ? "text-green-400" : "text-red-400"
-											}`}
-									>
-										{isProfitable ? "+" : ""}${Math.abs(success.pnl).toFixed(2)}
-									</span>
-									<span
-										className={`text-sm px-2 py-1 rounded-full ${isProfitable
-												? "bg-green-500/10 text-green-400"
-												: "bg-red-500/10 text-red-400"
-											}`}
-									>
-										{resultText}
-									</span>
-								</div>
-							</div>
-						)}
-					</div>
-				</div>
-
-				{/* Additional Trade Stats */}
-				{success.type === "close" &&
-					success.entryPrice &&
-					success.exitPrice && (
-						<div className="flex flex-row items-center justify-center gap-4">
-							<div className="space-y-2">
-								<div className="text-neutral-400 text-xs uppercase tracking-wider">
-									Entry Price
-								</div>
-								<div className="text-white font-bold">
-									${success.entryPrice.toFixed(2)}
-								</div>
-							</div>
-
-							<div className="space-y-2">
-								<div className="text-neutral-400 text-xs uppercase tracking-wider">
-									Exit Price
-								</div>
-								<div className="text-white font-bold">
-									${success.exitPrice.toFixed(2)}
-								</div>
-							</div>
-						</div>
-					)}
-
-				{/* Continue Button */}
-				<button
-					onClick={() => {
-						setSuccess(null);
-						onClose();
-					}}
-					className="w-full px-4 py-3 bg-yellow-500 hover:bg-yellow-600 rounded-xl text-black font-bold transition-colors"
-				>
-					Continue
-				</button>
-			</div>
-		);
-	};
+	const luckyNumber = extractNumber(card.back.lucky_assets.number);
 
 	return (
-		<AnimatePresence>
-			<div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-				{/* Backdrop */}
-				<motion.div
-					initial={{ opacity: 0 }}
-					animate={{ opacity: 1 }}
-					exit={{ opacity: 0 }}
-					onClick={onClose}
-					className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-				/>
+		<>
+			{(phase === "active" || phase === "closing") && (
+				<section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden px-4 py-6 sm:py-10">
+					<StarBackground />
 
-				{/* Modal */}
-				<motion.div
-					initial={{ opacity: 0, scale: 0.95, y: 20 }}
-					animate={{ opacity: 1, scale: 1, y: 0 }}
-					exit={{ opacity: 0, scale: 0.95, y: 20 }}
-					className="relative w-full max-w-lg bg-neutral-950 border border-white/10 rounded-2xl overflow-hidden shadow-2xl"
-				>
-					{/* Header */}
-					<div className="p-6 border-b border-white/10">
-						<div className="flex items-center justify-between">
-							<div>
-								<h2 className="text-xl font-bold text-white">
-									{success
-										? success.type === "close"
-											? "Trade Verified"
-											: "Trade Executed"
-										: latestPosition
-											? "Your Position"
-											: "Confirm Your Trade"}
-								</h2>
-								<p className="text-neutral-400 text-sm mt-1">
-									{success
-										? success.type === "close"
-											? "Your position has been successfully closed"
-											: "Your trade has been successfully executed"
-										: latestPosition
-											? "Review and manage your current position"
-											: "Review the details before verifying your horoscope"}
-								</p>
-							</div>
-							{!success && ( // Only show close button when not in success state
-								<button
-									onClick={onClose}
-									className="text-neutral-400 hover:text-white transition-colors"
-								>
-									<svg
-										className="w-6 h-6"
-										fill="none"
-										viewBox="0 0 24 24"
-										stroke="currentColor"
-									>
-										<path
-											strokeLinecap="round"
-											strokeLinejoin="round"
-											strokeWidth={2}
-											d="M6 18L18 6M6 6l12 12"
-										/>
-									</svg>
-								</button>
-							)}
-						</div>
-					</div>
-
-					{isInitialLoading && (
-						<div className="flex items-center justify-center py-8">
-							<div className="flex flex-col items-center gap-3">
-								<LoadingSpinner size={32} />
-								<p className="text-neutral-400 text-sm">
-									Loading trade data...
-								</p>
+					<div className="relative z-10 w-full max-w-[560px] screen-fade-in">
+						<div className="flex justify-center mb-6">
+							<div className="badge-live">
+								<span className="live-dot" />
+								<span className="live-text">
+									{phase === "closing" ? "Closing" : "Trade Active"}
+								</span>
 							</div>
 						</div>
-					)}
 
-					{/* Content */}
-					<div className="p-6 space-y-6">
-						{/* Position or Trade Details */}
-						{success ? (
-							<SuccessView success={success} />
-						) : latestPosition ? (
-							<PositionDetailsView position={latestPosition} />
-						) : (
-							tradeDetails && (
-								<div className="space-y-6">
-									{/* Hero */}
-									<div className="text-center space-y-3">
-										<div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-green-500/10 border border-green-500/30 text-green-400 text-sm font-bold">
-											↑ {tradeDetails.direction}
-										</div>
+						{/* Timer */}
+						<div className="text-center mb-8">
+							<p className="text-sm text-white/50 mb-2">Time Remaining</p>
+							<div className={`timer-display ${timerClass}`}>{timeLeft}</div>
+						</div>
 
-										<h1 className="text-5xl font-extrabold text-white tracking-tight">
-											SOL
-										</h1>
-
-										<p className="text-neutral-400">
-											at{" "}
-											<span className="text-yellow-400 font-bold">
-												{card.back.lucky_assets.number}x
-											</span>{" "}
-											leverage
-										</p>
-									</div>
-
-									{/* Trade Amount */}
-									<div className="space-y-3">
-										<label className="text-neutral-400 text-xs uppercase tracking-wider">
-											Trade Amount (USD)
-										</label>
-
-										<div className="flex items-center bg-white/5 border border-white/10 rounded-2xl px-4 py-4">
-											<span className="text-neutral-400 text-2xl mr-2">$</span>
-											<input
-												type="number"
-												value={tradeAmount}
-												onChange={(e) => setTradeAmount(Number(e.target.value))}
-												className="bg-transparent w-full text-white text-3xl font-bold outline-none"
-											/>
-										</div>
-
-										{/* Presets */}
-										<div className="grid grid-cols-4 gap-3">
-											{[10, 25, 50, 100].map((amt) => (
-												<button
-													key={amt}
-													onClick={() => setTradeAmount(amt)}
-													className={`py-2 rounded-xl font-semibold transition ${tradeAmount === amt
-															? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/40"
-															: "bg-white/5 text-neutral-300 border border-white/10 hover:bg-white/10"
-														}`}
-												>
-													${amt}
-												</button>
-											))}
-										</div>
-									</div>
-
-									{/* Warning */}
-									<div className="flex items-start gap-3 bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-300 text-sm">
-										<span className="text-red-400 text-lg">⛔</span>
-										<p>
-											<span className="font-semibold">
-												High leverage warning:
-											</span>{" "}
-											{card.back.lucky_assets.number}x leverage means small
-											price movements result in amplified gains or losses.
+						{/* Card */}
+						<div className="card-glass w-full" style={{ maxWidth: "560px" }}>
+							{/* Trade Header */}
+							<div className="flex justify-between items-center pb-5 mb-5 border-b border-white/[0.08]">
+								<div className="flex items-center gap-3">
+									<span className="font-display text-2xl font-bold">SOL</span>
+									<div>
+										<span
+											className={`text-xs font-semibold ${
+												direction === "LONG"
+													? "text-[#22c55e]"
+													: "text-[#ef4444]"
+											}`}
+										>
+											{direction === "LONG" ? "↑" : "↓"} {direction}
+										</span>
+										<p className="text-[11px] text-white/50">
+											{leverage}x Leverage
 										</p>
 									</div>
 								</div>
-							)
-						)}
-
-						{/* Error Display */}
-						{error && (
-							<motion.div
-								initial={{ opacity: 0, y: -10 }}
-								animate={{ opacity: 1, y: 0 }}
-								className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-200 text-sm"
-							>
-								❌ {error}
-							</motion.div>
-						)}
-					</div>
-
-					{/* Footer with Action Buttons */}
-					{!success && (
-						<div className="px-6 pb-6 pt-3">
-							<div className="flex flex-col items-center gap-3">
-								{/* Main Action Button */}
-								{(tradeDetails || latestPosition) && (
-									<button
-										onClick={handleAction}
-										disabled={
-											isTrading ||
-											!wallet.connected ||
-											isFetchingPrice ||
-											isFetchingPosition
-										}
-										className={`w-full flex-1 px-4 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${latestPosition
-												? "bg-red-500 hover:bg-red-600 text-white"
-												: "bg-yellow-500 hover:bg-yellow-600 text-black"
-											} disabled:opacity-50 disabled:cursor-not-allowed`}
-										type="button"
-									>
-										{isTrading ? (
-											<>
-												<svg
-													className="animate-spin h-5 w-5"
-													viewBox="0 0 24 24"
-												>
-													<circle
-														className="opacity-25"
-														cx="12"
-														cy="12"
-														r="10"
-														stroke="currentColor"
-														strokeWidth="4"
-														fill="none"
-													/>
-													<path
-														className="opacity-75"
-														fill="currentColor"
-														d="M4 12a8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-													/>
-												</svg>
-												<span>{isTrading ? getButtonText() : ""}</span>
-											</>
-										) : (
-											<span>{getButtonText()}</span>
-										)}
-									</button>
-								)}
-
-								{/* Cancel Button */}
-								<button
-									onClick={onClose}
-									disabled={isTrading}
-									className="w-full flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white font-medium transition-colors disabled:opacity-50"
-									type="button"
-								>
-									Cancel
-								</button>
+								<div className="text-right">
+									<p className="text-[10px] text-white/40 uppercase">
+										Position
+									</p>
+									<p className="font-display text-lg font-semibold">
+										${amount.toFixed(2)}
+									</p>
+								</div>
 							</div>
-							<p className="text-xs text-neutral-500 text-center mt-4">
-								Trade executed on Flash.trade
+
+							{/* Chart placeholder */}
+							<div className="h-[180px] bg-white/[0.02] rounded-2xl flex items-center justify-center mb-6">
+								<div className="text-center">
+									<p className="text-3xl mb-2">📈</p>
+									<p className="text-white/30 text-sm">
+										Live trade in progress
+									</p>
+								</div>
+							</div>
+
+							{/* PnL Section */}
+							<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6">
+								<div className="pnl-card">
+									<p className="pnl-label">Unrealized P&L</p>
+									<p
+										className={`pnl-value ${pnl >= 0 ? "positive" : "negative"}`}
+									>
+										{pnl >= 0 ? "+" : ""}${pnl.toFixed(2)}
+									</p>
+									<p
+										className={`pnl-percent ${
+											pnl >= 0 ? "text-[#22c55e]" : "text-[#ef4444]"
+										}`}
+									>
+										{pnl >= 0 ? "+" : ""}
+										{pnlPercent.toFixed(1)}%
+									</p>
+								</div>
+								<div className="pnl-card">
+									<p className="pnl-label">Current Price</p>
+									<p className="pnl-value" style={{ color: "#fff" }}>
+										${currentPrice.toFixed(2)}
+									</p>
+									<p className="pnl-percent text-white/50">
+										Entry: ${entryPrice.toFixed(2)}
+									</p>
+								</div>
+							</div>
+
+							{/* Progress bar */}
+							<div className="mb-5">
+								<div className="progress-bar-bg">
+									<div
+										className="progress-bar-fill"
+										style={{ width: `${progress}%` }}
+									/>
+								</div>
+								<div className="flex justify-between text-xs text-white/40 mt-2">
+									<span>Started</span>
+									<span>{timeLeft}s remaining</span>
+								</div>
+							</div>
+
+							{/* Status message */}
+							<div
+								className={`text-center p-4 rounded-xl ${
+									error
+										? "bg-red-500/10 border border-red-500/20"
+										: "bg-[#d4a017]/10 border border-[#d4a017]/20"
+								}`}
+							>
+								<p className="text-sm text-white/70">{statusMessage}</p>
+								{error && <p className="text-xs text-red-300 mt-2">{error}</p>}
+							</div>
+						</div>
+					</div>
+				</section>
+			)}
+
+			{phase === "opening" && (
+				<section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden px-4 py-6 sm:py-10">
+					<StarBackground />
+
+					{/* Back button */}
+					<button
+						onClick={onClose}
+						className="absolute top-4 left-4 sm:top-10 sm:left-10 flex items-center gap-2 text-white/60 text-xs sm:text-sm hover:text-white transition-colors z-20"
+						type="button"
+					>
+						<svg
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							strokeWidth="2"
+							className="w-5 h-5"
+						>
+							<title>svg</title>
+							<path d="M19 12H5M12 19l-7-7 7-7" />
+						</svg>
+						Back to Horoscope
+					</button>
+
+					<div className="relative z-10 w-full max-w-[520px] screen-fade-in">
+						{/* Header */}
+						<div className="text-center mb-6 sm:mb-8">
+							<h1 className="font-display text-2xl sm:text-3xl font-semibold mb-3 bg-gradient-to-r from-white to-[#d4a017] bg-clip-text text-transparent">
+								Confirm Your Trade
+							</h1>
+							<p className="text-xs sm:text-sm text-white/50">
+								Review the details before verifying your horoscope
 							</p>
 						</div>
-					)}
-				</motion.div>
-			</div>
-		</AnimatePresence>
+
+						{/* Card */}
+						<div className="card-glass">
+							{/* Trade Summary */}
+							<div className="text-center pb-7 mb-7 border-b border-white/[0.08]">
+								{/* Direction badge */}
+								<div
+									className={`inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold uppercase tracking-wider mb-4 ${
+										direction === "LONG"
+											? "bg-[#22c55e]/15 text-[#22c55e] border border-[#22c55e]/30"
+											: "bg-[#ef4444]/15 text-[#ef4444] border border-[#ef4444]/30"
+									}`}
+								>
+									<svg
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										strokeWidth="2"
+										className="w-4 h-4"
+									>
+										<title>svg</title>
+										<path
+											d={
+												direction === "LONG"
+													? "M12 19V5M5 12l7-7 7 7"
+													: "M12 5v14M5 12l7 7 7-7"
+											}
+										/>
+									</svg>
+									{direction}
+								</div>
+
+								{/* Ticker */}
+								<div className="font-display text-4xl sm:text-5xl font-bold mb-2">
+									SOL
+								</div>
+								<div className="text-base sm:text-xl text-white/60">
+									at{" "}
+									<span className="text-[#f5c842] font-semibold">
+										{luckyNumber}x
+									</span>{" "}
+									leverage
+								</div>
+							</div>
+
+							{/* Amount Section */}
+							<div className="mb-6">
+								<p className="text-xs text-white/50 uppercase tracking-wider mb-3">
+									Trade Amount (USD)
+								</p>
+								<div className="relative">
+									<span className="absolute left-5 top-1/2 -translate-y-1/2 text-2xl text-white/40 font-display">
+										$
+									</span>
+									<input
+										type="number"
+										value={amount}
+										onChange={(e) => setTradeAmount(Number(e.target.value))}
+										min={10}
+										className="w-full py-5 px-6 pl-11 bg-white/5 border border-white/10 rounded-xl text-2xl font-display font-semibold focus:outline-none focus:border-[#d4a017]/50"
+									/>
+								</div>
+								<div className="flex flex-wrap gap-2 mt-3">
+									{QUICK_AMOUNTS.map((qa) => (
+										<button
+											key={qa}
+											onClick={() => setTradeAmount(qa)}
+											className={`quick-btn flex-1 min-w-[60px] ${amount === qa ? "active" : ""}`}
+											type="button"
+										>
+											${qa}
+										</button>
+									))}
+								</div>
+							</div>
+
+							{/* Warning Box */}
+							<div className="warning-box mb-6">
+								<svg
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									strokeWidth="2"
+								>
+									<title>svg</title>
+									<path d="M12 9v4M12 17h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+								</svg>
+								<p className="warning-text">
+									<strong>High leverage warning:</strong> {luckyNumber}x
+									leverage means small price movements result in amplified gains
+									or losses.
+								</p>
+							</div>
+							<button
+								onClick={handleAction}
+								disabled={isTrading}
+								className="btn-primary w-full mb-3 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+								type="button"
+							>
+								{isTrading ? (
+									<>
+										<span className="w-4 h-4 border-2 border-black/40 border-t-black rounded-full animate-spin" />
+										Preparing transaction...
+									</>
+								) : (
+									<>
+										<svg
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											strokeWidth="2"
+											className="w-5 h-5"
+										>
+											<title>svg</title>
+											<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+										</svg>
+										Confirm & Execute Trade
+									</>
+								)}
+							</button>
+
+							<button
+								onClick={onClose}
+								className="btn-secondary w-full"
+								type="button"
+							>
+								Cancel
+							</button>
+						</div>
+					</div>
+				</section>
+			)}
+		</>
 	);
 };
 
-const PositionDetailsView = ({ position }: { position: any }) => {
-	const isProfit = position.pnl >= 0;
-
-	return (
-		<div className="space-y-6">
-			{/* Hero */}
-			<div className="text-center space-y-2">
-				<div
-					className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-sm font-bold ${position.direction === "LONG"
-							? "bg-green-500/10 border-green-500/30 text-green-400"
-							: "bg-red-500/10 border-red-500/30 text-red-400"
-						}`}
-				>
-					{position.direction}
-				</div>
-
-				<h1 className="text-5xl font-extrabold text-white tracking-tight">
-					SOL / USD
-				</h1>
-
-				<p className="text-neutral-400 text-sm">Opened {position.openTime}</p>
-			</div>
-
-			{/* Stats Grid */}
-			<div className="grid grid-cols-2 gap-4">
-				<Stat label="Size" value={`${position.size.toFixed(2)} SOL`} />
-				<Stat
-					label="Entry Price"
-					value={`$${position.entryPrice.toFixed(2)}`}
-				/>
-				<Stat
-					label="Mark Price"
-					value={`$${position.currentPrice.toFixed(2)}`}
-				/>
-				<Stat label="Collateral" value={`$${position.collateral.toFixed(2)}`} />
-			</div>
-
-			{/* PnL */}
-			<div
-				className={`rounded-2xl p-4 border ${isProfit
-						? "bg-green-500/10 border-green-500/30"
-						: "bg-red-500/10 border-red-500/30"
-					}`}
-			>
-				<div className="text-neutral-400 text-sm">Unrealized PnL</div>
-				<div
-					className={`text-3xl font-extrabold ${isProfit ? "text-green-400" : "text-red-400"
-						}`}
-				>
-					${position.pnl.toFixed(2)}
-				</div>
-				<div className="text-xs text-neutral-400">
-					{position.pnlPercent.toFixed(2)}%
-				</div>
-			</div>
-		</div>
-	);
-};
-
-const Stat = ({ label, value }: { label: string; value: string }) => (
-	<div className="bg-white/5 border border-white/10 rounded-xl p-4">
-		<div className="text-neutral-400 text-xs uppercase tracking-wider mb-1">
-			{label}
-		</div>
-		<div className="text-white font-bold">{value}</div>
-	</div>
-);
+// Extract number from lucky number string
+function extractNumber(numStr: string): number {
+	const match = numStr.match(/\d+/);
+	return match ? parseInt(match[0], 10) : 42;
+}
