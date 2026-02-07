@@ -1,6 +1,7 @@
 const express = require('express');
 const userRoutes = require('./user.routes');
 const horoscopeRoutes = require('./horoscope.routes');
+const debugRoutes = require('./debug.routes');
 
 const router = express.Router();
 
