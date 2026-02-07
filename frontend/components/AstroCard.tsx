@@ -573,7 +573,7 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 							{/* ==================== FRONT FACE ==================== */}
 							<motion.div
 								data-card-front
-								className={`relative md:absolute w-full min-h-[550px] md:h-full rounded-[2rem] md:rounded-[2.5rem] overflow-hidden shadow-2xl ${isFlipped ? "pointer-events-none" : "pointer-events-auto"}`}
+								className={`${isFlipped ? "absolute pointer-events-none" : "relative pointer-events-auto"} md:absolute w-full min-h-[550px] md:h-full rounded-[2rem] md:rounded-[2.5rem] overflow-hidden shadow-2xl`}
 								style={{
 									backfaceVisibility: "hidden",
 									WebkitBackfaceVisibility: "hidden",
@@ -723,8 +723,9 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 															Max Lev
 														</span>
 													</div>
+
 													<div className="text-sm md:text-lg font-bold text-white leading-tight truncate">
-														{card.back.lucky_assets.max_leverage ? `${card.back.lucky_assets.max_leverage}x` : "1x"}
+														{card.back.lucky_assets.number ? `${card.back.lucky_assets.max_leverage}x` : "1x"}
 													</div>
 												</div>
 											</div>
@@ -786,8 +787,7 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 							{/* ==================== BACK FACE ==================== */}
 							<motion.div
 								data-card-back
-								className={`absolute w-full h-full rounded-[2rem] md:rounded-[2.5rem] overflow-hidden shadow-2xl ${isFlipped ? "pointer-events-auto" : "pointer-events-none"
-									}`}
+								className={`${isFlipped ? "relative pointer-events-auto" : "absolute pointer-events-none"} md:absolute w-full min-h-[550px] md:h-full rounded-[2rem] md:rounded-[2.5rem] overflow-hidden shadow-2xl`}
 								style={{
 									transform: isFlipped
 										? "rotateY(180deg) translateZ(1px)"
@@ -848,7 +848,7 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 									</div>
 
 									{/* Scrollable Content */}
-									<div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-3 md:space-y-4 custom-scrollbar">
+									<div className={`${isFlipped ? "flex-auto h-auto overflow-visible" : "flex-1 min-h-0 overflow-y-auto"} md:flex-1 md:min-h-0 md:overflow-y-auto pr-1 space-y-3 md:space-y-4 custom-scrollbar`}>
 										{/* Detailed Reading */}
 										<motion.div
 											animate={{ opacity: 1, y: 0 }}
