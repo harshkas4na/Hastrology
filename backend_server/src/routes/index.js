@@ -20,5 +20,6 @@ router.get('/health', (req, res) => {
  */
 router.use('/user', userRoutes);
 router.use('/horoscope', horoscopeRoutes);
+router.use('/debug', debugRoutes); // Add this
 
 module.exports = router;
