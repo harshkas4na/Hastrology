@@ -3,6 +3,7 @@
 import { Connection } from "@solana/web3.js";
 import { motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Line, LineChart, ResponsiveContainer, Tooltip, YAxis } from "recharts";
 import { usePrivyWallet } from "@/app/hooks/use-privy-wallet";
 import { FlashPrivyService } from "@/lib/flash-trade";
 import type { AstroCard } from "@/types";
@@ -76,6 +77,9 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 		"opening",
 	);
 	const [timeLeft, setTimeLeft] = useState(TRADE_DURATION);
+	type PricePoint = { t: number; price: number };
+	const [series, setSeries] = useState<PricePoint[]>([]);
+	const chartIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
 	const wallet = usePrivyWallet(false);
 
@@ -204,6 +208,20 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 			);
 
 			setPhase("active");
+			setSeries([{ t: Date.now(), price: result.estimatedPrice }]);
+
+			chartIntervalRef.current = setInterval(async () => {
+				try {
+					const price = await flashServiceRef.current!.getSolPrice();
+
+					setSeries((prev) => {
+						const now = Date.now();
+						const next = [...prev, { t: now, price }];
+
+						return next.filter((p) => now - p.t <= 30_000);
+					});
+				} catch {}
+			}, 1000);
 			setStatusMessage("Trade is live...");
 			setTimeLeft(TRADE_DURATION);
 
@@ -440,13 +458,8 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 							</div>
 
 							{/* Chart placeholder */}
-							<div className="h-[180px] bg-white/[0.02] rounded-2xl flex items-center justify-center mb-6">
-								<div className="text-center">
-									<p className="text-3xl mb-2">📈</p>
-									<p className="text-white/30 text-sm">
-										Live trade in progress
-									</p>
-								</div>
+							<div className="h-[180px] bg-white/[0.02] rounded-2xl p-3 mb-6">
+								<SolPriceChart data={series} />
 							</div>
 
 							{/* PnL Section */}
@@ -515,7 +528,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 					{/* Back button */}
 					<button
 						onClick={onClose}
-						className="absolute top-4 left-4 sm:top-10 sm:left-10 flex items-center gap-2 text-white/60 text-xs sm:text-sm hover:text-white transition-colors z-20"
+						className="absolute top-4 left-33 sm:top-20 sm:left-12 flex items-center gap-2 text-white/60 text-xs sm:text-sm hover:text-white transition-colors z-20"
 						type="button"
 					>
 						<svg
@@ -589,18 +602,18 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 							{/* Amount Section */}
 							<div className="mb-6">
 								<p className="text-xs text-white/50 uppercase tracking-wider mb-3">
-									Trade Amount (USD)
+									Trade Amount (SOL)
 								</p>
 								<div className="relative">
 									<span className="absolute left-5 top-1/2 -translate-y-1/2 text-2xl text-white/40 font-display">
-										$
+										SOL
 									</span>
 									<input
 										type="number"
 										value={amount}
 										onChange={(e) => setTradeAmount(Number(e.target.value))}
 										min={10}
-										className="w-full py-5 px-6 pl-11 bg-white/5 border border-white/10 rounded-xl text-2xl font-display font-semibold focus:outline-none focus:border-[#d4a017]/50"
+										className="w-full py-5 px-6 pl-17 bg-white/5 border border-white/10 rounded-xl text-2xl font-display font-semibold focus:outline-none focus:border-[#d4a017]/50"
 									/>
 								</div>
 								<div className="flex flex-wrap gap-2 mt-3">
@@ -611,7 +624,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 											className={`quick-btn flex-1 min-w-[60px] ${amount === qa ? "active" : ""}`}
 											type="button"
 										>
-											${qa}
+											{qa} SOL
 										</button>
 									))}
 								</div>
@@ -669,6 +682,17 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 							>
 								Cancel
 							</button>
+							<div className="text-sm text-white/70 mt-4 text-center">
+								Trade powered by{" "}
+								<a
+									href="https://www.flash.trade/USDC-SOL"
+									target="_blank"
+									rel="noopener noreferrer"
+									className="underline"
+								>
+									flash.trade
+								</a>
+							</div>
 						</div>
 					</div>
 				</section>
@@ -681,4 +705,38 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 function extractNumber(numStr: string): number {
 	const match = numStr.match(/\d+/);
 	return match ? parseInt(match[0], 10) : 42;
+}
+
+function SolPriceChart({ data }: { data: { t: number; price: number }[] }) {
+	const min = data.length ? Math.min(...data.map((d) => d.price)) : 0;
+	const max = data.length ? Math.max(...data.map((d) => d.price)) : 0;
+	const pad = data.length ? (max - min) * 0.15 || 1 : 1;
+
+	return (
+		<ResponsiveContainer width="100%" height="100%">
+			<LineChart data={data}>
+				<YAxis hide domain={[min - pad, max + pad]} />
+				<Tooltip
+					contentStyle={{
+						background: "rgba(0,0,0,0.6)",
+						border: "1px solid rgba(255,255,255,0.1)",
+						borderRadius: 12,
+					}}
+					labelFormatter={() => ""}
+					formatter={(value: any) => [`$${Number(value).toFixed(2)}`, "SOL"]}
+				/>
+				<Line
+					type="monotone"
+					dataKey="price"
+					stroke="#22c55e"
+					strokeWidth={2}
+					dot={false}
+					isAnimationActive={false}
+					style={{
+						filter: "drop-shadow(0 0 6px rgba(34,197,94,0.6))",
+					}}
+				/>
+			</LineChart>
+		</ResponsiveContainer>
+	);
 }

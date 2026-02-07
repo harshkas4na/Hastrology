@@ -16,7 +16,7 @@ export const UserXDetails: FC = () => {
    relative md:absolute
 z-50
 flex items-center
-md:top-6 md:left-5
+md:top-6 md:left-5 left-3 mt-5 md:mt-0
 
   "
 		>
@@ -26,8 +26,9 @@ md:top-6 md:left-5
 				rel="noopener noreferrer"
 				className="
           flex flex-row gap-2 items-center
-          bg-[#1F1F1F]
-          border border-[#FC5411]
+          bg-inherit
+
+          border border-neutral-700
           text-white
 		  cursor-pointer
           px-4
@@ -40,23 +41,15 @@ md:top-6 md:left-5
           hover:scale-105
         "
 			>
-				<svg
-					viewBox="0 0 24 24"
-					aria-hidden="true"
-					className="hidden md:block w-5 h-5 fill-current"
-				>
-					<path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-				</svg>
-
 				{user.twitterProfileUrl && (
 					<img
 						alt="X profile"
-						className="w-5 h-5 rounded-full"
+						className="w-6.5 h-7 rounded-full"
 						src={user.twitterProfileUrl}
 					/>
 				)}
 
-				<span className="text-sm md:text-lg">@{user.twitterUsername}</span>
+				<span className="text-white/90 font-display text-sm md:text-md">@{user.twitterUsername}</span>
 			</a>
 		</div>
 	);

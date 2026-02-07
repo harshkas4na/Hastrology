@@ -11,7 +11,6 @@ import LoadingSpinner from "./LoadingSpinner";
 
 export const WalletBalance: FC = () => {
 	const { publicKey } = usePrivyWallet();
-	const { connection: walletConnection } = useConnection();
 	const { balance, setBalance } = useStore();
 
 	const [loading, setLoading] = useState(false);
@@ -39,16 +38,10 @@ export const WalletBalance: FC = () => {
 		setError(null);
 
 		try {
-			let connection: Connection;
-
-			if (walletConnection) {
-				connection = walletConnection;
-			} else {
-				const endpoint =
-					process.env.NEXT_PUBLIC_SOLANA_RPC_URL ||
-					"https://solana-rpc.publicnode.com";
-				connection = new Connection(endpoint, "confirmed");
-			}
+			const endpoint =
+				process.env.NEXT_PUBLIC_SOLANA_RPC_URL ||
+				"https://solana-rpc.publicnode.com";
+			const connection = new Connection(endpoint, "confirmed");
 
 			const pubKey = new PublicKey(publicKey);
 			const lamports = await connection.getBalance(pubKey);
@@ -61,7 +54,7 @@ export const WalletBalance: FC = () => {
 		} finally {
 			setLoading(false);
 		}
-	}, [publicKey, setBalance, walletConnection]);
+	}, [publicKey, setBalance]);
 
 	useEffect(() => {
 		fetchBalance();
@@ -85,10 +78,10 @@ export const WalletBalance: FC = () => {
 				address: publicKey,
 				options: {
 					chain: "solana:mainnet",
+					amount: "0.5",
 				},
 			});
 
-			// Refresh balance immediately after funding
 			await fetchBalance();
 		} catch (error) {
 			console.error("Error funding wallet:", error);
@@ -103,7 +96,7 @@ export const WalletBalance: FC = () => {
 		<>
 			{/* Confirmation Dialog */}
 			{showConfirm && (
-				<div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4">
+				<div className="font-display fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4">
 					<div className="bg-[#1F1F1F] border border-[#FC5411] rounded-xl p-6 max-w-md w-full">
 						<h3 className="text-lg font-bold text-white mb-2">
 							Fund Your Wallet
@@ -136,20 +129,19 @@ export const WalletBalance: FC = () => {
 			{/* Balance Component */}
 			<div
 				className="
-					relative md:absolute
-z-50
-flex items-center
-md:top-6 md:right-55
-
-				"
+    hidden md:flex
+    relative md:absolute font-display
+    z-50 items-center
+    md:top-6 md:right-55
+  "
 			>
 				<button
 					onClick={handleFundWalletClick}
 					disabled={loading || isFunding}
 					className="
 						flex flex-row gap-2 items-center
-						bg-[#1F1F1F]
-						border border-[#FC5411]
+						bg-inherit
+						border border-neutral-700
 						text-white
 						px-4
 						py-1.5
@@ -177,8 +169,7 @@ md:top-6 md:right-55
 						</div>
 					) : loading ? (
 						<div className="flex items-center gap-2">
-							<div className="w-3 h-3 rounded-full border-2 border-white/20 border-t-white animate-spin" />
-							<span className="text-sm md:text-lg">...</span>
+							<div className="w-7 h-7 rounded-full border-2 border-white/20 border-t-white animate-spin" />
 						</div>
 					) : error ? (
 						<div className="flex items-center gap-2">
