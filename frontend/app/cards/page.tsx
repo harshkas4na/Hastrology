@@ -17,12 +17,15 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { WalletBalance } from "@/components/balance";
 import { HoroscopeReveal } from "@/components/HoroscopeReveal";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { TradeConfirm } from "@/components/TradeConfirm";
 import { TradeExecution, type TradeResult } from "@/components/TradeExecution";
 import { TradeResults } from "@/components/TradeResults";
+import { UserXDetails } from "@/components/TwitterDetails";
 import { TradeModal } from "@/components/trade-modal";
+import { WalletDropdown } from "@/components/wallet-dropdown";
 import { api } from "@/lib/api";
 import { FlashPrivyService } from "@/lib/flash-trade";
 import { buildEnterLotteryInstruction } from "@/lib/hastrology_program";
@@ -419,42 +422,72 @@ const CardsPage: FC = () => {
 
 	// Screen 3: Horoscope Reveal
 	if (currentScreen === "reveal" && card) {
-		return <HoroscopeReveal card={card} onVerifyTrade={handleVerifyTrade} />;
+		return (
+			<>
+				<UserXDetails />
+				<WalletBalance />
+				<div className="absolute top-0 md:top-6 right-5 md:right-6 z-50">
+					<WalletDropdown variant="desktop" />
+				</div>
+				<HoroscopeReveal card={card} onVerifyTrade={handleVerifyTrade} />
+			</>
+		);
 	}
 
 	// Screen 4: Trade Confirm
 	if (currentScreen === "confirm" && card) {
 		return (
-			<TradeConfirm
-				card={card}
-				onBack={() => setCurrentScreen("reveal")}
-				onExecute={handleExecuteTrade}
-			/>
+			<>
+				<UserXDetails />
+				<WalletBalance />
+				<div className="absolute top-0 md:top-6 right-5 md:right-6 z-50">
+					<WalletDropdown variant="desktop" />
+				</div>
+				<TradeConfirm
+					card={card}
+					onBack={() => setCurrentScreen("reveal")}
+					onExecute={handleExecuteTrade}
+				/>
+			</>
 		);
 	}
 
 	// Screen 5: Trade Execution
 	if (currentScreen === "execute" && card && tradeParams) {
 		return (
-			<TradeModal
-				card={card}
-				onClose={() => {
-					setCurrentScreen("reveal");
-				}}
-				direction={tradeParams.direction}
-				onComplete={handleTradeComplete}
-			/>
+			<>
+				<UserXDetails />
+				<WalletBalance />
+				<div className="absolute top-0 md:top-6 right-5 md:right-6 z-50">
+					<WalletDropdown variant="desktop" />
+				</div>
+				<TradeModal
+					card={card}
+					onClose={() => {
+						setCurrentScreen("reveal");
+					}}
+					direction={tradeParams.direction}
+					onComplete={handleTradeComplete}
+				/>
+			</>
 		);
 	}
 
 	// Screen 6: Trade Results
 	if (currentScreen === "results" && card && tradeResult) {
 		return (
-			<TradeResults
-				card={card}
-				result={tradeResult}
-				onReturnHome={handleReturnHome}
-			/>
+			<>
+				<UserXDetails />
+				<WalletBalance />
+				<div className="absolute top-0 md:top-6 right-5 md:right-6 z-50">
+					<WalletDropdown variant="desktop" />
+				</div>
+				<TradeResults
+					card={card}
+					result={tradeResult}
+					onReturnHome={handleReturnHome}
+				/>
+			</>
 		);
 	}
 
