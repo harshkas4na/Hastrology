@@ -43,9 +43,18 @@ app.use(compression()); // Response compression
  * CORS configuration
  */
 const corsOptions = {
-  origin: config.cors.allowedOrigins,
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'https://www.hashtro.fun',        // Add your production domain
+    'https://hashtro.fun',             // Add without www too
+    'https://hastrology.vercel.app',   // If you have a Vercel frontend
+    // Add any other frontend domains you use
+  ],
   credentials: true,
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 };
 app.use(cors(corsOptions));
 
