@@ -17,6 +17,9 @@ const routes = require('./src/routes');
  */
 const app = express();
 
+// ADD THIS LINE - CRITICAL for Vercel/proxies
+app.set('trust proxy', 1); // Trust first proxy
+
 /**
  * Validate environment variables on startup
  */
