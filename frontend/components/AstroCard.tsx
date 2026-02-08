@@ -96,6 +96,12 @@ const getVibeColor = (
 	return vibeMap[vibe.toLowerCase()] || vibeMap.stellar;
 };
 
+// Extract number from lucky number string
+const extractNumber = (numStr: string): number => {
+	const match = numStr.match(/\d+/);
+	return match ? parseInt(match[0], 10) : 42;
+};
+
 export const AstroCard: React.FC<AstroCardProps> = ({
 	card,
 	showShare = true,
@@ -122,6 +128,7 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 	const vibeColors = getVibeColor(card.front.vibe_status);
 	const zodiacEmoji = getZodiacEmoji(card.front.zodiac_sign);
 	const router = useRouter();
+	const luckyNumber = extractNumber(card.back.lucky_assets.number);
 
 	// Step 1: Generate the image and open the draft modal
 	const handleGenerateDraft = async () => {
@@ -725,7 +732,7 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 													</div>
 
 													<div className="text-sm md:text-lg font-bold text-white leading-tight truncate">
-														{card.back.lucky_assets.number ? `${card.back.lucky_assets.max_leverage}x` : "1x"}
+														{luckyNumber}x
 													</div>
 												</div>
 											</div>

@@ -100,7 +100,7 @@ export const HoroscopeReveal: FC<HoroscopeRevealProps> = ({
 	const colorGradient =
 		colorGradients[colorKey] ||
 		colorGradients[
-			Object.keys(colorGradients).find((k) => colorKey.includes(k)) || "gold"
+		Object.keys(colorGradients).find((k) => colorKey.includes(k)) || "gold"
 		];
 
 	const handleFlip = () => {
@@ -260,9 +260,8 @@ export const HoroscopeReveal: FC<HoroscopeRevealProps> = ({
 									<span className="text-xs text-white/50">leverage</span>
 									<span className="text-white/20">•</span>
 									<span
-										className={`font-display text-lg font-semibold ${
-											direction === "LONG" ? "text-[#22c55e]" : "text-[#ef4444]"
-										}`}
+										className={`font-display text-lg font-semibold ${direction === "LONG" ? "text-[#22c55e]" : "text-[#ef4444]"
+											}`}
 									>
 										{direction}
 									</span>
@@ -420,10 +419,8 @@ export const HoroscopeReveal: FC<HoroscopeRevealProps> = ({
 												Max Lev
 											</span>
 										</div>
-										<div className="font-bold text-white truncate">
-											{card.back.lucky_assets.max_leverage
-												? `${card.back.lucky_assets.max_leverage}x`
-												: "1x"}
+										<div className="text-sm md:text-lg font-bold text-white leading-tight truncate">
+											{luckyNumber}x
 										</div>
 									</div>
 

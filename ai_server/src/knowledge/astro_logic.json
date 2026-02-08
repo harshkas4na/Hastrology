@@ -1,9 +1,140 @@
 {
   "zodiac_signs": [
-    "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
-    "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
+    "Aries",
+    "Taurus",
+    "Gemini",
+    "Cancer",
+    "Leo",
+    "Virgo",
+    "Libra",
+    "Scorpio",
+    "Sagittarius",
+    "Capricorn",
+    "Aquarius",
+    "Pisces"
   ],
-  
+  "zodiac_date_ranges": {
+    "Aries": {
+      "start": [
+        3,
+        21
+      ],
+      "end": [
+        4,
+        19
+      ]
+    },
+    "Taurus": {
+      "start": [
+        4,
+        20
+      ],
+      "end": [
+        5,
+        20
+      ]
+    },
+    "Gemini": {
+      "start": [
+        5,
+        21
+      ],
+      "end": [
+        6,
+        20
+      ]
+    },
+    "Cancer": {
+      "start": [
+        6,
+        21
+      ],
+      "end": [
+        7,
+        22
+      ]
+    },
+    "Leo": {
+      "start": [
+        7,
+        23
+      ],
+      "end": [
+        8,
+        22
+      ]
+    },
+    "Virgo": {
+      "start": [
+        8,
+        23
+      ],
+      "end": [
+        9,
+        22
+      ]
+    },
+    "Libra": {
+      "start": [
+        9,
+        23
+      ],
+      "end": [
+        10,
+        22
+      ]
+    },
+    "Scorpio": {
+      "start": [
+        10,
+        23
+      ],
+      "end": [
+        11,
+        21
+      ]
+    },
+    "Sagittarius": {
+      "start": [
+        11,
+        22
+      ],
+      "end": [
+        12,
+        21
+      ]
+    },
+    "Capricorn": {
+      "start": [
+        12,
+        22
+      ],
+      "end": [
+        1,
+        19
+      ]
+    },
+    "Aquarius": {
+      "start": [
+        1,
+        20
+      ],
+      "end": [
+        2,
+        18
+      ]
+    },
+    "Pisces": {
+      "start": [
+        2,
+        19
+      ],
+      "end": [
+        3,
+        20
+      ]
+    }
+  },
   "planetary_rulers": {
     "Aries": "Mars",
     "Taurus": "Venus",
@@ -18,67 +149,149 @@
     "Aquarius": "Saturn",
     "Pisces": "Jupiter"
   },
-
   "dignity_table": {
     "Sun": {
-      "domicile": ["Leo"],
-      "exaltation": ["Aries"],
-      "detriment": ["Aquarius"],
-      "fall": ["Libra"]
+      "domicile": [
+        "Leo"
+      ],
+      "exaltation": [
+        "Aries"
+      ],
+      "detriment": [
+        "Aquarius"
+      ],
+      "fall": [
+        "Libra"
+      ]
     },
     "Moon": {
-      "domicile": ["Cancer"],
-      "exaltation": ["Taurus"],
-      "detriment": ["Capricorn"],
-      "fall": ["Scorpio"]
+      "domicile": [
+        "Cancer"
+      ],
+      "exaltation": [
+        "Taurus"
+      ],
+      "detriment": [
+        "Capricorn"
+      ],
+      "fall": [
+        "Scorpio"
+      ]
     },
     "Mercury": {
-      "domicile": ["Gemini", "Virgo"],
-      "exaltation": ["Virgo"],
-      "detriment": ["Sagittarius", "Pisces"],
-      "fall": ["Pisces"]
+      "domicile": [
+        "Gemini",
+        "Virgo"
+      ],
+      "exaltation": [
+        "Virgo"
+      ],
+      "detriment": [
+        "Sagittarius",
+        "Pisces"
+      ],
+      "fall": [
+        "Pisces"
+      ]
     },
     "Venus": {
-      "domicile": ["Taurus", "Libra"],
-      "exaltation": ["Pisces"],
-      "detriment": ["Scorpio", "Aries"],
-      "fall": ["Virgo"]
+      "domicile": [
+        "Taurus",
+        "Libra"
+      ],
+      "exaltation": [
+        "Pisces"
+      ],
+      "detriment": [
+        "Scorpio",
+        "Aries"
+      ],
+      "fall": [
+        "Virgo"
+      ]
     },
     "Mars": {
-      "domicile": ["Aries", "Scorpio"],
-      "exaltation": ["Capricorn"],
-      "detriment": ["Libra", "Taurus"],
-      "fall": ["Cancer"]
+      "domicile": [
+        "Aries",
+        "Scorpio"
+      ],
+      "exaltation": [
+        "Capricorn"
+      ],
+      "detriment": [
+        "Libra",
+        "Taurus"
+      ],
+      "fall": [
+        "Cancer"
+      ]
     },
     "Jupiter": {
-      "domicile": ["Sagittarius", "Pisces"],
-      "exaltation": ["Cancer"],
-      "detriment": ["Gemini", "Virgo"],
-      "fall": ["Capricorn"]
+      "domicile": [
+        "Sagittarius",
+        "Pisces"
+      ],
+      "exaltation": [
+        "Cancer"
+      ],
+      "detriment": [
+        "Gemini",
+        "Virgo"
+      ],
+      "fall": [
+        "Capricorn"
+      ]
     },
     "Saturn": {
-      "domicile": ["Capricorn", "Aquarius"],
-      "exaltation": ["Libra"],
-      "detriment": ["Cancer", "Leo"],
-      "fall": ["Aries"]
+      "domicile": [
+        "Capricorn",
+        "Aquarius"
+      ],
+      "exaltation": [
+        "Libra"
+      ],
+      "detriment": [
+        "Cancer",
+        "Leo"
+      ],
+      "fall": [
+        "Aries"
+      ]
     }
   },
-
   "dignity_scores": {
     "domicile": 5,
     "exaltation": 4,
     "detriment": -4,
     "fall": -5
   },
-
   "aspect_definitions": {
-    "conjunction": {"angle": 0, "orb": 8, "nature": "neutral"},
-    "opposition": {"angle": 180, "orb": 8, "nature": "hard"},
-    "trine": {"angle": 120, "orb": 6, "nature": "soft"},
-    "square": {"angle": 90, "orb": 6, "nature": "hard"},
-    "sextile": {"angle": 60, "orb": 4, "nature": "soft"}
+    "conjunction": {
+      "angle": 0,
+      "orb": 8,
+      "nature": "neutral"
+    },
+    "opposition": {
+      "angle": 180,
+      "orb": 8,
+      "nature": "hard"
+    },
+    "trine": {
+      "angle": 120,
+      "orb": 6,
+      "nature": "soft"
+    },
+    "square": {
+      "angle": 90,
+      "orb": 6,
+      "nature": "hard"
+    },
+    "sextile": {
+      "angle": 60,
+      "orb": 4,
+      "nature": "soft"
+    }
   },
-
   "sect_benefics_malefics": {
     "diurnal": {
       "benefic_of_sect": "Jupiter",
@@ -93,7 +306,6 @@
       "comment": "Saturn is most difficult in night charts"
     }
   },
-
   "planets_swiss_ephemeris": {
     "Sun": 0,
     "Moon": 1,
@@ -107,7 +319,6 @@
     "Pluto": 9,
     "TrueNode": 11
   },
-
   "special_conditions": {
     "combust": {
       "description": "Planet within 8.5° of Sun - weakened",

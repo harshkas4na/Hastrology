@@ -153,7 +153,7 @@ class EphemerisService:
         latitude: float,
         longitude: float,
         timezone_offset: float = 0.0,
-        use_sidereal: bool = True
+        use_sidereal: bool = False
     ) -> ChartData:
         """
         Calculate complete natal chart with topocentric positions.
@@ -291,7 +291,8 @@ class EphemerisService:
         current_datetime: datetime,
         latitude: float = 0.0,
         longitude: float = 0.0,
-        timezone_offset: float = 0.0
+        timezone_offset: float = 0.0,
+        use_sidereal: bool = False
     ) -> Dict[str, PlanetData]:
         """
         Get current planetary positions for transit calculations.
@@ -310,8 +311,18 @@ class EphemerisService:
         
         jd = self.datetime_to_julian(current_datetime, timezone_offset)
         
-        calc_flags = swe.FLG_SWIEPH | swe.FLG_SIDEREAL
+        calc_flags = swe.FLG_SWIEPH
+        # Add sidereal flag ONLY if requested
+        # For now, let's make transits match the system default (Tropical)
+        # by removing the hardcoded FLG_SIDEREAL if use_sidereal is False
+        # But wait, this method doesn't take use_sidereal. 
+        # I'll add the parameter or just remove the flag if it should be global.
         
+        # Let's add a parameter for consistency
+        
+        if use_sidereal:
+            calc_flags |= swe.FLG_SIDEREAL
+
         transits = {}
         for planet_name, planet_id in PLANET_IDS.items():
             if planet_name == "TrueNode":

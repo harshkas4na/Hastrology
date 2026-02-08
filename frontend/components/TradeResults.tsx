@@ -1,10 +1,12 @@
 "use client";
 
-import { FC } from "react";
+import { FC, useRef, useState } from "react";
 import type { AstroCard } from "@/types";
 import { Confetti } from "./Confetti";
 import { StarBackground } from "./StarBackground";
 import type { TradeResult } from "./TradeExecution";
+import Image from "next/image";
+import * as htmlToImage from "html-to-image";
 
 interface TradeResultsProps {
 	card: AstroCard;
@@ -65,13 +67,52 @@ export const TradeResults: FC<TradeResultsProps> = ({
 	const colorGradient =
 		colorGradients[colorKey] ||
 		colorGradients[
-			Object.keys(colorGradients).find((k) => colorKey.includes(k)) || "gold"
+		Object.keys(colorGradients).find((k) => colorKey.includes(k)) || "gold"
 		];
 
 	const handleShareX = () => {
 		const text = `My ${zodiacSign} horoscope was verified by a trade on Solana! 🔮\n\n${result.pnl >= 0 ? "Profit" : "Loss"}: ${result.pnl >= 0 ? "+" : ""}$${result.pnl.toFixed(2)} (${result.pnlPercent.toFixed(1)}%)\n\nVerify yours at hashtro.fun`;
 		const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
 		window.open(url, "_blank");
+	};
+
+	const [isCopying, setIsCopying] = useState(false);
+	const [copyStatus, setCopyStatus] = useState<"idle" | "copying" | "success" | "error">("idle");
+	const cardRef = useRef<HTMLDivElement>(null);
+
+	const handleCopyImage = async () => {
+		if (!cardRef.current || isCopying) return;
+
+		try {
+			setIsCopying(true);
+			setCopyStatus("copying");
+
+			const blob = await htmlToImage.toBlob(cardRef.current, {
+				pixelRatio: 2,
+				backgroundColor: "#000",
+				cacheBust: true,
+				style: {
+					borderRadius: "0",
+				}
+			});
+
+			if (!blob) throw new Error("Failed to generate image");
+
+			await navigator.clipboard.write([
+				new ClipboardItem({
+					"image/png": blob,
+				}),
+			]);
+
+			setCopyStatus("success");
+			setTimeout(() => setCopyStatus("idle"), 2000);
+		} catch (err) {
+			console.error("Failed to copy image:", err);
+			setCopyStatus("error");
+			setTimeout(() => setCopyStatus("idle"), 2000);
+		} finally {
+			setIsCopying(false);
+		}
 	};
 
 	return (
@@ -96,7 +137,7 @@ export const TradeResults: FC<TradeResultsProps> = ({
 				</div>
 
 				{/* Card */}
-				<div className="card-glass relative overflow-hidden">
+				<div ref={cardRef} className="card-glass relative overflow-hidden">
 					{/* Top gradient bar */}
 					<div
 						className="absolute top-0 left-0 right-0 h-1"
@@ -153,11 +194,10 @@ export const TradeResults: FC<TradeResultsProps> = ({
 								Verification Trade
 							</span>
 							<span
-								className={`text-[10px] px-2.5 py-1 rounded-full font-semibold ${
-									result.pnl >= 0
-										? "bg-[#22c55e]/20 text-[#22c55e]"
-										: "bg-[#ef4444]/20 text-[#ef4444]"
-								}`}
+								className={`text-[10px] px-2.5 py-1 rounded-full font-semibold ${result.pnl >= 0
+									? "bg-[#22c55e]/20 text-[#22c55e]"
+									: "bg-[#ef4444]/20 text-[#ef4444]"
+									}`}
 							>
 								{result.pnl >= 0 ? "Profitable" : "Loss"}
 							</span>
@@ -181,11 +221,10 @@ export const TradeResults: FC<TradeResultsProps> = ({
 							<span className="text-white/20">•</span>
 							<div className="text-center">
 								<p
-									className={`font-display text-lg font-semibold ${
-										result.direction === "LONG"
-											? "text-[#22c55e]"
-											: "text-[#ef4444]"
-									}`}
+									className={`font-display text-lg font-semibold ${result.direction === "LONG"
+										? "text-[#22c55e]"
+										: "text-[#ef4444]"
+										}`}
 								>
 									{result.direction}
 								</p>
@@ -196,9 +235,8 @@ export const TradeResults: FC<TradeResultsProps> = ({
 							<span className="text-white/20">•</span>
 							<div className="text-center">
 								<p
-									className={`font-display text-lg font-semibold ${
-										result.pnl >= 0 ? "text-[#22c55e]" : "text-[#ef4444]"
-									}`}
+									className={`font-display text-lg font-semibold ${result.pnl >= 0 ? "text-[#22c55e]" : "text-[#ef4444]"
+										}`}
 								>
 									{result.pnl >= 0 ? "+" : ""}${result.pnl.toFixed(2)}
 								</p>
@@ -212,7 +250,7 @@ export const TradeResults: FC<TradeResultsProps> = ({
 					{/* Footer */}
 					<div className="flex justify-between items-center pt-5 border-t border-white/[0.08]">
 						<span className="font-display text-lg font-bold bg-gradient-to-r from-white to-[#d4a017] bg-clip-text text-transparent">
-							hashtro
+							<Image src="/logo/hast.png" alt="Logo" width={70} height={70} />
 						</span>
 						<span className="text-sm text-white/40">hashtro.fun</span>
 					</div>
@@ -233,18 +271,36 @@ export const TradeResults: FC<TradeResultsProps> = ({
 						</svg>
 						Share on X
 					</button>
-					<button className="btn-copy w-full sm:w-auto justify-center">
-						<svg
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							strokeWidth="2"
-							className="w-[18px] h-[18px]"
-						>
-							<rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-							<path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-						</svg>
-						Copy Image
+					<button
+						onClick={handleCopyImage}
+						disabled={isCopying}
+						className={`btn-copy w-full sm:w-auto justify-center transition-all ${copyStatus === "success" ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" : ""}`}
+					>
+						{copyStatus === "copying" ? (
+							<div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+						) : copyStatus === "success" ? (
+							<svg
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2"
+								className="w-[18px] h-[18px]"
+							>
+								<path d="M20 6L9 17l-5-5" />
+							</svg>
+						) : (
+							<svg
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2"
+								className="w-[18px] h-[18px]"
+							>
+								<rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+								<path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+							</svg>
+						)}
+						{copyStatus === "copying" ? "Copying..." : copyStatus === "success" ? "Copied!" : copyStatus === "error" ? "Error!" : "Copy Image"}
 					</button>
 				</div>
 
