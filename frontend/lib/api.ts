@@ -4,6 +4,7 @@ import {
 	CardType,
 	HoroscopeResponse,
 	HoroscopeStatus,
+	TradeTimeData,
 	UpdateBirth,
 	XDetails,
 } from "@/types";
@@ -150,6 +151,24 @@ export const api = {
 		if (!res.ok) {
 			const error = await res.json();
 			throw new Error(error.message || "Failed to update Birth details");
+		}
+
+		return res.json();
+	},
+
+	/**
+	 * Add or update trade timestamp for a user
+	 */
+	async addTradeTime(data: TradeTimeData) {
+		const res = await fetch(`${API_BASE}/user/trade-time`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(data),
+		});
+
+		if (!res.ok) {
+			const error = await res.json();
+			throw new Error(error.message || "Failed to update trade time");
 		}
 
 		return res.json();

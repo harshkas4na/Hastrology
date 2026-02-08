@@ -301,6 +301,43 @@ class UserService {
       throw error;
     }
   }
+
+  /**
+   * Update trade timestamp for a user
+   * @param {Object} params - Update parameters
+   * @param {string} params.walletAddress - User's wallet address
+   * @param {Date} params.tradeMadeAt - Trade timestamp
+   * @returns {Promise<Object>} Updated user
+   */
+  async updateTradeTime({ walletAddress, tradeMadeAt }) {
+    try {
+      logger.info("Updating trade time for user:", { walletAddress });
+
+      const { data, error } = await this.supabase
+        .from("users")
+        .update({
+          trade_made_at: tradeMadeAt.toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("wallet_address", walletAddress)
+        .select()
+        .single();
+
+      if (error) {
+        logger.error("Trade time update error:", error);
+        throw error;
+      }
+
+      logger.info("Trade time updated successfully:", {
+        walletAddress,
+        tradeMadeAt: tradeMadeAt.toISOString(),
+      });
+      return data;
+    } catch (error) {
+      logger.error("Update trade time error:", error);
+      throw error;
+    }
+  }
 }
 
 module.exports = new UserService();

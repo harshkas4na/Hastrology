@@ -121,7 +121,7 @@ const horoscopeConfirmSchema = Joi.object({
       "any.required": "Wallet address is required",
     }),
 
-  signature: Joi.string().optional().allow(null, '').messages({
+  signature: Joi.string().optional().allow(null, "").messages({
     "string.empty": "Transaction signature is required",
     "any.required": "Transaction signature is required",
   }),
@@ -200,6 +200,25 @@ const twitterTokensUpdateSchema = Joi.object({
   }),
 });
 
+const updateTimeSchema = Joi.object({
+  walletAddress: Joi.string()
+    .required()
+    .min(32)
+    .max(44)
+    .pattern(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/)
+    .messages({
+      "string.pattern.base": "Invalid Solana wallet address format",
+      "string.empty": "Wallet address is required",
+      "any.required": "Wallet address is required",
+    }),
+  tradeMadeAt: Joi.string().required().isoDate().messages({
+    "string.empty": "Trade timestamp is required",
+    "any.required": "Trade timestamp is required",
+    "string.isoDate":
+      "Trade timestamp must be a valid ISO date string (e.g., 2024-01-15T10:30:00.000Z)",
+  }),
+}).options({ stripUnknown: true });
+
 module.exports = {
   validate,
   validateUserRegistration: validate(userRegistrationSchema),
@@ -207,4 +226,5 @@ module.exports = {
   validateTwitterConfirm: validate(xAccountCreationSchema),
   validateTwitterTokensUpdate: validate(twitterTokensUpdateSchema),
   validateBirthDetailsConfirm: validate(birthDetailsUpdateSchema),
+  validateAddTimeConfirm: validate(updateTimeSchema),
 };

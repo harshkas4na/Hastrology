@@ -37,9 +37,9 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
 						solana: {
 							rpcs: {
 								"solana:mainnet": {
-									rpc: createSolanaRpc("https://solana-rpc.publicnode.com"),
+									rpc: createSolanaRpc("https://mainnet.helius-rpc.com/?api-key=d9fd3235-721e-4f3b-83b6-8a5163c636c4"),
 									rpcSubscriptions: createSolanaRpcSubscriptions(
-										"wss://solana-rpc.publicnode.com",
+										"wss://mainnet.helius-rpc.com/?api-key=d9fd3235-721e-4f3b-83b6-8a5163c636c4",
 									),
 								},
 								"solana:devnet": {
