@@ -1,17 +1,18 @@
 "use client";
 
+import * as htmlToImage from "html-to-image";
+import Image from "next/image";
 import { FC, useRef, useState } from "react";
 import type { AstroCard } from "@/types";
 import { Confetti } from "./Confetti";
 import { StarBackground } from "./StarBackground";
 import type { TradeResult } from "./TradeExecution";
-import Image from "next/image";
-import * as htmlToImage from "html-to-image";
 
 interface TradeResultsProps {
 	card: AstroCard;
 	result: TradeResult;
 	onReturnHome: () => void;
+	handleTryAgain: () => void;
 }
 
 // Map color names to CSS gradients
@@ -48,6 +49,7 @@ export const TradeResults: FC<TradeResultsProps> = ({
 	card,
 	result,
 	onReturnHome,
+	handleTryAgain,
 }) => {
 	const today = new Date().toLocaleDateString("en-US", {
 		year: "numeric",
@@ -67,7 +69,7 @@ export const TradeResults: FC<TradeResultsProps> = ({
 	const colorGradient =
 		colorGradients[colorKey] ||
 		colorGradients[
-		Object.keys(colorGradients).find((k) => colorKey.includes(k)) || "gold"
+			Object.keys(colorGradients).find((k) => colorKey.includes(k)) || "gold"
 		];
 
 	const handleShareX = () => {
@@ -77,7 +79,9 @@ export const TradeResults: FC<TradeResultsProps> = ({
 	};
 
 	const [isCopying, setIsCopying] = useState(false);
-	const [copyStatus, setCopyStatus] = useState<"idle" | "copying" | "success" | "error">("idle");
+	const [copyStatus, setCopyStatus] = useState<
+		"idle" | "copying" | "success" | "error"
+	>("idle");
 	const cardRef = useRef<HTMLDivElement>(null);
 
 	const handleCopyImage = async () => {
@@ -93,7 +97,7 @@ export const TradeResults: FC<TradeResultsProps> = ({
 				cacheBust: true,
 				style: {
 					borderRadius: "0",
-				}
+				},
 			});
 
 			if (!blob) throw new Error("Failed to generate image");
@@ -142,28 +146,56 @@ export const TradeResults: FC<TradeResultsProps> = ({
 					<div
 						className="absolute top-0 left-0 right-0 h-1"
 						style={{
-							background: "linear-gradient(90deg, #22c55e, #10b981, #d4a017)",
+							background:
+								result.pnlPercent >= 0
+									? "linear-gradient(90deg, #22c55e, #10b981, #d4a017)"
+									: "linear-gradient(90deg, #ef4444, #dc2626, #7f1d1d)",
 						}}
 					/>
 
 					{/* Verified badge */}
 					<div className="flex justify-center mb-6 pt-2">
-						<div className="badge-verified">
-							<svg
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								strokeWidth="2"
-							>
-								<path d="M20 6L9 17l-5-5" />
-							</svg>
-							<span>Verified by Trade</span>
-						</div>
+						{result.pnlPercent >= 0 ? (
+							<div className="badge-verified">
+								<svg
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									strokeWidth="2"
+								>
+									<path d="M20 6L9 17l-5-5" />
+								</svg>
+								<span>Verified by Trade</span>
+							</div>
+						) : (
+							<div className="badge-unverified">
+								<svg
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									strokeWidth="2"
+								>
+									<path d="M6 18L18 6M6 6l12 12" />
+								</svg>
+								<span>Not Verified</span>
+							</div>
+						)}
 					</div>
 
-					{/* Reading */}
 					<div className="text-center mb-6 pb-6 border-b border-white/[0.08]">
-						<p className="reading-text">"{reading}"</p>
+						{result.pnlPercent >= 0 ? (
+							<p className="reading-text">"{reading}"</p>
+						) : (
+							<>
+								<p className="reading-text text-[#ef4444]/80">
+									"The stars weren't aligned this time. Your horoscope remains
+									unverified."
+								</p>
+								<p className="text-xs text-white/50 mt-3">
+									Try again to verify your cosmic predictions
+								</p>
+							</>
+						)}
 					</div>
 
 					{/* Lucky Grid */}
@@ -188,16 +220,19 @@ export const TradeResults: FC<TradeResultsProps> = ({
 					</div>
 
 					{/* Trade Result */}
-					<div className="trade-result mb-6">
+					<div
+						className={`${result.pnlPercent >= 0 ? "trade-result" : "trade-result-failed"} mb-6`}
+					>
 						<div className="flex justify-between items-center mb-4">
 							<span className="text-[10px] text-white/50 uppercase tracking-[1.5px]">
 								Verification Trade
 							</span>
 							<span
-								className={`text-[10px] px-2.5 py-1 rounded-full font-semibold ${result.pnl >= 0
-									? "bg-[#22c55e]/20 text-[#22c55e]"
-									: "bg-[#ef4444]/20 text-[#ef4444]"
-									}`}
+								className={`text-[10px] px-2.5 py-1 rounded-full font-semibold ${
+									result.pnl >= 0
+										? "bg-[#22c55e]/20 text-[#22c55e]"
+										: "bg-[#ef4444]/20 text-[#ef4444]"
+								}`}
 							>
 								{result.pnl >= 0 ? "Profitable" : "Loss"}
 							</span>
@@ -221,10 +256,11 @@ export const TradeResults: FC<TradeResultsProps> = ({
 							<span className="text-white/20">•</span>
 							<div className="text-center">
 								<p
-									className={`font-display text-lg font-semibold ${result.direction === "LONG"
-										? "text-[#22c55e]"
-										: "text-[#ef4444]"
-										}`}
+									className={`font-display text-lg font-semibold ${
+										result.direction === "LONG"
+											? "text-[#22c55e]"
+											: "text-[#ef4444]"
+									}`}
 								>
 									{result.direction}
 								</p>
@@ -235,13 +271,15 @@ export const TradeResults: FC<TradeResultsProps> = ({
 							<span className="text-white/20">•</span>
 							<div className="text-center">
 								<p
-									className={`font-display text-lg font-semibold ${result.pnl >= 0 ? "text-[#22c55e]" : "text-[#ef4444]"
-										}`}
+									className={`font-display text-lg font-semibold ${
+										result.pnlPercent >= 0 ? "text-[#22c55e]" : "text-[#ef4444]"
+									}`}
 								>
-									{result.pnl >= 0 ? "+" : ""}${result.pnl.toFixed(2)}
+									{result.pnlPercent >= 0 ? "+" : ""}
+									{result.pnlPercent.toFixed(2)}%
 								</p>
 								<p className="text-[10px] text-white/40 uppercase mt-1">
-									Result
+									PnL(%)
 								</p>
 							</div>
 						</div>
@@ -255,6 +293,12 @@ export const TradeResults: FC<TradeResultsProps> = ({
 						<span className="text-sm text-white/40">hashtro.fun</span>
 					</div>
 				</div>
+
+				<button onClick={handleTryAgain} className="btn-copy bg-white/5 py-4 mt-5 w-full justify-center">
+					
+					Trade Again
+				</button>
+
 
 				{/* Action buttons */}
 				<div className="flex flex-col sm:flex-row gap-3 mt-7">
@@ -300,10 +344,17 @@ export const TradeResults: FC<TradeResultsProps> = ({
 								<path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
 							</svg>
 						)}
-						{copyStatus === "copying" ? "Copying..." : copyStatus === "success" ? "Copied!" : copyStatus === "error" ? "Error!" : "Copy Image"}
+						{copyStatus === "copying"
+							? "Copying..."
+							: copyStatus === "success"
+								? "Copied!"
+								: copyStatus === "error"
+									? "Error!"
+									: "Copy Image"}
 					</button>
 				</div>
 
+				
 				<button
 					onClick={onReturnHome}
 					className="w-full mt-5 py-3.5 text-sm text-white/50 hover:text-white transition-colors"

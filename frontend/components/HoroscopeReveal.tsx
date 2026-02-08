@@ -93,7 +93,7 @@ export const HoroscopeReveal: FC<HoroscopeRevealProps> = ({
 	const vibeStatus = card.front.vibe_status || "Confident";
 	const energyEmoji = card.front.energy_emoji || "✨";
 	const reading = `${card.front.hook_1}\n${card.front.hook_2}`;
-	const direction = deriveDirection(vibeStatus);
+	const direction = card.front.luck_score > 50 ? "LONG" : "SHORT";
 
 	// Get color gradient
 	const colorKey = luckyColor.toLowerCase();
@@ -307,7 +307,7 @@ export const HoroscopeReveal: FC<HoroscopeRevealProps> = ({
 							</button>
 
 							<p className="text-center mt-4 text-[10px] sm:text-xs text-white/40">
-								Minimum (0.02 SOL) required • Profits are yours to keep
+								Minimum (0.04 SOL) required • Profits are yours to keep
 							</p>
 						</div>
 

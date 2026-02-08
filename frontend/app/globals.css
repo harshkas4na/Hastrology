@@ -628,6 +628,17 @@ h6 {
   padding: 20px;
 }
 
+.trade-result-failed {
+  background: linear-gradient(
+    135deg,
+    rgba(239, 68, 68, 0.1),
+    rgba(239, 68, 68, 0.05)
+  );
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 16px;
+  padding: 20px;
+}
+
 /* ===============================================
    WARNING BOX
    =============================================== */
@@ -1055,4 +1066,24 @@ h6 {
   height: 100%;
   background: linear-gradient(90deg, #d4a017 0%, #fbbf24 100%);
   transition: width 0.3s ease;
+}
+
+.badge-unverified {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #ef4444;
+}
+
+.badge-unverified svg {
+  width: 14px;
+  height: 14px;
 }
