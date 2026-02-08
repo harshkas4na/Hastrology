@@ -19,6 +19,7 @@ const spaceGrotesk = Space_Grotesk({
 
 
 export const metadata: Metadata = {
+	metadataBase: new URL("https://hashtro.fun"),
 	title: "Hashtro - Trade Verified Horoscopes on Solana",
 	description:
 		"Trade Verified Horoscopes on Solana",
