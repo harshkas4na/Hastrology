@@ -45,7 +45,7 @@ export const TradeConfirm: FC<TradeConfirmProps> = ({
 
 	const luckyNumber = extractNumber(card.back.lucky_assets.number);
 	const vibeStatus = card.front.vibe_status || "Confident";
-	const direction = deriveDirection(vibeStatus);
+	const direction = card.front.luck_score > 50 ? "LONG" : "SHORT";
 
 	return (
 		<section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden px-4 py-6 sm:py-10">

@@ -1,13 +1,6 @@
 "use client";
 
-import { useConnection } from "@solana/wallet-adapter-react";
-import {
-	Connection,
-	LAMPORTS_PER_SOL,
-	PublicKey,
-	Transaction,
-} from "@solana/web3.js";
-import bs58 from "bs58";
+import { Connection, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { useRouter } from "next/navigation";
 import {
 	type FC,
@@ -21,16 +14,14 @@ import { WalletBalance } from "@/components/balance";
 import { HoroscopeReveal } from "@/components/HoroscopeReveal";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { TradeConfirm } from "@/components/TradeConfirm";
-import { TradeExecution, type TradeResult } from "@/components/TradeExecution";
+import { type TradeResult } from "@/components/TradeExecution";
 import { TradeResults } from "@/components/TradeResults";
 import { UserXDetails } from "@/components/TwitterDetails";
 import { TradeModal } from "@/components/trade-modal";
 import { WalletDropdown } from "@/components/wallet-dropdown";
 import { api } from "@/lib/api";
 import { FlashPrivyService } from "@/lib/flash-trade";
-import { buildEnterLotteryInstruction } from "@/lib/hastrology_program";
 import { useStore } from "@/store/useStore";
-import type { AstroCard } from "@/types";
 import { usePrivyWallet } from "../hooks/use-privy-wallet";
 
 type Screen =
@@ -40,8 +31,6 @@ type Screen =
 	| "confirm"
 	| "execute"
 	| "results";
-
-const PAYMENT_AMOUNT = 0.01; // SOL
 
 // Helper functions
 function deriveDirection(vibeStatus: string): "LONG" | "SHORT" {
@@ -75,16 +64,7 @@ const CardsPage: FC = () => {
 		signTransaction,
 		signAllTransactions,
 	} = usePrivyWallet();
-	const {
-		user,
-		card,
-		setCard,
-		setWallet,
-		setUser,
-		reset,
-		loading,
-		setLoading,
-	} = useStore();
+	const { card, setCard, setWallet, setUser, loading, setLoading } = useStore();
 	const router = useRouter();
 
 	const [currentScreen, setCurrentScreen] = useState<Screen>("loading");
@@ -354,6 +334,10 @@ const CardsPage: FC = () => {
 		router.push("/");
 	};
 
+	const handleTryAgain = () => {
+		setCurrentScreen("reveal");
+	};
+
 	// Loading screen
 	if (!isReady || currentScreen === "loading") {
 		return <LoadingSpinner fullScreen />;
@@ -466,7 +450,7 @@ const CardsPage: FC = () => {
 					onClose={() => {
 						setCurrentScreen("reveal");
 					}}
-					direction={tradeParams.direction}
+					direction={card.front.luck_score > 50 ? "LONG" : "SHORT"}
 					onComplete={handleTradeComplete}
 				/>
 			</>
@@ -486,6 +470,7 @@ const CardsPage: FC = () => {
 					card={card}
 					result={tradeResult}
 					onReturnHome={handleReturnHome}
+					handleTryAgain={handleTryAgain}
 				/>
 			</>
 		);

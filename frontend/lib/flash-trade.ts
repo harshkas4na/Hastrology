@@ -33,11 +33,15 @@ export interface PrivyWalletAdapter {
 	publicKey: string;
 	signTransaction: (
 		transaction: Transaction | VersionedTransaction,
+		options?: { uiOptions?: any },
 	) => Promise<Transaction | VersionedTransaction>;
 	signAllTransactions: (
 		transactions: (Transaction | VersionedTransaction)[],
 	) => Promise<(Transaction | VersionedTransaction)[]>;
-	sendTransaction: (transaction: Uint8Array) => Promise<string>;
+	sendTransaction: (
+		transaction: Uint8Array,
+		options?: { uiOptions?: any },
+	) => Promise<string>;
 }
 
 export interface FlashPrivyConfig {
@@ -942,13 +946,33 @@ export class FlashPrivyService {
 				closeTransaction.sign(closeInstructions.additionalSigners);
 			}
 
-			// Sign both transactions together with wallet (user signs twice)
-			console.log("⏳ Requesting signatures for both transactions...");
-			const [signedOpenTransaction, signedCloseTransaction] =
-				await this.config.wallet.signAllTransactions([
-					openTransaction,
-					closeTransaction,
-				]);
+			const signedOpenTransaction = await this.config.wallet.signTransaction(
+				openTransaction,
+				{
+					uiOptions: {
+						description: `Opening ${params.side.toUpperCase()} position: ${inputAmount} SOL at ${leverage}x leverage`,
+						buttonText: "Sign Open Trade Transaction",
+						transactionInfo: {
+							title: "Open Position",
+							description: `This will open a ${params.side.toUpperCase()} position with ${inputAmount} SOL collateral at ${leverage}x leverage`,
+						},
+					},
+				},
+			);
+
+			const signedCloseTransaction = await this.config.wallet.signTransaction(
+				closeTransaction,
+				{
+					uiOptions: {
+						description: `Pre-signing auto-close transaction (will execute in ${autoCloseDelaySeconds}s)`,
+						buttonText: "Sign Auto-Close Transaction",
+						transactionInfo: {
+							title: "Auto-Close Position",
+							description: `This transaction will automatically close your position after ${autoCloseDelaySeconds} seconds`,
+						},
+					},
+				},
+			);
 
 			if (
 				!(signedOpenTransaction instanceof VersionedTransaction) ||
@@ -961,8 +985,15 @@ export class FlashPrivyService {
 
 			// Send the open transaction using Privy's sendTransaction
 			const serializedOpen = signedOpenTransaction.serialize();
-			const openTxSig =
-				await this.config.wallet.sendTransaction(serializedOpen);
+
+			const openTxSig = await this.config.connection.sendRawTransaction(
+				serializedOpen,
+				{
+					skipPreflight: false,
+					preflightCommitment: "confirmed",
+					maxRetries: 3,
+				},
+			);
 
 			console.log("✅ Open transaction sent:", openTxSig);
 
@@ -1074,8 +1105,6 @@ export class FlashPrivyService {
 		try {
 			console.log("⏰ Sending pre-signed close transaction...");
 
-			// Send the pre-signed transaction directly to RPC
-			// Don't use Privy's sendTransaction as it expects unsigned transactions
 			const signature = await this.config.connection.sendRawTransaction(
 				serializedTransaction,
 				{

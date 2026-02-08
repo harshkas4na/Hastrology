@@ -1,7 +1,6 @@
 "use client";
 
 import { Connection } from "@solana/web3.js";
-import { motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Line, LineChart, ResponsiveContainer, Tooltip, YAxis } from "recharts";
 import { usePrivyWallet } from "@/app/hooks/use-privy-wallet";
@@ -45,7 +44,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 	const [isFetchingPrice, setIsFetchingPrice] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [success, setSuccess] = useState<SuccessState | null>(null);
-	const [amount, setTradeAmount] = useState(0.1);
+	const [amount, setTradeAmount] = useState(0.04);
 	const [pnl, setPnl] = useState(0);
 	const [pnlPercent, setPnlPercent] = useState(0);
 	const [currentPrice, setCurrentPrice] = useState(0);
@@ -259,92 +258,160 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 				}
 			}, 100);
 
-			// Schedule auto-close
+			// Schedule auto-close with fallback
 			const delay = result.closeAtTimestamp - Date.now();
+
 			autoCloseTimeoutRef.current = setTimeout(async () => {
+				let closeTxSig: string | null = null;
+				let closeMethod: "pre-signed" | "manual" = "pre-signed";
+
 				try {
 					setPhase("closing");
 					setStatusMessage("Closing position...");
 
-					const closeTxSig =
+					// Try pre-signed transaction first
+					closeTxSig =
 						await flashServiceRef.current!.sendPreSignedCloseTransaction(
 							result.signedCloseTransaction,
 							result.blockhash,
 							result.lastValidBlockHeight,
 						);
 
-					// Get final price for PnL calculation
-					const exitPrice = await flashServiceRef.current!.getSolPrice();
+					console.log("✅ Position closed via pre-signed transaction");
+				} catch (preSignedError: any) {
+					console.error("❌ Pre-signed close failed:", preSignedError);
 
-					// Calculate final PnL
-					const finalPriceDiff =
-						direction === "LONG"
-							? exitPrice - result.estimatedPrice
-							: result.estimatedPrice - exitPrice;
-					const finalPnl = finalPriceDiff * result.size;
-					const finalPercent = (finalPnl / amount) * 100;
+					// Fallback: Try manual close after 4 second delay
+					console.log("⏳ Attempting fallback manual close...");
+					setStatusMessage("Retrying close position...");
 
-					setStatusMessage("✨ Trade complete!");
+					try {
+						await new Promise((resolve) => setTimeout(resolve, 4000)); // 4 second delay
 
-					if (countdownIntervalRef.current) {
-						clearInterval(countdownIntervalRef.current);
-					}
+						const manualCloseResult = await flashServiceRef.current!.closeTrade(
+							0,
+							"SOL",
+						);
+						closeTxSig = manualCloseResult.txSig;
+						closeMethod = "manual";
 
-					// Complete with results
-					setTimeout(() => {
-						onComplete({
-							success: finalPnl > 0,
-							pnl: finalPnl,
-							pnlPercent: finalPercent,
-							entryPrice: result.estimatedPrice,
-							exitPrice: exitPrice,
-							direction,
-							leverage,
-							txSig: closeTxSig,
-						});
-					}, 1000);
-
-					// Update success state with close info
-					setSuccess((prev) => {
-						if (!prev) return null;
-
-						// Calculate PnL
-						const priceDiff =
-							prev.direction === "LONG"
-								? exitPrice - (prev.entryPrice || 0)
-								: (prev.entryPrice || 0) - exitPrice;
-						const pnl = (prev.size || 0) * priceDiff;
-
-						return {
-							...prev,
-							type: "close",
-							closeTxSig,
-							exitPrice,
-							pnl,
-							message: "Position automatically closed!",
-						};
-					});
-
-					// Stop countdown
-					setCountdown(null);
-					if (countdownIntervalRef.current) {
-						clearInterval(countdownIntervalRef.current);
-					}
-
-					// Reload positions to confirm closure
-					await loadLatestPosition();
-				} catch (error: any) {
-					console.error("❌ Auto-close failed:", error);
-					setError(
-						error.message ??
-							"Auto-close failed. Please close position manually.",
-					);
-					setCountdown(null);
-					if (countdownIntervalRef.current) {
-						clearInterval(countdownIntervalRef.current);
+						console.log("✅ Position closed via manual fallback");
+					} catch (manualError: any) {
+						console.error("❌ Manual close also failed:", manualError);
+						throw new Error(
+							`Both auto-close methods failed. Pre-signed: ${preSignedError.message}. Manual: ${manualError.message}`,
+						);
 					}
 				}
+
+				// If we got here, one of the close methods succeeded
+				if (!closeTxSig) {
+					throw new Error("Close transaction signature not received");
+				}
+
+				if (chartIntervalRef.current) {
+					clearInterval(chartIntervalRef.current);
+					chartIntervalRef.current = null;
+				}
+				if (countdownIntervalRef.current) {
+					clearInterval(countdownIntervalRef.current);
+					countdownIntervalRef.current = null;
+				}
+
+				// Get final price for PnL calculation
+				const exitPrice = await flashServiceRef.current!.getSolPrice();
+
+				// Calculate final PnL
+				const finalPriceDiff =
+					direction === "LONG"
+						? exitPrice - result.estimatedPrice
+						: result.estimatedPrice - exitPrice;
+				const finalPnl = finalPriceDiff * result.size;
+				const finalPercent = (finalPnl / amount) * 100;
+
+				setStatusMessage(`✨ Trade complete! (closed via ${closeMethod})`);
+
+				// Complete with results
+
+				onComplete({
+					success: finalPercent > 0,
+					pnl: finalPnl,
+					pnlPercent: finalPercent,
+					entryPrice: result.estimatedPrice,
+					exitPrice: exitPrice,
+					direction,
+					leverage,
+					txSig: closeTxSig!,
+				});
+
+				// Update success state with close info
+				setSuccess((prev) => {
+					if (!prev) return null;
+
+					// Calculate PnL
+					const priceDiff =
+						prev.direction === "LONG"
+							? exitPrice - (prev.entryPrice || 0)
+							: (prev.entryPrice || 0) - exitPrice;
+					const pnl = (prev.size || 0) * priceDiff;
+
+					return {
+						...prev,
+						type: "close",
+						closeTxSig,
+						exitPrice,
+						pnl,
+						message: `Position closed! (${closeMethod})`,
+					};
+				});
+
+				// Stop countdown
+				setCountdown(null);
+				if (countdownIntervalRef.current) {
+					clearInterval(countdownIntervalRef.current);
+				}
+
+				// Reload positions to confirm closure
+				await loadLatestPosition();
 			}, delay);
+
+			// Add an additional safety timeout for total failure
+			const safetyDelay = delay + 35000; // 30s + 5s margin
+			const safetyTimeoutRef = setTimeout(async () => {
+				// Check if position is still open
+				const positions = await flashServiceRef.current!.getUserPositions();
+
+				if (positions.length > 0) {
+					console.log(
+						"⚠️ Safety timeout triggered - position still open after 35s",
+					);
+					setStatusMessage("Final attempt to close position...");
+
+					try {
+						const emergencyClose = await flashServiceRef.current!.closeTrade(
+							0,
+							"SOL",
+						);
+						console.log("✅ Emergency close successful:", emergencyClose.txSig);
+
+						setError(null);
+						setStatusMessage("✨ Position closed (emergency fallback)");
+
+						// Reload and complete
+						await loadLatestPosition();
+					} catch (emergencyError: any) {
+						console.error("❌ Emergency close failed:", emergencyError);
+						setError(
+							"Position may still be open. Please check your positions and close manually if needed.",
+						);
+					}
+				}
+			}, safetyDelay);
+
+			// Clean up safety timeout when component unmounts
+			return () => {
+				if (safetyTimeoutRef) clearTimeout(safetyTimeoutRef);
+			};
 		} catch (err: any) {
 			console.error("❌ Trade execution failed:", err);
 			setError(err.message ?? "Trade failed");
@@ -469,7 +536,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 									<p
 										className={`pnl-value ${pnl >= 0 ? "positive" : "negative"}`}
 									>
-										{pnl >= 0 ? "+" : ""}${pnl.toFixed(2)}
+										{pnl >= 0 ? "+" : ""}${pnl.toFixed(5)}
 									</p>
 									<p
 										className={`pnl-percent ${
@@ -477,7 +544,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 										}`}
 									>
 										{pnl >= 0 ? "+" : ""}
-										{pnlPercent.toFixed(1)}%
+										{pnlPercent.toFixed(2)}%
 									</p>
 								</div>
 								<div className="pnl-card">
@@ -649,7 +716,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 							</div>
 							<button
 								onClick={handleAction}
-								disabled={isTrading}
+								disabled={isTrading || amount < 0.02}
 								className="btn-primary w-full mb-3 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
 								type="button"
 							>
@@ -712,6 +779,8 @@ function SolPriceChart({ data }: { data: { t: number; price: number }[] }) {
 	const max = data.length ? Math.max(...data.map((d) => d.price)) : 0;
 	const pad = data.length ? (max - min) * 0.15 || 1 : 1;
 
+	const lastIndex = data.length - 1;
+
 	return (
 		<ResponsiveContainer width="100%" height="100%">
 			<LineChart data={data}>
@@ -730,7 +799,45 @@ function SolPriceChart({ data }: { data: { t: number; price: number }[] }) {
 					dataKey="price"
 					stroke="#22c55e"
 					strokeWidth={2}
-					dot={false}
+					dot={(props: any) => {
+						const { cx, cy, index, payload } = props;
+						if (index !== lastIndex) return null;
+
+						const price = payload.price;
+						const text = `$${Number(price).toFixed(2)}`;
+
+						return (
+							<g>
+								{/* End dot */}
+								<circle cx={cx} cy={cy} r={4} fill="#22c55e" />
+								<circle cx={cx} cy={cy} r={2} fill="#fff" />
+
+								{/* Price label background */}
+								<rect
+									x={cx + 12}
+									y={cy - 12}
+									width={text.length * 6 + 20}
+									height={24}
+									rx={12}
+									fill="rgba(34,197,94,0.2)"
+									stroke="rgba(34,197,94,0.4)"
+									strokeWidth={1}
+								/>
+
+								{/* Price text */}
+								<text
+									x={cx + 22}
+									y={cy + 2}
+									fill="#22c55e"
+									fontSize={12}
+									fontWeight="700"
+									textAnchor="start"
+								>
+									{text}
+								</text>
+							</g>
+						);
+					}}
 					isAnimationActive={false}
 					style={{
 						filter: "drop-shadow(0 0 6px rgba(34,197,94,0.6))",

@@ -1,4 +1,4 @@
-import { usePrivy } from "@privy-io/react-auth";
+import { SendTransactionModalUIOptions, usePrivy } from "@privy-io/react-auth";
 import {
 	useSignAndSendTransaction,
 	useSignMessage,
@@ -70,6 +70,7 @@ export function usePrivyWallet(isTestnet = false) {
 	const signTransaction = useCallback(
 		async (
 			transaction: Transaction | VersionedTransaction,
+			options?: { uiOptions?: SendTransactionModalUIOptions },
 		): Promise<Transaction | VersionedTransaction> => {
 			if (!wallet) throw new Error("No wallet connected");
 
@@ -82,6 +83,11 @@ export function usePrivyWallet(isTestnet = false) {
 				transaction: transactionBytes,
 				wallet: wallet,
 				chain,
+				options: options || {
+					uiOptions: {
+						description: "Sign this transaction",
+					},
+				},
 			});
 
 			try {
@@ -117,7 +123,10 @@ export function usePrivyWallet(isTestnet = false) {
 	);
 
 	const sendTransaction = useCallback(
-		async (transaction: Uint8Array): Promise<string> => {
+		async (
+			transaction: Uint8Array,
+			options?: { uiOptions?: SendTransactionModalUIOptions },
+		): Promise<string> => {
 			if (!wallet) throw new Error("No wallet connected");
 
 			try {
@@ -125,6 +134,11 @@ export function usePrivyWallet(isTestnet = false) {
 					transaction: transaction,
 					wallet: wallet,
 					chain,
+					options: options || {
+						uiOptions: {
+							description: "Sign this transaction",
+						},
+					},
 				});
 
 				const signatureBytes = result.signature;
