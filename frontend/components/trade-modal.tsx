@@ -4,6 +4,7 @@ import { Connection } from "@solana/web3.js";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Line, LineChart, ResponsiveContainer, Tooltip, YAxis } from "recharts";
 import { usePrivyWallet } from "@/app/hooks/use-privy-wallet";
+import { api } from "@/lib/api";
 import { FlashPrivyService } from "@/lib/flash-trade";
 import type { AstroCard } from "@/types";
 import { StarBackground } from "./StarBackground";
@@ -187,7 +188,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 	}, [wallet.publicKey, flashReady, fetchSolPriceAndCalculateDetails]);
 
 	const executeTrade = async () => {
-		if (!wallet.connected || !flashServiceRef.current) {
+		if (!wallet.connected || !flashServiceRef.current || !wallet.publicKey) {
 			setError("Please connect your wallet first");
 			return;
 		}
@@ -343,6 +344,13 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 					leverage,
 					txSig: closeTxSig!,
 				});
+
+				if (finalPercent > 0 && finalPnl > 0) {
+					await api.addTradeTime({
+						walletAddress: wallet.publicKey ?? "",
+						tradeMadeAt: new Date().toISOString(),
+					});
+				}
 
 				// Update success state with close info
 				setSuccess((prev) => {

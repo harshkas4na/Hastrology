@@ -118,3 +118,5 @@ BEGIN
   RAISE NOTICE 'View created: user_horoscopes';
   RAISE NOTICE 'RLS policies enabled for security';
 END $$;
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS trade_made_at TIMESTAMP WITH TIME ZONE;

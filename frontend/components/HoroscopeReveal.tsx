@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { FC, useState } from "react";
+import { useStore } from "@/store/useStore";
 import type { AstroCard } from "@/types";
 import { StarBackground } from "./StarBackground";
 
@@ -79,6 +80,8 @@ export const HoroscopeReveal: FC<HoroscopeRevealProps> = ({
 	onVerifyTrade,
 }) => {
 	const [isFlipped, setIsFlipped] = useState(false);
+	const { user } = useStore();
+	const verifiedToday = isVerifiedToday(user?.tradeMadeAt);
 
 	const today = new Date().toLocaleDateString("en-US", {
 		year: "numeric",
@@ -100,7 +103,7 @@ export const HoroscopeReveal: FC<HoroscopeRevealProps> = ({
 	const colorGradient =
 		colorGradients[colorKey] ||
 		colorGradients[
-		Object.keys(colorGradients).find((k) => colorKey.includes(k)) || "gold"
+			Object.keys(colorGradients).find((k) => colorKey.includes(k)) || "gold"
 		];
 
 	const handleFlip = () => {
@@ -154,10 +157,17 @@ export const HoroscopeReveal: FC<HoroscopeRevealProps> = ({
 						>
 							{/* Unverified badge */}
 							<div className="flex justify-center mb-6">
-								<div className="badge-unverified">
-									<span className="w-2 h-2 rounded-full bg-white/30" />
-									Unverified
-								</div>
+								{verifiedToday ? (
+									<div className="badge-verified">
+										<span className="w-2 h-2 rounded-full bg-[#22c55e]" />
+										Verified for today
+									</div>
+								) : (
+									<div className="badge-unverified">
+										<span className="w-2 h-2 rounded-full bg-white/30" />
+										Unverified
+									</div>
+								)}
 							</div>
 
 							{/* Lucky Grid */}
@@ -260,8 +270,9 @@ export const HoroscopeReveal: FC<HoroscopeRevealProps> = ({
 									<span className="text-xs text-white/50">leverage</span>
 									<span className="text-white/20">•</span>
 									<span
-										className={`font-display text-lg font-semibold ${direction === "LONG" ? "text-[#22c55e]" : "text-[#ef4444]"
-											}`}
+										className={`font-display text-lg font-semibold ${
+											direction === "LONG" ? "text-[#22c55e]" : "text-[#ef4444]"
+										}`}
 									>
 										{direction}
 									</span>
@@ -290,20 +301,40 @@ export const HoroscopeReveal: FC<HoroscopeRevealProps> = ({
 							<button
 								onClick={(e) => {
 									e.stopPropagation();
-									onVerifyTrade();
+									if (!verifiedToday) onVerifyTrade();
 								}}
-								className="btn-primary w-full text-sm sm:text-base"
+								disabled={verifiedToday}
+								className={`btn-primary w-full text-sm sm:text-base ${
+									verifiedToday ? "opacity-70 cursor-not-allowed" : ""
+								}`}
 							>
-								<svg
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									strokeWidth="2"
-									className="w-5 h-5"
-								>
-									<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-								</svg>
-								Verify with Trade
+								{verifiedToday ? (
+									<>
+										<svg
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											strokeWidth="2"
+											className="w-5 h-5"
+										>
+											<path d="M20 6 9 17l-5-5" />
+										</svg>
+										Verified for today
+									</>
+								) : (
+									<>
+										<svg
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											strokeWidth="2"
+											className="w-5 h-5"
+										>
+											<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+										</svg>
+										Verify with Trade
+									</>
+								)}
 							</button>
 
 							<p className="text-center mt-4 text-[10px] sm:text-xs text-white/40">
@@ -481,3 +512,18 @@ export const HoroscopeReveal: FC<HoroscopeRevealProps> = ({
 		</section>
 	);
 };
+
+function isSameLocalDay(a: Date, b: Date) {
+	return (
+		a.getFullYear() === b.getFullYear() &&
+		a.getMonth() === b.getMonth() &&
+		a.getDate() === b.getDate()
+	);
+}
+
+function isVerifiedToday(tradeMadeAt?: string | null) {
+	if (!tradeMadeAt) return false;
+	const madeAt = new Date(tradeMadeAt);
+	if (Number.isNaN(madeAt.getTime())) return false;
+	return isSameLocalDay(madeAt, new Date());
+}

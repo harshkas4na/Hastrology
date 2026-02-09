@@ -181,6 +181,7 @@ export interface User {
 	twitterAccessToken?: string;
 	twitterRefreshToken?: string;
 	twitterTokenExpiresAt?: string;
+	tradeMadeAt?: string;
 }
 
 export interface AppState {
@@ -233,4 +234,9 @@ export interface FetchUserResult {
 	accessToken: string;
 	refreshToken: string;
 	expiresIn: number;
+}
+
+export interface TradeTimeData {
+	walletAddress: string;
+	tradeMadeAt: string;
 }

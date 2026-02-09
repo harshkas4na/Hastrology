@@ -5,6 +5,7 @@ const {
   validateTwitterConfirm,
   validateTwitterTokensUpdate,
   validateBirthDetailsConfirm,
+  validateAddTimeConfirm
 } = require("../middleware/validation");
 const { authLimiter } = require("../middleware/rateLimiter");
 
@@ -63,6 +64,18 @@ router.post(
   authLimiter,
   validateBirthDetailsConfirm,
   userController.registerBirth
+);
+
+/**
+ * @route   POST /api/user/trade-time
+ * @desc    Add traded at to an user
+ * @access  Private
+ */
+router.post(
+  "/trade-time",
+  authLimiter,
+  validateAddTimeConfirm,
+  userController.addTradeTime
 );
 
 module.exports = router;

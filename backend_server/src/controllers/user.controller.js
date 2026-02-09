@@ -104,6 +104,7 @@ class UserController {
           twitterAccessToken: user.twitter_access_token,
           twitterRefreshToken: user.twitter_refresh_token,
           twitterTokenExpiresAt: user.twitter_token_expires,
+          tradeMadeAt: user.trade_made_at,
         },
       });
     } catch (error) {
@@ -320,6 +321,120 @@ class UserController {
       );
     } catch (error) {
       logger.error("Register birth details controller error:", error);
+      next(error);
+    }
+  }
+
+  /**
+   * Add or update trade timestamp for a user
+   * @route POST /api/user/trade-time
+   */
+  async addTradeTime(req, res, next) {
+    try {
+      const { walletAddress, tradeMadeAt } = req.body;
+
+      if (!walletAddress || !tradeMadeAt) {
+        return errorResponse(
+          res,
+          "Wallet address and trade timestamp are required",
+          400
+        );
+      }
+
+      // Check if user exists
+      const existingUser = await userService.findUserByWallet(walletAddress);
+      console.log(existingUser)
+      if (!existingUser) {
+        return errorResponse(
+          res,
+          "abcd",
+          404
+        );
+      }
+
+      // Validate timestamp is not in the future
+      const tradeDate = new Date(tradeMadeAt);
+      const now = new Date();
+
+      if (tradeDate > now) {
+        return errorResponse(
+          res,
+          "Trade timestamp cannot be in the future",
+          400
+        );
+      }
+
+      // Validate ISO format (Joi already validated, but double-check)
+      if (isNaN(tradeDate.getTime())) {
+        return errorResponse(
+          res,
+          "Invalid timestamp format. Must be a valid ISO date string",
+          400
+        );
+      }
+
+      // Update the trade timestamp
+      const updatedUser = await userService.updateTradeTime({
+        walletAddress,
+        tradeMadeAt: tradeDate, // Pass as Date object
+      });
+
+      logger.info("Trade time updated successfully", {
+        walletAddress,
+        tradeMadeAt: tradeDate.toISOString(),
+      });
+
+      return successResponse(
+        res,
+        {
+          message: "Trade time updated successfully",
+          user: {
+            id: updatedUser.id,
+            walletAddress: updatedUser.wallet_address,
+            tradeMadeAt: updatedUser.trade_made_at,
+            updatedAt: updatedUser.updated_at,
+          },
+        },
+        200
+      );
+    } catch (error) {
+      logger.error("Add trade time controller error:", error);
+      next(error);
+    }
+  }
+
+  /**
+   * Get trade timestamp for a user
+   * @route GET /api/user/trade-time/:walletAddress
+   */
+  async getTradeTime(req, res, next) {
+    try {
+      const { walletAddress } = req.params;
+
+      if (!walletAddress) {
+        return errorResponse(res, "Wallet address is required", 400);
+      }
+
+      const user = await userService.findUserByWallet(walletAddress);
+      if (!user) {
+        return errorResponse(res, "abcd", 404);
+      }
+
+      return successResponse(
+        res,
+        {
+          tradeMadeAt: user.trade_made_at,
+          hasTradeTime: !!user.trade_made_at,
+          user: {
+            id: user.id,
+            walletAddress: user.wallet_address,
+            username: user.username,
+          },
+        },
+        200
+      );
+    } catch (error) {
+      logger.error("Get trade time controller error:", error);
       next(error);
     }
   }
