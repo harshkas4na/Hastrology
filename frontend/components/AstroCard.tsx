@@ -15,7 +15,9 @@ interface AstroCardProps {
 	showShare: boolean;
 }
 
-// Get zodiac emoji mapping
+
+
+
 const getZodiacEmoji = (sign: string): string => {
 	const zodiacMap: Record<string, string> = {
 		aries: "♈",
