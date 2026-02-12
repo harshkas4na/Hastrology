@@ -70,7 +70,7 @@ class HoroscopeFront(BaseModel):
     luck_score: int = Field(..., ge=0, le=100)
     vibe_status: str = Field(..., description="Stellar, Ascending, Shaky, or Eclipse")
     energy_emoji: str
-    zodiac_sign: str
+    zodiac_sign: str = Field(..., description="Sun sign based on date of birth")
     time_lord: str = Field(default="Sun", description="Lord of the Year")
     profection_house: int = Field(default=1, ge=1, le=12)
 
@@ -393,9 +393,17 @@ class HoroscopeService:
         bullish_moods_str = ", ".join([f"{m['mood']} {m['emoji']}" for m in ASSET_MAPPINGS.get("bullish_moods", [])])
         bearish_moods_str = ", ".join([f"{m['mood']} {m['emoji']}" for m in ASSET_MAPPINGS.get("bearish_moods", [])])
 
+        # Compute Sun sign from DOB (independent of birth time)
+        try:
+            sun_date = self._parse_date(dob)
+            sun_sign = self._get_fallback_zodiac(sun_date.day, sun_date.month)
+        except Exception:
+            sun_sign = "Unknown"
+
         # Build prompt variables
         prompt_vars = {
             "cdo_json": cdo_json,
+            "sun_sign": sun_sign,
             "sect": cdo_summary.get("sect", "Diurnal"),
             "malefic_severity": cdo_summary.get("malefic_severity", "constructive"),
             "ascendant": cdo_summary.get("ascendant", "Unknown"),

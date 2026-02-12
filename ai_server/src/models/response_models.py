@@ -28,7 +28,7 @@ class HoroscopeCardFront(BaseModel):
     luck_score: int = Field(..., ge=0, le=100, description="Luck score (0-100)")
     vibe_status: str = Field(..., description="Cosmic status (Stellar, Ascending, Shaky, Eclipse)")
     energy_emoji: str = Field(..., description="Emoji representing the energy")
-    zodiac_sign: str = Field(..., description="User's rising sign (Ascendant)")
+    zodiac_sign: str = Field(..., description="User's Sun sign (based on date of birth)")
     time_lord: str = Field(..., description="Lord of the Year from profections")
     profection_house: int = Field(..., ge=1, le=12, description="Current profection house")
 

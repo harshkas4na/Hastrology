@@ -25,6 +25,7 @@ Bullish Moods: {bullish_moods}
 Bearish Moods: {bearish_moods}
 
 ## Key Data Points
+- **Sun Sign**: {sun_sign}
 - **Sect**: {sect} chart - {malefic_severity} Saturn influence
 - **Ascendant**: {ascendant}
 - **Time Lord (Lord of the Year)**: {time_lord} - ruling House {profection_house}
@@ -121,7 +122,7 @@ The front card stays punchy and relatable with their Twitter vibe. **NO ASTROLOG
 - luck_score: 0-100 based on aspect harmony and dignity
 - vibe_status: One of "Stellar", "Ascending", "Shaky", "Eclipse"
 - energy_emoji: Single emoji capturing the day's energy
-- zodiac_sign: The Ascendant sign (rising sign)
+- zodiac_sign: MUST be exactly "{sun_sign}" (the Sun sign derived from date of birth)
 - time_lord: Lord of the Year planet
 - profection_house: Current profection house number (1-12)
 
