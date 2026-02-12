@@ -766,7 +766,6 @@ export class FlashPrivyService {
 		}
 
 		try {
-			console.log("perps", perps);
 			// Step 1: Build open trade transaction
 			const { side: normalSide, inputAmount, leverage } = params;
 			const side = normalSide === "long" ? Side.Long : Side.Short;
@@ -1117,6 +1116,22 @@ export class FlashPrivyService {
 
 			console.log("✅ Close transaction sent:", signature);
 
+			try {
+				console.log("🔍 Checking if position is already closed...");
+				const positions = await this.getUserPositions();
+
+				if (positions.length === 0) {
+					console.log(
+						"✅ Position already closed, no need to wait for confirmation",
+					);
+					return signature;
+				}
+			} catch (checkError) {
+				console.log(
+					"⚠️ Could not check position status, proceeding with confirmation",
+				);
+			}
+
 			// Wait for confirmation with timeout
 			const confirmationPromise = this.config.connection.confirmTransaction(
 				{
@@ -1127,27 +1142,67 @@ export class FlashPrivyService {
 				"confirmed",
 			);
 
-			// Add timeout to prevent hanging
 			const timeoutPromise = new Promise((_, reject) => {
 				setTimeout(
 					() => reject(new Error("Transaction confirmation timeout")),
-					60000,
+					30000, // Reduced from 60000 to 30000
 				);
 			});
 
-			const confirmation = (await Promise.race([
-				confirmationPromise,
-				timeoutPromise,
-			])) as any;
+			try {
+				const confirmation = (await Promise.race([
+					confirmationPromise,
+					timeoutPromise,
+				])) as any;
 
-			if (confirmation.value?.err) {
-				throw new Error(
-					`Transaction failed: ${JSON.stringify(confirmation.value.err)}`,
-				);
+				if (confirmation.value?.err) {
+					// Check if error is due to blockhash expiration
+					if (
+						confirmation.value.err.toString().includes("BlockhashNotFound") ||
+						confirmation.value.err.toString().includes("block height exceeded")
+					) {
+						console.log(
+							"⚠️ Blockhash expired, checking if position was actually closed...",
+						);
+
+						// Verify position status one more time
+						const finalPositions = await this.getUserPositions();
+						if (finalPositions.length === 0) {
+							console.log(
+								"✅ Position was closed successfully despite confirmation timeout",
+							);
+							return signature;
+						}
+					}
+
+					throw new Error(
+						`Transaction failed: ${JSON.stringify(confirmation.value.err)}`,
+					);
+				}
+			} catch (error: any) {
+				// Handle timeout or other confirmation errors
+				if (
+					error.message?.includes("timeout") ||
+					error.message?.includes("blockhash") ||
+					error.message?.includes("block height")
+				) {
+					console.log(
+						"⚠️ Confirmation timed out, checking if position was actually closed...",
+					);
+
+					// Verify if position was actually closed
+					const positions = await this.getUserPositions();
+					if (positions.length === 0) {
+						console.log(
+							"✅ Position was closed successfully despite confirmation error",
+						);
+						return signature;
+					}
+				}
+
+				// Re-throw if we can't confirm position was closed
+				throw error;
 			}
-
-			console.log("✅ Position auto-closed:", signature);
-			return signature;
 		} catch (error: any) {
 			console.error("❌ Auto-close failed:", error);
 

@@ -341,17 +341,6 @@ class UserController {
         );
       }
 
-      // Check if user exists
-      const existingUser = await userService.findUserByWallet(walletAddress);
-      console.log(existingUser)
-      if (!existingUser) {
-        return errorResponse(
-          res,
-          "abcd",
-          404
-        );
-      }
-
       // Validate timestamp is not in the future
       const tradeDate = new Date(tradeMadeAt);
       const now = new Date();
