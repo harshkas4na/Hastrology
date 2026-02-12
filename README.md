@@ -1,4 +1,4 @@
-# Hastrology - AI-Powered Cosmic Trading Platform
+# Hashtro - Trade Verified Horoscopes on Solana
 
 **Live at [hashtro.fun](https://hashtro.fun)**
 
