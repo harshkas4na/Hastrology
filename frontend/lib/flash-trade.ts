@@ -1179,6 +1179,8 @@ export class FlashPrivyService {
 						`Transaction failed: ${JSON.stringify(confirmation.value.err)}`,
 					);
 				}
+
+				return signature;
 			} catch (error: any) {
 				// Handle timeout or other confirmation errors
 				if (
