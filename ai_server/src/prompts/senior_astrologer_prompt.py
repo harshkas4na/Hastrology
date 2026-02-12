@@ -120,8 +120,12 @@ The front card stays punchy and relatable with their Twitter vibe. **NO ASTROLOG
   * Practical wisdom, not fear-mongering
 
 - luck_score: 0-100 based on aspect harmony and dignity
-- vibe_status: One of "Stellar", "Ascending", "Shaky", "Eclipse"
-- energy_emoji: Single emoji capturing the day's energy
+  **CRITICAL TRADING RULE — luck_score determines the user's trade direction:**
+  * luck_score > 50 = BULLISH day → trade goes LONG. vibe_status MUST be "Stellar" (80-100) or "Ascending" (51-79). energy_emoji MUST be from the Bullish Moods list.
+  * luck_score <= 50 = BEARISH day → trade goes SHORT. vibe_status MUST be "Shaky" (40-50) or "Eclipse" (0-39). energy_emoji MUST be from the Bearish Moods list.
+  These three fields (luck_score, vibe_status, energy_emoji) MUST always be consistent. Never pair a bearish vibe_status with luck_score > 50 or vice versa.
+- vibe_status: One of "Stellar" (80-100), "Ascending" (51-79), "Shaky" (40-50), "Eclipse" (0-39). Must match luck_score range.
+- energy_emoji: Must come from the Bullish Moods list if luck_score > 50, or Bearish Moods list if luck_score <= 50. Use the emoji from the chosen mood.
 - zodiac_sign: MUST be exactly "{sun_sign}" (the Sun sign derived from date of birth)
 - time_lord: Lord of the Year planet
 - profection_house: Current profection house number (1-12)
