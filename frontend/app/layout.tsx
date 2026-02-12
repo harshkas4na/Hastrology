@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { Web3Provider } from "@/components/WalletContextProvider";
+import AccessGate from "@/components/AccessGate";
 
 const inter = Inter({
 	subsets: ["latin"],
@@ -61,7 +62,9 @@ export default function RootLayout({
 			<body
 				className={`${inter.variable} ${spaceGrotesk.variable} font-sans bg-[#0a0a0f] text-white antialiased`}
 			>
-				<Web3Provider>{children}</Web3Provider>
+				<Web3Provider>
+					<AccessGate>{children}</AccessGate>
+				</Web3Provider>
 			</body>
 		</html>
 	);
