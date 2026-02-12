@@ -163,12 +163,14 @@ class HoroscopeService {
 
             if (todayHoroscope && todayHoroscope.cards) {
                 const cardData = todayHoroscope.cards;
+                const verified = todayHoroscope.verified || false;
                 // Handle both old format (dict of cards) and new format (single card)
                 if (cardData.front && cardData.back) {
                     // New format: single card
                     return {
                         status: 'exists',
                         card: cardData,
+                        verified,
                         date: todayHoroscope.date
                     };
                 } else {
@@ -176,6 +178,7 @@ class HoroscopeService {
                     return {
                         status: 'exists',
                         cards: cardData,
+                        verified,
                         date: todayHoroscope.date
                     };
                 }
@@ -187,6 +190,36 @@ class HoroscopeService {
             };
         } catch (error) {
             logger.error('Get horoscope status error:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Mark today's horoscope as verified by trade
+     * @param {string} walletAddress - User's wallet address
+     * @returns {Promise<Object>} Updated horoscope row
+     */
+    async verifyHoroscope(walletAddress) {
+        try {
+            const today = this.getTodayDateString();
+
+            const { data, error } = await this.supabase
+                .from('horoscopes')
+                .update({ verified: true })
+                .eq('wallet_address', walletAddress)
+                .eq('date', today)
+                .select()
+                .single();
+
+            if (error) {
+                logger.error('Verify horoscope error:', error);
+                throw error;
+            }
+
+            logger.info('Horoscope verified successfully:', { walletAddress, date: today });
+            return data;
+        } catch (error) {
+            logger.error('Verify horoscope error:', error);
             throw error;
         }
     }

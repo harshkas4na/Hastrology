@@ -98,6 +98,28 @@ export const api = {
 	},
 
 	/**
+	 * Verify horoscope via a profitable trade
+	 */
+	async verifyHoroscope(
+		walletAddress: string,
+		txSig: string,
+		pnlPercent: number,
+	): Promise<{ verified: boolean }> {
+		const res = await fetch(`${API_BASE}/horoscope/verify`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ walletAddress, txSig, pnlPercent }),
+		});
+
+		if (!res.ok) {
+			const error = await res.json();
+			throw new Error(error.message || "Failed to verify horoscope");
+		}
+
+		return res.json();
+	},
+
+	/**
 	 * Add twitter details to an existing user
 	 */
 	async regsiterX(data: XDetails) {

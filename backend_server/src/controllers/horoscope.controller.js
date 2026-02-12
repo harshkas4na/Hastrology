@@ -158,6 +158,42 @@ class HoroscopeController {
     }
 
     /**
+     * Verify horoscope via a profitable trade
+     * @route POST /api/horoscope/verify
+     */
+    async verify(req, res, next) {
+        try {
+            const { walletAddress, txSig, pnlPercent } = req.body;
+
+            // Reject losing trades server-side
+            if (pnlPercent < 0) {
+                return errorResponse(res, 'Only profitable trades can verify a horoscope', 400);
+            }
+
+            // Verify user exists
+            const user = await userService.findUserByWallet(walletAddress);
+            if (!user) {
+                return errorResponse(res, 'User not found', 404);
+            }
+
+            // Verify the transaction exists on-chain
+            const txValid = await solanaService.verifyTransaction(txSig);
+            if (!txValid) {
+                return errorResponse(res, 'Transaction not found on-chain', 400);
+            }
+
+            // Mark today's horoscope as verified
+            await horoscopeService.verifyHoroscope(walletAddress);
+
+            logger.info('Horoscope verified via trade', { walletAddress, txSig });
+            return successResponse(res, { verified: true });
+        } catch (error) {
+            logger.error('Verify controller error:', error);
+            next(error);
+        }
+    }
+
+    /**
      * Get user's horoscope history
      * @route GET /api/horoscope/history/:walletAddress
      */
@@ -173,6 +209,7 @@ class HoroscopeController {
                 horoscopes: horoscopes.map(h => ({
                     date: h.date,
                     horoscopeText: h.horoscope_text,
+                    verified: h.verified || false,
                     createdAt: h.created_at
                 }))
             });

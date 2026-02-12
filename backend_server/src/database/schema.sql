@@ -33,8 +33,9 @@ CREATE TABLE IF NOT EXISTS horoscopes (
   wallet_address TEXT NOT NULL,
   date DATE NOT NULL,
   horoscope_text TEXT NOT NULL,
+  verified BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  
+
   -- Ensure one horoscope per user per day
   UNIQUE(wallet_address, date)
 );
@@ -95,11 +96,12 @@ CREATE POLICY "Users can read their own horoscopes"
 
 -- Create a view for easier querying
 CREATE OR REPLACE VIEW user_horoscopes AS
-SELECT 
+SELECT
   h.id,
   h.wallet_address,
   h.date,
   h.horoscope_text,
+  h.verified,
   h.created_at,
   u.dob,
   u.birth_time,

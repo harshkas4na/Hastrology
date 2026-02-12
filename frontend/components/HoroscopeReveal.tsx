@@ -8,6 +8,7 @@ import { StarBackground } from "./StarBackground";
 
 interface HoroscopeRevealProps {
 	card: AstroCard;
+	verified?: boolean;
 	onVerifyTrade: () => void;
 }
 
@@ -77,6 +78,7 @@ function extractNumber(numStr: string): number {
 
 export const HoroscopeReveal: FC<HoroscopeRevealProps> = ({
 	card,
+	verified = false,
 	onVerifyTrade,
 }) => {
 	const [isFlipped, setIsFlipped] = useState(false);
@@ -155,9 +157,9 @@ export const HoroscopeReveal: FC<HoroscopeRevealProps> = ({
 								WebkitBackfaceVisibility: "hidden",
 							}}
 						>
-							{/* Unverified badge */}
+							{/* Verification badge */}
 							<div className="flex justify-center mb-6">
-								{verifiedToday ? (
+								{verified || verifiedToday ? (
 									<div className="badge-verified">
 										<span className="w-2 h-2 rounded-full bg-[#22c55e]" />
 										Verified for today
@@ -297,18 +299,18 @@ export const HoroscopeReveal: FC<HoroscopeRevealProps> = ({
 								<span className="text-xs">Tap for deep insights</span>
 							</div>
 
-							{/* Verify Button */}
+							{/* Verify / Trade Again Button */}
 							<button
 								onClick={(e) => {
 									e.stopPropagation();
-									if (!verifiedToday) onVerifyTrade();
+									if (!(verified || verifiedToday)) onVerifyTrade();
 								}}
-								disabled={verifiedToday}
+								disabled={verified || verifiedToday}
 								className={`btn-primary w-full text-sm sm:text-base ${
-									verifiedToday ? "opacity-70 cursor-not-allowed" : ""
+									verified || verifiedToday ? "opacity-70 cursor-not-allowed" : ""
 								}`}
 							>
-								{verifiedToday ? (
+								{verified || verifiedToday ? (
 									<>
 										<svg
 											viewBox="0 0 24 24"

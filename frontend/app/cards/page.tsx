@@ -71,6 +71,7 @@ const CardsPage: FC = () => {
 	const [tradeAmount, setTradeAmount] = useState(10);
 	const [tradeResult, setTradeResult] = useState<TradeResult | null>(null);
 	const [error, setError] = useState<string | null>(null);
+	const [verified, setVerified] = useState(false);
 	const [balance, setBalance] = useState<number | null>(null);
 	const [flashService, setFlashService] = useState<FlashPrivyService | null>(
 		null,
@@ -203,6 +204,7 @@ const CardsPage: FC = () => {
 
 				if (status.status === "exists" && status.card) {
 					setCard(status.card);
+					if (status.verified) setVerified(true);
 					setCurrentScreen("reveal");
 				} else {
 					// FREE HOROSCOPE: Auto-generate without payment
@@ -327,6 +329,14 @@ const CardsPage: FC = () => {
 	const handleTradeComplete = (result: TradeResult) => {
 		setTradeResult(result);
 		setCurrentScreen("results");
+
+		// Persist verification for profitable trades (fire-and-forget)
+		if (result.pnlPercent >= 0 && publicKey && result.txSig) {
+			setVerified(true);
+			api.verifyHoroscope(publicKey, result.txSig, result.pnlPercent).catch((err) => {
+				console.error("Failed to persist verification:", err);
+			});
+		}
 	};
 
 	// Handle return to home
@@ -413,7 +423,7 @@ const CardsPage: FC = () => {
 				<div className="absolute top-0 md:top-6 right-5 md:right-6 z-50">
 					<WalletDropdown variant="desktop" />
 				</div>
-				<HoroscopeReveal card={card} onVerifyTrade={handleVerifyTrade} />
+				<HoroscopeReveal card={card} verified={verified} onVerifyTrade={handleVerifyTrade} />
 			</>
 		);
 	}

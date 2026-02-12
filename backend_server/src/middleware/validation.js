@@ -128,6 +128,32 @@ const horoscopeConfirmSchema = Joi.object({
 });
 
 /**
+ * Horoscope verify (trade verification) validation schema
+ */
+const horoscopeVerifySchema = Joi.object({
+  walletAddress: Joi.string()
+    .required()
+    .min(32)
+    .max(44)
+    .pattern(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/)
+    .messages({
+      "string.pattern.base": "Invalid Solana wallet address format",
+      "string.empty": "Wallet address is required",
+      "any.required": "Wallet address is required",
+    }),
+
+  txSig: Joi.string().required().min(1).messages({
+    "string.empty": "Transaction signature is required",
+    "any.required": "Transaction signature is required",
+  }),
+
+  pnlPercent: Joi.number().required().messages({
+    "number.base": "pnlPercent must be a number",
+    "any.required": "pnlPercent is required",
+  }),
+});
+
+/**
  * X account creation validation schema
  */
 const xAccountCreationSchema = Joi.object({
@@ -223,6 +249,7 @@ module.exports = {
   validate,
   validateUserRegistration: validate(userRegistrationSchema),
   validateHoroscopeConfirm: validate(horoscopeConfirmSchema),
+  validateHoroscopeVerify: validate(horoscopeVerifySchema),
   validateTwitterConfirm: validate(xAccountCreationSchema),
   validateTwitterTokensUpdate: validate(twitterTokensUpdateSchema),
   validateBirthDetailsConfirm: validate(birthDetailsUpdateSchema),

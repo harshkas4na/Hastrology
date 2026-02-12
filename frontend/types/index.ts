@@ -158,11 +158,13 @@ export interface HoroscopeStatus {
 	horoscope?: string;
 	card?: AstroCard; // New format: single card
 	cards?: Record<CardType, AstroCard>; // Old format: backwards compatibility
+	verified?: boolean;
 	date?: string;
 }
 
 export interface HoroscopeResponse {
 	card: AstroCard; // New format: single card
+	verified?: boolean;
 	date?: string;
 }
 

@@ -1,6 +1,6 @@
 const express = require('express');
 const horoscopeController = require('../controllers/horoscope.controller');
-const { validateHoroscopeConfirm } = require('../middleware/validation');
+const { validateHoroscopeConfirm, validateHoroscopeVerify } = require('../middleware/validation');
 const { generalLimiter, strictLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
@@ -26,6 +26,18 @@ router.post(
     strictLimiter,
     validateHoroscopeConfirm,
     horoscopeController.confirm
+);
+
+/**
+ * @route   POST /api/horoscope/verify
+ * @desc    Verify horoscope via a profitable trade
+ * @access  Public
+ */
+router.post(
+    '/verify',
+    strictLimiter,
+    validateHoroscopeVerify,
+    horoscopeController.verify
 );
 
 /**
