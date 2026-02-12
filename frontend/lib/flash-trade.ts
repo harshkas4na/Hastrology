@@ -766,7 +766,6 @@ export class FlashPrivyService {
 		}
 
 		try {
-			console.log("perps", perps);
 			// Step 1: Build open trade transaction
 			const { side: normalSide, inputAmount, leverage } = params;
 			const side = normalSide === "long" ? Side.Long : Side.Short;
