@@ -200,7 +200,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 			const result = await flashServiceRef.current.executeTradeWithAutoClose(
 				{
 					card,
-					side: card.front.luck_score > 50 ? "long" : "short",
+					side: direction === "LONG" ? "long" : "short",
 					inputAmount: amount,
 					leverage,
 				},
@@ -220,7 +220,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 
 						return next.filter((p) => now - p.t <= 30_000);
 					});
-				} catch { }
+				} catch {}
 			}, 1000);
 			setStatusMessage("Trade is live...");
 			setTimeLeft(TRADE_DURATION);
@@ -306,9 +306,6 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 				}
 
 				// If we got here, one of the close methods succeeded
-				if (!closeTxSig) {
-					throw new Error("Close transaction signature not received");
-				}
 
 				if (chartIntervalRef.current) {
 					clearInterval(chartIntervalRef.current);
@@ -329,6 +326,16 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 						: result.estimatedPrice - exitPrice;
 				const finalPnl = finalPriceDiff * result.size;
 				const finalPercent = (finalPnl / amount) * 100;
+				if (finalPercent > 0) {
+					try {
+						await api.addTradeTime({
+							walletAddress: wallet.publicKey ?? "",
+							tradeMadeAt: new Date().toISOString(),
+						});
+					} catch (apiError) {
+						console.error("Failed to record trade time:", apiError);
+					}
+				}
 
 				setStatusMessage(`✨ Trade complete! (closed via ${closeMethod})`);
 
@@ -344,13 +351,6 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 					leverage,
 					txSig: closeTxSig!,
 				});
-
-				if (finalPercent > 0 && finalPnl > 0) {
-					await api.addTradeTime({
-						walletAddress: wallet.publicKey ?? "",
-						tradeMadeAt: new Date().toISOString(),
-					});
-				}
 
 				// Update success state with close info
 				setSuccess((prev) => {
@@ -509,10 +509,11 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 									<span className="font-display text-2xl font-bold">SOL</span>
 									<div>
 										<span
-											className={`text-xs font-semibold ${direction === "LONG"
+											className={`text-xs font-semibold ${
+												direction === "LONG"
 													? "text-[#22c55e]"
 													: "text-[#ef4444]"
-												}`}
+											}`}
 										>
 											{direction === "LONG" ? "↑" : "↓"} {direction}
 										</span>
@@ -546,8 +547,9 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 										{pnl >= 0 ? "+" : ""}${pnl.toFixed(5)}
 									</p>
 									<p
-										className={`pnl-percent ${pnl >= 0 ? "text-[#22c55e]" : "text-[#ef4444]"
-											}`}
+										className={`pnl-percent ${
+											pnl >= 0 ? "text-[#22c55e]" : "text-[#ef4444]"
+										}`}
 									>
 										{pnl >= 0 ? "+" : ""}
 										{pnlPercent.toFixed(2)}%
@@ -580,10 +582,11 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 
 							{/* Status message */}
 							<div
-								className={`text-center p-4 rounded-xl ${error
+								className={`text-center p-4 rounded-xl ${
+									error
 										? "bg-red-500/10 border border-red-500/20"
 										: "bg-[#d4a017]/10 border border-[#d4a017]/20"
-									}`}
+								}`}
 							>
 								<p className="text-sm text-white/70">{statusMessage}</p>
 								{error && <p className="text-xs text-red-300 mt-2">{error}</p>}
@@ -633,10 +636,11 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 							<div className="text-center pb-7 mb-7 border-b border-white/[0.08]">
 								{/* Direction badge */}
 								<div
-									className={`inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold uppercase tracking-wider mb-4 ${direction === "LONG"
+									className={`inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold uppercase tracking-wider mb-4 ${
+										direction === "LONG"
 											? "bg-[#22c55e]/15 text-[#22c55e] border border-[#22c55e]/30"
 											: "bg-[#ef4444]/15 text-[#ef4444] border border-[#ef4444]/30"
-										}`}
+									}`}
 								>
 									<svg
 										viewBox="0 0 24 24"
