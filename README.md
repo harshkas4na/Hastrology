@@ -1,242 +1,164 @@
-# Hastrology - AI-Powered Horoscope Platform
+# Hastrology - AI-Powered Cosmic Trading Platform
+
+**Live at [hashtro.fun](https://hashtro.fun)**
 
 ![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D20.0.0-green.svg)
 ![Python](https://img.shields.io/badge/python-%3E%3D3.11-green.svg)
 
-> Modern, scalable horoscope generation platform with Supabase backend and AI-powered insights using Google Gemini.
+> Solana-based AI horoscope platform that generates personalized daily readings using Vedic-Hellenistic astrology and lets users verify predictions through real trades on Flash SDK.
 
-## 🌟 Features
+## Features
 
-- **AI-Powered Horoscopes**: Personalized horoscopes using Google Gemini AI
-- **Modular Architecture**: Scalable, maintainable codebase with clear separation of concerns
-- **Supabase Integration**: Modern PostgreSQL database with real-time capabilities and built-in Row-Level Security
-- **Solana Integration**: Blockchain-based payment verification
-- **Smart Caching**: Intelligent caching to reduce AI API costs
-- **Rate Limiting**: Protection against abuse and excessive usage
-- **Security First**: Helmet.js, input validation, JWT authentication, RLS policies
-- **Docker Support**: Containerized deployment for consistency
-- **Comprehensive Logging**: Winston (Node.js) and Python logging for debugging
+- **AI Horoscopes**: Daily personalized readings powered by Google Gemini with Swiss Ephemeris astronomical calculations
+- **Trade Verification**: Verify your horoscope by executing a 30-second leveraged trade derived from your cosmic data (direction, leverage, ticker all from your chart)
+- **Solana Wallet Auth**: Privy-powered wallet authentication (Phantom, Solflare, Backpack)
+- **Flash SDK Trading**: Real perpetual trades on Solana via Flash/Drift protocol
+- **Twitter/X Integration**: Link your X account for persona-aware horoscopes based on your tweets and bio
+- **Horoscope Persistence**: Verified status persists to database — reload and your badge stays
+- **Smart Caching**: 24h TTL caching to reduce AI API costs
+- **Security**: Helmet.js, Joi/Pydantic validation, rate limiting, Supabase RLS
 
-## 📁 Project Structure
+## Architecture
 
 ```
 hastrology/
-├── backend_server/          # Node.js/Express backend
-│   ├── src/
-│   │   ├── config/         # Configuration (Supabase, environment, logger)
-│   │   ├── services/       # Business logic (user, horoscope, AI, auth, Solana)
-│   │   ├── controllers/    # Request handlers
-│   │   ├── routes/         # API routes
-│   │   ├── middleware/     # Express middleware
-│   │   ├── database/       # SQL schemas and migrations
-│   │   └── utils/          # Helper functions
-│   ├── index.js           # Main application entry
-│   ├── package.json
-│   └── Dockerfile
+├── frontend/               # Next.js 15 + TypeScript
+│   ├── app/                # App Router (/, /login, /cards, /trade, /link-x)
+│   ├── components/         # AstroCard, HoroscopeReveal, TradeModal, etc.
+│   ├── lib/                # API client, Flash trade SDK, geocoding
+│   ├── store/              # Zustand state management
+│   └── types/              # TypeScript interfaces
+│
+├── backend_server/         # Node.js/Express API
+│   └── src/
+│       ├── config/         # Supabase, logger, env validation
+│       ├── services/       # User, horoscope, AI client, Solana verification
+│       ├── controllers/    # Request handlers
+│       ├── routes/         # /user, /horoscope, /debug
+│       ├── middleware/     # Rate limiting, validation, error handling
+│       └── database/       # SQL schema
 │
 ├── ai_server/              # Python/FastAPI AI service
-│   ├── src/
-│   │   ├── config/        # Settings and logging
-│   │   ├── services/      # Horoscope generation and caching
-│   │   ├── models/        # Pydantic models
-│   │   ├── routes/        # FastAPI routes
-│   │   └── middleware/    # Error handling and rate limiting
-│   ├── main.py           # FastAPI application
-│   ├── requirements.txt
-│   └── Dockerfile
+│   └── src/
+│       ├── config/         # Pydantic settings, logging
+│       ├── services/       # Gemini AI, Swiss Ephemeris, caching
+│       ├── models/         # Request/response schemas
+│       ├── routes/         # /generate_horoscope
+│       ├── prompts/        # Astrologer prompt engineering
+│       └── knowledge/      # Astrology data, asset mappings
 │
-└── docker-compose.yml     # Docker orchestration
+└── docker-compose.yml
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
 - Node.js 20+ and npm
 - Python 3.11+
-- Supabase account ([sign up free](https://supabase.com))
-- Google Gemini API key ([get one free](https://aistudio.google.com/app/apikey))
+- Supabase account ([supabase.com](https://supabase.com))
+- Google Gemini API key ([aistudio.google.com](https://aistudio.google.com/app/apikey))
 
-### 1. Supabase Setup
+### 1. Database Setup
 
-1. Create a new project at [supabase.com](https://supabase.com)
-2. Go to **Project Settings → API**
-3. Copy your `Project URL`, `anon public key`, and `service_role secret key`
-4. Go to **SQL Editor** and run the schema from `backend_server/src/database/schema.sql`
+1. Create a Supabase project
+2. Run `backend_server/src/database/schema.sql` in the SQL Editor
+3. Copy your Project URL, anon key, and service role key
 
-### 2. Backend Server Setup
+### 2. Backend Server
 
 ```bash
 cd backend_server
-
-# Install dependencies
 npm install
-
-# Copy environment template
-cp .env.example .env
-
-# Edit .env and add your keys:
-# - SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_KEY
-# - Generate JWT_SECRET using: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-
-# Start development server
-npm run dev
+cp .env.example .env    # Add SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_KEY, JWT_SECRET
+npm run dev             # http://localhost:5001
 ```
 
-Backend will run on `http://localhost:5001`
-
-### 3. AI Server Setup
+### 3. AI Server
 
 ```bash
 cd ai_server
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
+python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
-
-# Copy environment template
-cp .env.example .env
-
-# Edit .env and add your GOOGLE_API_KEY
-
-# Start development server
-uvicorn main:app --reload
+cp .env.example .env    # Add GOOGLE_API_KEY
+uvicorn main:app --reload   # http://localhost:8000
 ```
 
-AI Server will run on `http://localhost:8000`
-
-### 4. Docker Deployment (Optional)
+### 4. Frontend
 
 ```bash
-# From project root
+cd frontend
+npm install
+# Create .env.local with NEXT_PUBLIC_API_URL, NEXT_PUBLIC_PRIVY_APP_ID, etc.
+npm run dev             # http://localhost:3000
+```
+
+### 5. Docker (Optional)
+
+```bash
 docker-compose up -d
-
-# View logs
 docker-compose logs -f
-
-# Stop services
-docker-compose down
 ```
 
-## 📚 API Documentation
+## API Overview
 
-### Backend Server (`http://localhost:5001/api`)
+### Backend (`/api`)
 
-#### User Registration
-```bash
-POST /api/user/register
-Content-Type: application/json
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/user/register` | Register user with wallet + Twitter |
+| POST | `/user/birth-details` | Update birth details (DOB, time, place) |
+| GET | `/user/profile/:wallet` | Get user profile |
+| GET | `/horoscope/status?walletAddress=...` | Check today's horoscope status + verified flag |
+| POST | `/horoscope/confirm` | Generate horoscope (free mode) |
+| POST | `/horoscope/verify` | Verify horoscope via profitable trade (txSig + pnlPercent) |
+| GET | `/horoscope/history/:wallet` | Get past horoscopes with verified status |
 
-{
-  "walletAddress": "SolanaWalletAddress123...",
-  "dob": "April 20, 1995",
-  "birthTime": "4:30 PM",
-  "birthPlace": "New Delhi, India"
-}
-```
+### AI Server
 
-#### Check Horoscope Status
-```bash
-GET /api/horoscope/status?walletAddress=SolanaWalletAddress123...
-```
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/generate_horoscope` | Generate horoscope card from birth data |
+| GET | `/cache/stats` | Cache hit/miss statistics |
+| GET | `/docs` | Swagger UI |
 
-#### Generate Horoscope (after payment)
-```bash
-POST /api/horoscope/confirm
-Content-Type: application/json
+## How It Works
 
-{
-  "walletAddress": "SolanaWalletAddress123...",
-  "signature": "transaction_signature_from_solana"
-}
-```
+1. **Connect Wallet** — Privy authenticates your Solana wallet
+2. **Link X Account** — Optional Twitter OAuth for personalized readings
+3. **Enter Birth Details** — DOB, time, and place for chart calculation
+4. **Get Your Reading** — AI generates a dual-sided astro card (front: shareable hooks, back: deep insights)
+5. **Verify with Trade** — Execute a 30-second leveraged trade on Flash SDK. Profitable trade = verified horoscope badge that persists
 
-#### Get Horoscope History
-```bash
-GET /api/horoscope/history/SolanaWalletAddress123...?limit=10
-```
+### Trade Direction Logic
 
-### AI Server (`http://localhost:8000`)
+The AI generates three linked fields that determine your trade:
+- **luck_score** (0-100): >50 = LONG (bullish), <=50 = SHORT (bearish)
+- **vibe_status**: Stellar/Ascending (bullish) or Shaky/Eclipse (bearish)
+- **energy_emoji**: From bullish or bearish mood lists
 
-Interactive API docs available at: `http://localhost:8000/docs`
+Leverage is derived from your lucky number, ticker from your chart data.
 
-#### Generate Horoscope
-```bash
-POST /generate_horoscope
-Content-Type: application/json
+## Environment Variables
 
-{
-  "dob": "April 20, 1995",
-  "birth_time": "4:30 PM",
-  "birth_place": "New Delhi, India"
-}
-```
+See `.env.example` in each directory. Key variables:
 
-## 🔒 Security Features
+| Variable | Location | Description |
+|----------|----------|-------------|
+| `SUPABASE_URL` | Backend | Supabase project URL |
+| `SUPABASE_SERVICE_KEY` | Backend | Service role key (full DB access) |
+| `JWT_SECRET` | Backend | 32-byte hex string |
+| `AI_SERVER_URL` | Backend | Python AI server endpoint |
+| `GOOGLE_API_KEY` | AI Server | Gemini API key |
+| `NEXT_PUBLIC_PRIVY_APP_ID` | Frontend | Privy authentication |
+| `NEXT_PUBLIC_API_URL` | Frontend | Backend API URL |
+| `NEXT_PUBLIC_SOLANA_RPC_URL` | Frontend | Solana RPC endpoint |
 
-- **Helmet.js**: Security headers for Express
-- **Rate Limiting**: Configurable limits on all endpoints
-- **Input Validation**: Joi (Node.js) and Pydantic (Python) schemas
-- **JWT Authentication**: Secure token-based auth
-- **Row-Level Security**: Supabase RLS policies protect user data
-- **Environment Validation**: Startup checks for required variables
-- **CORS Configuration**: Configurable allowed origins
-
-## 🛠️ Development
-
-### Backend Development
-```bash
-cd backend_server
-npm run dev  # Uses nodemon for hot reload
-```
-
-### AI Server Development
-```bash
-cd ai_server
-uvicorn main:app --reload
-```
-
-### Running Tests
-```bash
-# Backend
-cd backend_server
-npm test
-
-# AI Server
-cd ai_server
-pytest
-```
-
-## 📊 Environment Variables
-
-See `.env.example` files in each directory for complete variable lists and descriptions.
-
-**Key variables:**
-- `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_KEY`
-- `GOOGLE_API_KEY`
-- `JWT_SECRET` (generate with crypto)
-- `AI_SERVER_URL` (backend → AI server communication)
-
-## 📝 License
+## License
 
 ISC
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Open a Pull Request
-
-## 💬 Support
-
-For issues and questions, please open a GitHub issue.
-
 ---
 
-**Built with ❤️ using Node.js, Python, FastAPI, Supabase, and Google Gemini**
+**Live at [hashtro.fun](https://hashtro.fun)** | Built with Next.js, Express, FastAPI, Solana, Google Gemini, and Swiss Ephemeris

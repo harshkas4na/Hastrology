@@ -1,163 +1,112 @@
 # Hastrology Backend Server
 
-Modern, scalable backend server for the Hastrology horoscope platform using Node.js, Express, and Supabase.
+Node.js/Express API layer for the Hastrology platform. Handles user management, horoscope generation orchestration, trade verification, and Solana transaction verification.
 
-## 🏗️ Architecture
+## Quick Start
 
-This server follows a modular, scalable architecture:
+```bash
+npm install
+cp .env.example .env   # Add your Supabase + JWT keys
+npm run dev            # http://localhost:5001
+```
+
+## Architecture
 
 ```
 src/
-├── config/          Configuration & initialization
-├── services/        Business logic layer
-├── controllers/     HTTP request handlers
-├── routes/          API route definitions
-├── middleware/      Express middleware
-├── database/        SQL schemas & migrations
-└── utils/           Helper functions
+├── config/          # Supabase client, logger (Winston), env validation
+├── services/        # Business logic
+│   ├── user.service.js        # User CRUD, birth details, Twitter
+│   ├── horoscope.service.js   # Horoscope CRUD, verification status
+│   ├── ai.service.js          # AI server client
+│   ├── solana.service.js      # On-chain transaction verification
+│   ├── twitter.service.js     # X/Twitter context enrichment
+│   └── auth.service.js        # JWT authentication
+├── controllers/     # Request handlers
+├── routes/          # API route definitions
+├── middleware/       # Validation (Joi), rate limiting, error handling
+├── database/        # SQL schema
+└── utils/           # Response helpers
 ```
 
-## 🚀 Getting Started
+## API Endpoints
 
-### Prerequisites
+### User Routes (`/api/user`)
 
-- Node.js 20+
-- Supabase account
-- Google Gemini API key (for AI server)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/register` | Register user with wallet + Twitter details |
+| POST | `/birth-details` | Update birth details (DOB, time, place, coordinates) |
+| GET | `/profile/:wallet` | Get user profile |
+| POST | `/x-account` | Link Twitter/X account |
+| PATCH | `/twitter-tokens` | Refresh Twitter OAuth tokens |
+| POST | `/trade-time` | Record trade timestamp |
 
-### Installation
+### Horoscope Routes (`/api/horoscope`)
 
-```bash
-# Install dependencies
-npm install
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/status?walletAddress=...` | Check today's horoscope status (includes `verified` flag) |
+| POST | `/confirm` | Generate horoscope via AI server (free mode, no payment required) |
+| POST | `/verify` | Verify horoscope via profitable trade — requires `walletAddress`, `txSig`, `pnlPercent >= 0` |
+| GET | `/history/:wallet?limit=10` | Get past horoscopes with `verified` status |
 
-# Copy environment template
-cp .env.example .env
+### Health
 
-# Edit .env with your credentials
+```
+GET /api/health
+GET /api/debug/routes   # List all registered routes
 ```
 
-### Required Environment Variables
+## Database Schema
+
+Tables in Supabase (PostgreSQL):
+
+- **`users`** — wallet_address (unique), dob, birth_time, birth_place, lat/long, timezone, Twitter credentials, trade_made_at
+- **`horoscopes`** — wallet_address, date, horoscope_text (JSON card data), verified (boolean), UNIQUE(wallet_address, date)
+
+Schema file: `src/database/schema.sql`
+
+Row-Level Security (RLS) enabled. Service role has full access.
+
+## Environment Variables
 
 ```bash
-# Supabase (get from Project Settings → API)
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_KEY=your-service-key
-
-# AI Server
 AI_SERVER_URL=http://127.0.0.1:8000
-
-# Server
 PORT=5001
 NODE_ENV=development
-
-# Security (generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
-JWT_SECRET=your-random-secret-here
-
-# Rate Limiting
-RATE_LIMIT_WINDOW_MS=900000
-RATE_LIMIT_MAX_REQUESTS=100
-
-# CORS
+JWT_SECRET=your-32-byte-hex     # Generate: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ALLOWED_ORIGINS=*
+SOLANA_NETWORK=mainnet-beta     # or devnet
 ```
 
-### Database Setup
-
-1. Create a Supabase project
-2. Run the SQL schema from `src/database/schema.sql` in Supabase SQL Editor
-3. This creates:
-   - `users` table with user information
-   - `horoscopes` table for generated horoscopes
-   - Row-Level Security (RLS) policies
-   - Indexes for performance
-   - Triggers for automatic timestamps
-
-### Running
+## Scripts
 
 ```bash
-# Development (with hot reload)
-npm run dev
-
-# Production
-npm start
+npm run dev    # Development with nodemon
+npm start      # Production
+npm test       # Tests
 ```
 
-Server will start on `http://localhost:5001`
+## Security
 
-## 📡 API Endpoints
+- Helmet.js security headers
+- Joi schema validation on all POST endpoints
+- Rate limiting (general + strict per endpoint)
+- JWT authentication for protected routes
+- Supabase RLS policies
+- `trust proxy` configured for deployment behind proxies
 
-### Health Check
-```
-GET /api/health
-```
-
-### User Routes
-```
-POST /api/user/register          Register/update user
-GET  /api/user/profile/:wallet   Get user profile
-```
-
-### Horoscope Routes
-```
-GET  /api/horoscope/status       Check horoscope status
-POST /api/horoscope/confirm      Confirm payment & generate
-GET  /api/horoscope/history/:wallet  Get past horoscopes
-```
-
-## 🔒 Security Features
-
-- **Helmet.js**: Security headers
-- **Rate Limiting**: Configurable per endpoint
-- **Input Validation**: Joi schemas
-- **JWT Authentication**: Token-based auth
-- **CORS**: Configurable origins
-- **Row-Level Security**: Supabase RLS
-
-## 🏃 Development
-
-### Project Structure
-
-- **config/**: Environment validation, Supabase client, logger
-- **services/**: Business logic (user, horoscope, AI, auth, Solana)
-- **controllers/**: Request handlers
-- **routes/**: API endpoint definitions
-- **middleware/**: Error handling, validation, rate limiting, logging
-- **utils/**: Response helpers and utilities
-
-### Adding New Features
-
-1. Create service in `src/services/`
-2. Create controller in `src/controllers/`
-3. Define routes in `src/routes/`
-4. Add validation in `src/middleware/validation.js`
-
-## 📦 Dependencies
-
-**Production:**
-- `express` - Web framework
-- `@supabase/supabase-js` - Supabase client
-- `helmet` - Security middleware
-- `joi` - Schema validation
-- `jsonwebtoken` - JWT auth
-- `winston` - Logging
-- `express-rate-limit` - Rate limiting
-- `@solana/web3.js` - Solana integration
-
-**Development:**
-- `nodemon` - Hot reload
-
-## 🐳 Docker
+## Docker
 
 ```bash
-# Build image
 docker build -t hastrology-backend .
-
-# Run container
 docker run -p 5001:5001 --env-file .env hastrology-backend
 ```
 
-## 📝 License
+## License
 
 ISC

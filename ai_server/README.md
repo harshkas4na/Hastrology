@@ -1,194 +1,118 @@
 # Hastrology AI Server
 
-AI-powered horoscope generation service using FastAPI, LangChain, and Google Gemini.
+Python/FastAPI service that generates personalized horoscope cards using Google Gemini AI, Swiss Ephemeris astronomical calculations, and Vedic-Hellenistic astrology techniques.
 
-## 🏗️ Architecture
+## Quick Start
 
-Modular Python architecture for scalability and maintainability:
+```bash
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env   # Add GOOGLE_API_KEY
+uvicorn main:app --reload   # http://localhost:8000
+```
+
+For Python 3.14+: `PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1 pip install -r requirements.txt`
+
+## Architecture
 
 ```
 src/
-├── config/          Settings & logging configuration
-├── services/        Business logic (AI, caching)
-├── models/          Pydantic request/response models
-├── routes/          FastAPI route handlers
-└── middleware/      Error handling & rate limiting
+├── config/          # Pydantic settings, logging
+├── services/
+│   ├── horoscope_service.py     # Core generation: Gemini AI + chart data → astro card
+│   ├── ephemeris_service.py     # Swiss Ephemeris natal chart calculations
+│   ├── astro_calculator.py      # CDO builder, profections, aspects, dignity
+│   └── cache_service.py         # In-memory cache (24h TTL, MD5 keys)
+├── models/          # Pydantic request/response schemas
+├── routes/          # FastAPI endpoints
+├── prompts/         # AI prompt engineering (senior astrologer persona)
+├── knowledge/       # Astrology data (zodiac signs, asset mappings, moods)
+└── middleware/       # SlowAPI rate limiting, error handlers
 ```
 
-## 🚀 Getting Started
+## How Generation Works
 
-### Prerequisites
+1. **Parse birth data** — DOB, time, place, coordinates
+2. **Compute Cosmic Data Object (CDO)** — Swiss Ephemeris calculates natal chart (planets, houses, Ascendant), current transits, aspects, dignity scores
+3. **Build profections** — Annual profections determine Time Lord and active house
+4. **Enrich with X context** — Twitter bio, recent tweets, inferred persona (optional)
+5. **Generate via Gemini** — Senior astrologer prompt produces a dual-sided JSON card:
+   - **Front**: tagline, hooks, luck_score, vibe_status, energy_emoji, zodiac_sign (Sun sign)
+   - **Back**: detailed_reading, hustle_alpha, shadow_warning, lucky_assets
+6. **Cache result** — 24h TTL keyed on birth data
 
-- Python 3.11+
-- Google Gemini API key
+### Key Rules
 
-### Installation
+- **zodiac_sign** = Sun sign (from DOB only), NOT the Ascendant
+- **luck_score > 50** = bullish (LONG trade), **<= 50** = bearish (SHORT trade)
+- **vibe_status** must match luck_score: Stellar (80-100), Ascending (51-79), Shaky (40-50), Eclipse (0-39)
+- **energy_emoji** must come from the matching bullish/bearish mood list
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/generate_horoscope` | Generate horoscope card from birth data |
+| GET | `/` | Health check |
+| GET | `/cache/stats` | Cache hit/miss statistics |
+| POST | `/cache/clear` | Clear all cached entries |
+| GET | `/docs` | Swagger UI |
+| GET | `/redoc` | ReDoc |
+
+### Generate Horoscope
 
 ```bash
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+POST /generate_horoscope
+Content-Type: application/json
 
-# Install dependencies
-pip install -r requirements.txt
-
-# Copy environment template
-cp .env.example .env
-
-# Edit .env with your API key
+{
+  "dob": "2003-03-13",
+  "birth_time": "14:30",
+  "birth_place": "New Delhi, India",
+  "latitude": 28.6139,
+  "longitude": 77.2090,
+  "timezone_offset": 5.5,
+  "x_handle": "username",
+  "x_bio": "...",
+  "x_recent_tweets": ["...", "..."],
+  "x_persona": "builder"
+}
 ```
 
-### Required Environment Variables
+## Environment Variables
 
 ```bash
-# Google AI (get from https://aistudio.google.com/app/apikey)
-GOOGLE_API_KEY=your-api-key-here
-
-# Server Configuration
+GOOGLE_API_KEY=your-gemini-api-key
 HOST=127.0.0.1
 PORT=8000
 ENVIRONMENT=development
-
-# Logging
 LOG_LEVEL=INFO
-
-# Cache Configuration
 CACHE_ENABLED=true
-CACHE_TTL_SECONDS=86400  # 24 hours
-
-# Rate Limiting
+CACHE_TTL_SECONDS=86400
 RATE_LIMIT_ENABLED=true
 RATE_LIMIT_TIMES=10
 RATE_LIMIT_SECONDS=60
 ```
 
-### Running
+## Key Dependencies
+
+- **fastapi** + **uvicorn** — Web framework + ASGI server
+- **langchain** + **langchain-google-genai** — Gemini AI orchestration
+- **pyswisseph** — Swiss Ephemeris for astronomical calculations
+- **pydantic** / **pydantic-settings** — Data validation + config
+- **slowapi** — Rate limiting
+
+## Ephemeris Data
+
+Swiss Ephemeris data files are in `ephe/`. These are required for accurate planetary position calculations.
+
+## Docker
 
 ```bash
-# Development (with hot reload)
-uvicorn main:app --reload
-
-# Production
-uvicorn main:app --host 0.0.0.0 --port 8000
-```
-
-Server will start on `http://localhost:8000`
-
-## 📡 API Endpoints
-
-### Interactive Documentation
-```
-http://localhost:8000/docs       Swagger UI
-http://localhost:8000/redoc      ReDoc
-```
-
-### Horoscope Generation
-```
-POST /generate_horoscope
-Content-Type: application/json
-
-{
-  "dob": "April 20, 1995",
-  "birth_time": "4:30 PM",
-  "birth_place": "New Delhi, India"
-}
-```
-
-### Health Check
-```
-GET /
-```
-
-### Cache Management
-```
-GET  /cache/stats    Get cache statistics
-POST /cache/clear    Clear all cache
-```
-
-## ⚡ Features
-
-### Smart Caching
-- In-memory cache with TTL
-- Reduces API costs significantly
-- Configurable expiration (default 24h)
-- MD5-based cache keys
-
-### Rate Limiting
-- SlowAPI integration
-- Configurable limits per endpoint
-- IP-based tracking
-- Prevents API abuse
-
-### Error Handling
-- Comprehensive exception handling
-- Detailed validation errors
-- Production-safe error messages
-- Full request/response logging
-
-### Request Validation
-- Pydantic models for type safety
-- Automatic validation
-- Clear error messages
-- API documentation generation
-
-## 🏃 Development
-
-### Project Structure
-
-- **config/**: Settings (Pydantic) and logging setup
-- **services/**: AI generation and caching logic
-- **models/**: Request/response Pydantic models
-- **routes/**: FastAPI endpoints
-- **middleware/**: Error handlers and rate limiting
-
-### Adding New Features
-
-1. Define models in `src/models/`
-2. Create service in `src/services/`
-3. Add routes in `src/routes/`
-4. Update `main.py` to include router
-
-## 📦 Dependencies
-
-**Core:**
-- `fastapi` - Modern web framework
-- `uvicorn` - ASGI server
-- `pydantic` - Data validation
-- `pydantic-settings` - Settings management
-
-**AI:**
-- `langchain` - LLM orchestration
-- `langchain-google-genai` - Gemini integration
-
-**Utilities:**
-- `slowapi` - Rate limiting
-- `python-dotenv` - Environment management
-
-## 🐳 Docker
-
-```bash
-# Build image
 docker build -t hastrology-ai .
-
-# Run container
 docker run -p 8000:8000 --env-file .env hastrology-ai
 ```
 
-## 🔍 Monitoring
-
-### Cache Performance
-Check cache hit rates and optimize TTL:
-```bash
-curl http://localhost:8000/cache/stats
-```
-
-### Logs
-Logs include:
-- Request/response details
-- Cache hits/misses
-- AI generation metrics
-- Error stack traces
-
-## 📝 License
+## License
 
 ISC
