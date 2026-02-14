@@ -18,6 +18,8 @@ import {
 	BN_ZERO,
 	BPS_DECIMALS,
 	CustodyAccount,
+	CustodyConfig,
+	isVariant,
 	OraclePrice,
 	PerpetualsClient,
 	PoolAccount,
@@ -25,6 +27,7 @@ import {
 	PoolDataClient,
 	Privilege,
 	Side,
+	Token,
 	uiDecimalsToNative,
 } from "flash-sdk";
 import type { AstroCard } from "@/types";
@@ -66,12 +69,203 @@ export interface TradeResult {
 	outputToken: string;
 }
 
+const POOL_NAMES = [
+	"Crypto.1",
+	"Virtual.1",
+	"Governance.1",
+	"Community.1",
+	"Community.2",
+	"Trump.1",
+	"Ore.1",
+	"Remora.1",
+];
+
+export const POOL_CONFIGS = POOL_NAMES.map((f) =>
+	PoolConfig.fromIdsByName(f, "mainnet-beta"),
+);
+export const DUPLICATE_TOKENS = POOL_CONFIGS.map((f) => f.tokens).flat();
+
+const tokenMap = new Map();
+for (const token of DUPLICATE_TOKENS) {
+	// Keep original symbol from SDK - don't normalize here
+	tokenMap.set(token.symbol, token);
+}
+
+export const ALL_TOKENS: Token[] = Array.from(tokenMap.values());
+export const JITOSOL_TOKEN: Token = ALL_TOKENS.find(
+	(i) => i.symbol.toUpperCase() == "JITOSOL",
+)!;
+export const ALL_MARKET_CONFIGS = POOL_CONFIGS.map((f) => f.markets).flat();
+
+export const getTradeExecutionDetails = (
+	userInputToken: Token,
+	targetToken: Token,
+	side: Side,
+) => {
+	let requiredCollateralMint = null;
+
+	if (targetToken.symbol === "SOL" && isVariant(side, "long")) {
+		requiredCollateralMint = JITOSOL_TOKEN.mintKey;
+	}
+
+	let marketConfigs = ALL_MARKET_CONFIGS.filter(
+		(f) =>
+			f.targetMint.equals(targetToken.mintKey) &&
+			JSON.stringify(f.side) === JSON.stringify(side),
+	)!;
+
+	if (marketConfigs.length === 0) {
+		if (
+			targetToken.mintKey.toBase58() ===
+			"xaut1dB1uihYCwjReVgwZ4mBBJzwkXn4picqqmk4v2H"
+		) {
+			marketConfigs = ALL_MARKET_CONFIGS.filter(
+				(f) =>
+					f.targetMint.equals(
+						new PublicKey("xaucSYSxjZF4EbsLqAGRvPcuD1uXAj9awmsxYkUAavx"),
+					) && JSON.stringify(f.side) === JSON.stringify(side),
+			)!;
+		} else {
+			console.error(
+				`FLASH error: No marketConfig FOUND for targetToken ${targetToken.symbol} and side ${side}`,
+			);
+		}
+	}
+	// console.log("marketConfigs:",marketConfigs)
+
+	const marketConfig = requiredCollateralMint
+		? marketConfigs.find((f) =>
+				f.collateralMint.equals(requiredCollateralMint),
+			)!
+		: marketConfigs[0];
+
+	const positionPoolConfig = POOL_CONFIGS.find((p) =>
+		p.poolAddress.equals(marketConfig.pool),
+	)!;
+
+	const collateralToken = positionPoolConfig.tokens.find((t) =>
+		t.mintKey.equals(marketConfig.collateralMint),
+	)!;
+
+	const targetTokenCustodyConfig = positionPoolConfig.custodies.find((c) =>
+		c.custodyAccount.equals(marketConfig.targetCustody),
+	)!;
+	const collateralCustodyConfig = positionPoolConfig.custodies.find(
+		(c) => c.symbol === collateralToken.symbol,
+	)!;
+
+	const isSwapRequired = !collateralToken.mintKey.equals(
+		userInputToken.mintKey,
+	);
+	let swapPoolConfig: PoolConfig | undefined = undefined;
+	let swapInCustodyConfig: CustodyConfig | undefined = undefined;
+	let swapOutCustodyConfig: CustodyConfig | undefined = undefined;
+
+	if (isSwapRequired) {
+		const inputTokenIsInPool = positionPoolConfig.tokens.some((i) =>
+			i.mintKey.equals(userInputToken.mintKey),
+		);
+		const targetTokenIsInPool = positionPoolConfig.tokens.some((i) =>
+			i.mintKey.equals(targetToken.mintKey),
+		);
+
+		if (inputTokenIsInPool && targetTokenIsInPool) {
+			// same pool swap
+			swapPoolConfig = positionPoolConfig;
+		} else {
+			swapPoolConfig = undefined;
+		}
+		// swapPoolConfig = positionPoolConfig
+		swapInCustodyConfig = positionPoolConfig?.custodies.find((i) =>
+			i.mintKey.equals(userInputToken.mintKey),
+		);
+		swapOutCustodyConfig = positionPoolConfig?.custodies.find((i) =>
+			i.mintKey.equals(collateralToken.mintKey),
+		);
+	}
+
+	return {
+		marketConfig,
+		collateralToken,
+		targetTokenCustodyConfig,
+		collateralCustodyConfig,
+		positionPoolConfig,
+		isSwapRequired,
+		swapPoolConfig,
+		swapInCustodyConfig,
+		swapOutCustodyConfig,
+		isTradeDisabled: isSwapRequired && !swapPoolConfig,
+	};
+};
+
+/** Close flow: whether swap is needed after closing (collateral → receiving token). */
+export const getTradeExecutionDetailsClose = (
+	userRecievingToken: Token,
+	targetMarketToken: Token,
+	marketPubKey: PublicKey,
+) => {
+	const marketConfig = ALL_MARKET_CONFIGS.find((f) =>
+		f.marketAccount.equals(marketPubKey),
+	)!;
+	const positionPoolConfig = POOL_CONFIGS.find((p) =>
+		p.poolAddress.equals(marketConfig.pool),
+	)!;
+	const collateralToken = positionPoolConfig.tokens.find((t) =>
+		t.mintKey.equals(marketConfig.collateralMint),
+	)!;
+	const targetTokenCustodyConfig = positionPoolConfig.custodies.find(
+		(c) => c.symbol === targetMarketToken.symbol,
+	)!;
+	const collateralCustodyConfig = positionPoolConfig.custodies.find(
+		(c) => c.symbol === collateralToken.symbol,
+	)!;
+
+	const isSwapRequired = !collateralToken.mintKey.equals(
+		userRecievingToken.mintKey,
+	);
+	let swapPoolConfig: PoolConfig | undefined = undefined;
+	let swapInCustodyConfig: CustodyConfig | undefined = undefined;
+	let swapOutCustodyConfig: CustodyConfig | undefined = undefined;
+
+	if (isSwapRequired) {
+		const inputTokenIsInPool = positionPoolConfig.tokens.some((i) =>
+			i.mintKey.equals(collateralToken.mintKey),
+		);
+		const outputTokenIsInPool = positionPoolConfig.tokens.some((i) =>
+			i.mintKey.equals(userRecievingToken.mintKey),
+		);
+		if (inputTokenIsInPool && outputTokenIsInPool) {
+			swapPoolConfig = positionPoolConfig;
+		}
+		swapInCustodyConfig = swapPoolConfig?.custodies.find((i) =>
+			i.mintKey.equals(collateralToken.mintKey),
+		);
+		swapOutCustodyConfig = swapPoolConfig?.custodies.find((i) =>
+			i.mintKey.equals(userRecievingToken.mintKey),
+		);
+	}
+
+	return {
+		marketConfig,
+		collateralToken,
+		targetTokenCustodyConfig,
+		collateralCustodyConfig,
+		positionPoolConfig,
+		isSwapRequired,
+		swapPoolConfig,
+		swapInCustodyConfig,
+		swapOutCustodyConfig,
+		isTradeDisabled: isSwapRequired && !swapPoolConfig,
+	};
+};
+
 export class FlashPrivyService {
 	private flashClient: PerpetualsClient | null = null;
 	private provider: AnchorProvider | null = null;
 	private POOL_CONFIG: PoolConfig | null = null;
 	private config: FlashPrivyConfig;
 	private hermesClient: HermesClient | null = null;
+	private static readonly POSITION_INIT_ERROR_CODE = "3012";
 
 	constructor(config: FlashPrivyConfig) {
 		this.config = config;
@@ -408,6 +602,54 @@ export class FlashPrivyService {
 		}
 
 		return signature;
+	}
+
+	private isPositionNotInitializedError(error: unknown): boolean {
+		const message =
+			error instanceof Error
+				? error.message
+				: typeof error === "string"
+					? error
+					: JSON.stringify(error);
+
+		return (
+			message.includes(
+				`custom program error: ${FlashPrivyService.POSITION_INIT_ERROR_CODE}`,
+			) ||
+			message.includes("custom program error: 0xbc4") ||
+			message.includes("already initialized") ||
+			message.includes("expected this account to be already initialized")
+		);
+	}
+
+	private async waitForPositionInitialization(
+		timeoutMs: number = 15_000,
+		pollMs: number = 700,
+	): Promise<void> {
+		if (!this.flashClient || !this.POOL_CONFIG) {
+			throw new Error("Client not initialized. Call initialize() first.");
+		}
+
+		const walletPubkey = new PublicKey(this.config.wallet.publicKey);
+		const startedAt = Date.now();
+
+		while (Date.now() - startedAt < timeoutMs) {
+			try {
+				const positions = await this.flashClient.getUserPositions(
+					walletPubkey,
+					this.POOL_CONFIG,
+				);
+				if (positions.length > 0) {
+					return;
+				}
+			} catch {}
+
+			await new Promise((resolve) => setTimeout(resolve, pollMs));
+		}
+
+		throw new Error(
+			"Position was not initialized in time. Try again with a longer auto-close delay.",
+		);
 	}
 
 	async executeTrade(params: TradeParams): Promise<TradeResult> {
@@ -766,142 +1008,260 @@ export class FlashPrivyService {
 		}
 
 		try {
-			// Step 1: Build open trade transaction
 			const { side: normalSide, inputAmount, leverage } = params;
 			const side = normalSide === "long" ? Side.Long : Side.Short;
 
-			const inputTokenSymbol = "SOL";
-			const outputTokenSymbol = "SOL";
-			const slippageBps = 800;
+			const userInputToken = this.POOL_CONFIG.tokens.find(
+				(t) => t.symbol === "SOL",
+			)!;
+			const targetToken = this.POOL_CONFIG.tokens.find(
+				(t) => t.symbol === "SOL",
+			)!;
 
-			const inputToken = this.POOL_CONFIG.tokens.find(
-				(t) => t.symbol === inputTokenSymbol,
-			);
-			const outputToken = this.POOL_CONFIG.tokens.find(
-				(t) => t.symbol === outputTokenSymbol,
-			);
-
-			if (!inputToken || !outputToken) {
+			if (!userInputToken || !targetToken) {
 				throw new Error("Token not found in pool config");
 			}
 
+			const tradeExecutionDetails = getTradeExecutionDetails(
+				userInputToken,
+				targetToken,
+				side,
+			);
+
+			if (tradeExecutionDetails.isTradeDisabled) {
+				throw new Error(
+					"Trade not supported: swap required but not available for this pair",
+				);
+			}
+
+			const POOL_CONFIG_POSITION = tradeExecutionDetails.positionPoolConfig;
+			const POOL_CONFIG_SWAP = tradeExecutionDetails.swapPoolConfig;
+			const targetTokenCustodyConfig =
+				tradeExecutionDetails.targetTokenCustodyConfig;
+			const collateralCustodyConfig =
+				tradeExecutionDetails.collateralCustodyConfig;
+			const collateralToken = tradeExecutionDetails.collateralToken;
+
+			if (
+				POOL_CONFIG_SWAP &&
+				POOL_CONFIG_SWAP.poolAddress.toBase58() !==
+					POOL_CONFIG_POSITION.poolAddress.toBase58()
+			) {
+				throw new Error(
+					"Multipool swap and open not supported. Swap and position pool must be the same.",
+				);
+			}
+
+			const slippageBps = 800;
+			const slippageBpsBN = new BN(slippageBps);
+
 			const priceMap = await this.getPrices();
 
-			const inputTokenPrice = priceMap.get(inputToken.symbol)!.price;
-			const inputTokenPriceEma = priceMap.get(inputToken.symbol)!.emaPrice;
-			const outputTokenPrice = priceMap.get(outputToken.symbol)!.price;
-			const outputTokenPriceEma = priceMap.get(outputToken.symbol)!.emaPrice;
+			const targetTokenPriceData = priceMap.get(
+				targetTokenCustodyConfig.symbol,
+			);
+			const collateralTokenPriceData = priceMap.get(collateralToken.symbol);
+
+			if (!targetTokenPriceData || !collateralTokenPriceData) {
+				throw new Error(
+					`Price data not available for ${targetTokenCustodyConfig.symbol} or ${collateralToken.symbol}`,
+				);
+			}
+
+			const targetTokenPrice = targetTokenPriceData.price;
+			const targetTokenPriceEma = targetTokenPriceData.emaPrice;
+			const collateralTokenPrice = collateralTokenPriceData.price;
+			const collateralTokenPriceEma = collateralTokenPriceData.emaPrice;
 
 			const estimatedPrice =
-				Number(outputTokenPrice.price.toString()) /
-				10 ** Math.abs(outputTokenPrice.exponent.toNumber());
-
-			await this.flashClient.loadAddressLookupTable(this.POOL_CONFIG);
-
-			// Get the address lookup tables for use in both transactions
-			const addressLookupTablesData =
-				await this.flashClient.getOrLoadAddressLookupTable(this.POOL_CONFIG);
-			const addressLookupTables = addressLookupTablesData.addressLookupTables;
+				Number(targetTokenPrice.price.toString()) /
+				10 ** Math.abs(targetTokenPrice.exponent.toNumber());
 
 			const priceAfterSlippage = this.flashClient.getPriceAfterSlippage(
 				true,
-				new BN(slippageBps),
-				outputTokenPrice,
+				slippageBpsBN,
+				targetTokenPrice,
 				side,
 			);
 
-			const collateralWithFee = uiDecimalsToNative(
+			const inputAmountWithFee = uiDecimalsToNative(
 				inputAmount.toString(),
-				inputToken.decimals,
+				userInputToken.decimals,
 			);
 
-			const inputCustody = this.POOL_CONFIG.custodies.find(
-				(c) => c.symbol === inputToken.symbol,
-			);
-			const outputCustody = this.POOL_CONFIG.custodies.find(
-				(c) => c.symbol === outputToken.symbol,
-			);
+			const discountBps = uiDecimalsToNative("5", 2);
 
-			if (!inputCustody || !outputCustody) {
-				throw new Error("Custody account not found");
-			}
+			let sizeAmount: BN;
+			let targetTokenFromPool = POOL_CONFIG_POSITION.tokens.find(
+				(t) => t.symbol === targetTokenCustodyConfig.symbol,
+			)!;
 
-			const custodies =
-				await this.flashClient.program.account.custody.fetchMultiple([
-					inputCustody.custodyAccount,
-					outputCustody.custodyAccount,
-				]);
+			if (
+				tradeExecutionDetails.isSwapRequired &&
+				POOL_CONFIG_SWAP &&
+				tradeExecutionDetails.swapInCustodyConfig &&
+				tradeExecutionDetails.swapOutCustodyConfig
+			) {
+				// Open position with different collateral (swap then open) — per Flash docs:
+				// https://docs.flash.trade/flash-trade/flash-trade-protocol/build-on-flash/trader-interactions#open-position-with-different-collateral
+				const swapInCustodyConfig = tradeExecutionDetails.swapInCustodyConfig;
+				const swapOutCustodyConfig = tradeExecutionDetails.swapOutCustodyConfig;
 
-			const poolAccount = PoolAccount.from(
-				this.POOL_CONFIG.poolAddress,
-				await this.flashClient.program.account.pool.fetch(
-					this.POOL_CONFIG.poolAddress,
-				),
-			);
+				const custodies =
+					await this.flashClient.program.account.custody.fetchMultiple([
+						swapInCustodyConfig.custodyAccount,
+						swapOutCustodyConfig.custodyAccount,
+						targetTokenCustodyConfig.custodyAccount,
+					]);
 
-			const allCustodies = await this.flashClient.program.account.custody.all();
-
-			const lpMintData = await getMint(
-				this.flashClient.provider.connection as any,
-				this.POOL_CONFIG.stakedLpTokenMint,
-			);
-
-			const poolDataClient = new PoolDataClient(
-				this.POOL_CONFIG,
-				poolAccount,
-				lpMintData,
-				[
-					...allCustodies.map((c) =>
-						CustodyAccount.from(c.publicKey, c.account),
-					),
-				],
-			);
-
-			const lpStats = poolDataClient.getLpStats(await this.getPrices());
-
-			const inputCustodyAccount = CustodyAccount.from(
-				inputCustody.custodyAccount,
-				custodies[0]!,
-			);
-			const outputCustodyAccount = CustodyAccount.from(
-				outputCustody.custodyAccount,
-				custodies[1]!,
-			);
-
-			// Use openPosition instead of swapAndOpen when tokens are the same
-			const outputAmount =
-				this.flashClient.getSizeAmountFromLeverageAndCollateral(
-					collateralWithFee,
-					leverage.toString(),
-					outputToken,
-					inputToken,
-					side,
-					outputTokenPrice,
-					outputTokenPriceEma,
-					outputCustodyAccount,
-					inputTokenPrice,
-					inputTokenPriceEma,
-					inputCustodyAccount,
-					uiDecimalsToNative("5", 2),
+				const inputCustodyAccount = CustodyAccount.from(
+					swapInCustodyConfig.custodyAccount,
+					custodies[0]!,
+				);
+				const collateralCustodyAccount = CustodyAccount.from(
+					swapOutCustodyConfig.custodyAccount,
+					custodies[1]!,
+				);
+				const targetCustodyAccount = CustodyAccount.from(
+					targetTokenCustodyConfig.custodyAccount,
+					custodies[2]!,
 				);
 
-			const openPositionData = await this.flashClient.openPosition(
-				outputToken.symbol, // SOL
-				inputToken.symbol, // SOL
-				priceAfterSlippage,
-				collateralWithFee,
-				outputAmount,
-				side,
-				this.POOL_CONFIG,
-				Privilege.None,
-			);
+				const poolAccount = PoolAccount.from(
+					POOL_CONFIG_POSITION.poolAddress,
+					await this.flashClient.program.account.pool.fetch(
+						POOL_CONFIG_POSITION.poolAddress,
+					),
+				);
+				const allCustodies =
+					await this.flashClient.program.account.custody.all();
+				const lpMintData = await getMint(
+					this.flashClient.provider.connection as any,
+					POOL_CONFIG_POSITION.stakedLpTokenMint,
+				);
+				const poolDataClient = new PoolDataClient(
+					POOL_CONFIG_POSITION,
+					poolAccount,
+					lpMintData,
+					allCustodies.map((c) => CustodyAccount.from(c.publicKey, c.account)),
+				);
+				const lpStats = poolDataClient.getLpStats(priceMap);
+
+				const userInputTokenPriceData = priceMap.get(userInputToken.symbol);
+				if (!userInputTokenPriceData) {
+					throw new Error(
+						`Price data not available for ${userInputToken.symbol}`,
+					);
+				}
+
+				sizeAmount = this.flashClient.getSizeAmountWithSwapSync(
+					inputAmountWithFee,
+					leverage.toString(),
+					side,
+					poolAccount,
+					userInputTokenPriceData.price,
+					userInputTokenPriceData.emaPrice,
+					inputCustodyAccount,
+					collateralTokenPrice,
+					collateralTokenPriceEma,
+					collateralCustodyAccount,
+					collateralTokenPrice,
+					collateralTokenPriceEma,
+					collateralCustodyAccount,
+					targetTokenPrice,
+					targetTokenPriceEma,
+					targetCustodyAccount,
+					lpStats.totalPoolValueUsd,
+					POOL_CONFIG_POSITION,
+					discountBps,
+				);
+			} else {
+				// Same collateral (no swap) — use getSizeAmountFromLeverageAndCollateral
+				const custodies =
+					await this.flashClient.program.account.custody.fetchMultiple([
+						targetTokenCustodyConfig.custodyAccount,
+						collateralCustodyConfig.custodyAccount,
+					]);
+
+				const targetCustodyAccount = CustodyAccount.from(
+					targetTokenCustodyConfig.custodyAccount,
+					custodies[0]!,
+				);
+				const collateralCustodyAccount = CustodyAccount.from(
+					collateralCustodyConfig.custodyAccount,
+					custodies[1]!,
+				);
+
+				sizeAmount = this.flashClient.getSizeAmountFromLeverageAndCollateral(
+					inputAmountWithFee,
+					leverage.toString(),
+					targetTokenFromPool,
+					collateralToken,
+					side,
+					targetTokenPrice,
+					targetTokenPriceEma,
+					targetCustodyAccount,
+					collateralTokenPrice,
+					collateralTokenPriceEma,
+					collateralCustodyAccount,
+					discountBps,
+				);
+			}
+
+			const privilege = Privilege.None;
+			const refTokenStakeAccountPk = PublicKey.default;
+			const userReferralAccountPk = PublicKey.default;
+
+			let openPositionData: {
+				instructions: TransactionInstruction[];
+				additionalSigners: Signer[];
+			};
+
+			if (tradeExecutionDetails.isSwapRequired && POOL_CONFIG_SWAP) {
+				openPositionData = await this.flashClient.swapAndOpen(
+					targetTokenCustodyConfig.symbol,
+					collateralCustodyConfig.symbol,
+					userInputToken.symbol,
+					inputAmountWithFee,
+					priceAfterSlippage,
+					sizeAmount,
+					side,
+					POOL_CONFIG_POSITION,
+					privilege,
+					refTokenStakeAccountPk,
+					userReferralAccountPk,
+					true,
+					undefined,
+				);
+			} else {
+				openPositionData = await this.flashClient.openPosition(
+					targetTokenCustodyConfig.symbol,
+					userInputToken.symbol,
+					priceAfterSlippage,
+					inputAmountWithFee,
+					sizeAmount,
+					side,
+					POOL_CONFIG_POSITION,
+					privilege,
+					refTokenStakeAccountPk,
+					userReferralAccountPk,
+					true,
+					undefined,
+				);
+			}
+
+			await this.flashClient.loadAddressLookupTable(POOL_CONFIG_POSITION);
+			const addressLookupTablesData =
+				await this.flashClient.getOrLoadAddressLookupTable(
+					POOL_CONFIG_POSITION,
+				);
+			const addressLookupTables = addressLookupTablesData.addressLookupTables;
 
 			const { blockhash, lastValidBlockHeight } =
 				await this.config.connection.getLatestBlockhash("confirmed");
 
 			const walletPubkey = new PublicKey(this.config.wallet.publicKey);
 
-			// Build open transaction
 			const openInstructions: TransactionInstruction[] = [];
 			openInstructions.push(
 				ComputeBudgetProgram.setComputeUnitLimit({ units: 800_000 }),
@@ -911,7 +1271,6 @@ export class FlashPrivyService {
 			);
 			openInstructions.push(...openPositionData.instructions);
 
-			// Create open transaction with the SAME address lookup tables
 			const openMessageV0 = new TransactionMessage({
 				payerKey: walletPubkey,
 				recentBlockhash: blockhash,
@@ -924,21 +1283,20 @@ export class FlashPrivyService {
 				openTransaction.sign(openPositionData.additionalSigners);
 			}
 
-			// Build close transaction optimistically
-			console.log("⏳ Building close transaction...");
 			const closeInstructions = await this.buildCloseInstructionsOptimistic(
 				params,
 				"SOL",
-				blockhash, // Pass blockhash to use the same one
-				addressLookupTables, // Pass address lookup tables to use the same ones
+				blockhash,
+				addressLookupTables,
+				POOL_CONFIG_POSITION,
+				collateralToken.symbol,
 			);
 
-			console.log("Creating close transaction message...");
 			const closeMessageV0 = new TransactionMessage({
 				payerKey: walletPubkey,
 				recentBlockhash: blockhash,
 				instructions: closeInstructions.instructions,
-			}).compileToV0Message(addressLookupTables); // Use SAME address lookup tables
+			}).compileToV0Message(addressLookupTables);
 
 			const closeTransaction = new VersionedTransaction(closeMessageV0);
 
@@ -981,9 +1339,6 @@ export class FlashPrivyService {
 				throw new Error("Expected VersionedTransaction after signing");
 			}
 
-			console.log("✅ Both transactions signed by user");
-
-			// Send the open transaction using Privy's sendTransaction
 			const serializedOpen = signedOpenTransaction.serialize();
 
 			const openTxSig = await this.config.connection.sendRawTransaction(
@@ -995,19 +1350,34 @@ export class FlashPrivyService {
 				},
 			);
 
-			console.log("✅ Open transaction sent:", openTxSig);
+			const openConfirmation = await this.config.connection.confirmTransaction(
+				{
+					signature: openTxSig,
+					blockhash,
+					lastValidBlockHeight,
+				},
+				"confirmed",
+			);
 
-			// Serialize the signed close transaction for later use
+			if (openConfirmation.value.err) {
+				throw new Error(
+					`Open transaction failed: ${JSON.stringify(openConfirmation.value.err)}`,
+				);
+			}
+
+			await this.waitForPositionInitialization();
+
 			const serializedCloseTransaction = signedCloseTransaction.serialize();
+			const closeAtTimestamp = Date.now() + autoCloseDelaySeconds * 1000;
 
-			// Return immediately without waiting for confirmation
 			return {
 				openTxSig,
 				direction: side === Side.Long ? "LONG" : "SHORT",
-				size: Number(outputAmount.toString()) / 10 ** outputToken.decimals,
+				size:
+					Number(sizeAmount.toString()) / 10 ** targetTokenFromPool.decimals,
 				estimatedPrice,
 				signedCloseTransaction: serializedCloseTransaction,
-				closeAtTimestamp: Date.now() + autoCloseDelaySeconds * 1000,
+				closeAtTimestamp,
 				blockhash,
 				lastValidBlockHeight,
 			};
@@ -1020,57 +1390,133 @@ export class FlashPrivyService {
 	private async buildCloseInstructionsOptimistic(
 		params: TradeParams,
 		receivingTokenSymbol: string = "SOL",
-		blockhash?: string, // Added parameter
-		addressLookupTables?: AddressLookupTableAccount[], // Added parameter
+		blockhash: string,
+		addressLookupTables?: AddressLookupTableAccount[],
+		poolConfig?: PoolConfig,
+		/** Position's collateral token symbol (for market lookup). Defaults to receivingTokenSymbol. */
+		positionCollateralSymbol?: string,
 	): Promise<{
 		instructions: TransactionInstruction[];
 		additionalSigners: Signer[];
 		addressLookupTables: AddressLookupTableAccount[];
 	}> {
 		const slippageBps = 800;
+		const pool = poolConfig ?? this.POOL_CONFIG!;
 
 		const instructions: TransactionInstruction[] = [];
 		let additionalSigners: Signer[] = [];
 
-		const outputTokenSymbol = "SOL";
+		const targetTokenSymbol = "SOL";
 		const side = params.side === "long" ? Side.Long : Side.Short;
 
-		const targetToken = this.POOL_CONFIG!.tokens.find(
-			(t) => t.symbol === outputTokenSymbol,
-		);
-
-		const receivingToken = this.POOL_CONFIG!.tokens.find(
+		const targetToken = pool.tokens.find((t) => t.symbol === targetTokenSymbol);
+		const receivingToken = pool.tokens.find(
 			(t) => t.symbol === receivingTokenSymbol,
 		);
+		const collateralSymbol = positionCollateralSymbol ?? receivingTokenSymbol;
+		const collateralToken = pool.tokens.find(
+			(t) => t.symbol === collateralSymbol,
+		);
 
-		if (!targetToken || !receivingToken) {
-			throw new Error("Target or receiving token not found");
+		if (!targetToken || !receivingToken || !collateralToken) {
+			throw new Error("Target, receiving or collateral token not found");
+		}
+
+		const targetCustodyConfig = pool.custodies.find((c) =>
+			c.mintKey.equals(pool.getTokenFromSymbol(targetTokenSymbol).mintKey),
+		)!;
+		const collateralCustodyConfig = pool.custodies.find((c) =>
+			c.mintKey.equals(collateralToken.mintKey),
+		)!;
+
+		const marketAccount = pool.getMarketPk(
+			targetCustodyConfig.custodyAccount,
+			collateralCustodyConfig.custodyAccount,
+			side,
+		);
+
+		const tradeExecutionDetails = getTradeExecutionDetailsClose(
+			receivingToken,
+			targetToken,
+			marketAccount,
+		);
+
+		if (tradeExecutionDetails.isTradeDisabled) {
+			throw new Error(
+				"Close not supported: swap required but not available for this pair",
+			);
+		}
+
+		const POOL_CONFIG_POSITION = tradeExecutionDetails.positionPoolConfig;
+		const POOL_CONFIG_SWAP = tradeExecutionDetails.swapPoolConfig;
+		const collateralTokenFromDetails = tradeExecutionDetails.collateralToken;
+
+		if (
+			POOL_CONFIG_SWAP &&
+			POOL_CONFIG_SWAP.poolAddress.toBase58() !==
+				POOL_CONFIG_POSITION.poolAddress.toBase58()
+		) {
+			throw new Error(
+				"Multipool close and swap not supported. Swap and position pool must be the same.",
+			);
 		}
 
 		const priceMap = await this.getPrices();
-		const targetTokenPrice = priceMap.get(targetToken.symbol)!.price;
+		const marketTokenPriceData = priceMap.get(targetToken.symbol);
+		if (!marketTokenPriceData) {
+			throw new Error(`Price not available for ${targetToken.symbol}`);
+		}
+		const marketTokenPrice = marketTokenPriceData.price;
+
+		const slippageBpsBN = new BN(slippageBps);
 		const priceAfterSlippage = this.flashClient!.getPriceAfterSlippage(
 			false,
-			new BN(slippageBps),
-			targetTokenPrice,
+			slippageBpsBN,
+			marketTokenPrice,
 			side,
 		);
 
-		// Use closePosition when target and receiving tokens are the same (SOL to SOL)
-		console.log("Building close position data...");
-		const closePositionData = await this.flashClient!.closePosition(
-			targetToken.symbol, // SOL
-			receivingToken.symbol, // SOL
-			priceAfterSlippage,
-			side,
-			this.POOL_CONFIG!,
-			Privilege.None,
-		);
+		const privilege = Privilege.None;
+		const refTokenStakeAccountPk = PublicKey.default;
+		const userReferralAccountPk = PublicKey.default;
 
-		instructions.push(...closePositionData.instructions);
-		additionalSigners.push(...closePositionData.additionalSigners);
+		let closeData: {
+			instructions: TransactionInstruction[];
+			additionalSigners: Signer[];
+		};
 
-		// Add compute budget
+		if (tradeExecutionDetails.isSwapRequired && POOL_CONFIG_SWAP) {
+			closeData = await this.flashClient!.closeAndSwap(
+				targetToken.symbol,
+				receivingToken.symbol,
+				collateralTokenFromDetails.symbol,
+				priceAfterSlippage,
+				side,
+				POOL_CONFIG_POSITION,
+				privilege,
+				refTokenStakeAccountPk,
+				userReferralAccountPk,
+				undefined,
+			);
+		} else {
+			closeData = await this.flashClient!.closePosition(
+				targetToken.symbol,
+				receivingToken.symbol,
+				priceAfterSlippage,
+				side,
+				POOL_CONFIG_POSITION,
+				privilege,
+				refTokenStakeAccountPk,
+				userReferralAccountPk,
+				true,
+				false,
+				undefined,
+			);
+		}
+
+		instructions.push(...closeData.instructions);
+		additionalSigners.push(...closeData.additionalSigners);
+
 		instructions.unshift(
 			ComputeBudgetProgram.setComputeUnitLimit({ units: 600_000 }),
 		);
@@ -1078,15 +1524,14 @@ export class FlashPrivyService {
 			ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 100000 }),
 		);
 
-		// Get address lookup tables if not provided
 		let lookupTables: AddressLookupTableAccount[];
 		if (addressLookupTables) {
-			// Use the provided address lookup tables
 			lookupTables = addressLookupTables;
 		} else {
-			// Fallback: load them fresh (shouldn't happen with the updated flow)
 			const lookupTablesData =
-				await this.flashClient!.getOrLoadAddressLookupTable(this.POOL_CONFIG!);
+				await this.flashClient!.getOrLoadAddressLookupTable(
+					POOL_CONFIG_POSITION,
+				);
 			lookupTables = lookupTablesData.addressLookupTables;
 		}
 
@@ -1104,15 +1549,39 @@ export class FlashPrivyService {
 	): Promise<string> {
 		try {
 			console.log("⏰ Sending pre-signed close transaction...");
+			let signature = "";
+			let sendError: unknown = null;
 
-			const signature = await this.config.connection.sendRawTransaction(
-				serializedTransaction,
-				{
-					skipPreflight: false,
-					preflightCommitment: "confirmed",
-					maxRetries: 3,
-				},
-			);
+			for (let attempt = 1; attempt <= 3; attempt++) {
+				try {
+					signature = await this.config.connection.sendRawTransaction(
+						serializedTransaction,
+						{
+							skipPreflight: false,
+							preflightCommitment: "confirmed",
+							maxRetries: 3,
+						},
+					);
+					sendError = null;
+					break;
+				} catch (error) {
+					sendError = error;
+
+					if (attempt < 3 && this.isPositionNotInitializedError(error)) {
+						console.warn(
+							`⚠️ Close attempt ${attempt} failed with position-not-initialized. Retrying...`,
+						);
+						await new Promise((resolve) => setTimeout(resolve, 1200));
+						continue;
+					}
+
+					throw error;
+				}
+			}
+
+			if (!signature) {
+				throw sendError ?? new Error("Failed to send close transaction");
+			}
 
 			console.log("✅ Close transaction sent:", signature);
 
@@ -1209,6 +1678,11 @@ export class FlashPrivyService {
 			console.error("❌ Auto-close failed:", error);
 
 			// More descriptive error messages
+			if (this.isPositionNotInitializedError(error)) {
+				throw new Error(
+					"Position account was not ready when auto-close executed. Retry with a slightly longer auto-close delay.",
+				);
+			}
 			if (error.message?.includes("blockhash not found")) {
 				throw new Error(
 					"Transaction expired. The 30-second window has passed.",
