@@ -19,7 +19,7 @@ export default function AccessGate({ children }: { children: ReactNode }) {
 			return;
 		}
 		const stored = localStorage.getItem(STORAGE_KEY);
-		if (stored === ACCESS_CODE) {
+		if (stored === ACCESS_CODE || stored?.toUpperCase() === ACCESS_CODE?.toUpperCase()) {
 			setAuthorized(true);
 		}
 		setLoading(false);
@@ -30,7 +30,9 @@ export default function AccessGate({ children }: { children: ReactNode }) {
 
 	const handleSubmit = (e: FormEvent) => {
 		e.preventDefault();
-		if (code.trim() === ACCESS_CODE) {
+		// Normalize both to uppercase for comparison to be safe
+		// (Even though input is now forced uppercase, the env var might not be)
+		if (code.trim().toUpperCase() === ACCESS_CODE?.toUpperCase()) {
 			localStorage.setItem(STORAGE_KEY, code.trim());
 			setAuthorized(true);
 			setError(false);
@@ -62,7 +64,7 @@ export default function AccessGate({ children }: { children: ReactNode }) {
 						type="text"
 						value={code}
 						onChange={(e) => {
-							setCode(e.target.value);
+							setCode(e.target.value.toUpperCase());
 							setError(false);
 						}}
 						placeholder="Access code"
