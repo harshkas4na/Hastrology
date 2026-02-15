@@ -82,6 +82,7 @@ export const HoroscopeReveal: FC<HoroscopeRevealProps> = ({
 	onVerifyTrade,
 }) => {
 	const [isFlipped, setIsFlipped] = useState(false);
+	const [showEducation, setShowEducation] = useState(false);
 	const { user } = useStore();
 	const verifiedToday = isVerifiedToday(user?.tradeMadeAt);
 
@@ -105,7 +106,7 @@ export const HoroscopeReveal: FC<HoroscopeRevealProps> = ({
 	const colorGradient =
 		colorGradients[colorKey] ||
 		colorGradients[
-			Object.keys(colorGradients).find((k) => colorKey.includes(k)) || "gold"
+		Object.keys(colorGradients).find((k) => colorKey.includes(k)) || "gold"
 		];
 
 	const handleFlip = () => {
@@ -272,9 +273,8 @@ export const HoroscopeReveal: FC<HoroscopeRevealProps> = ({
 									<span className="text-xs text-white/50">leverage</span>
 									<span className="text-white/20">•</span>
 									<span
-										className={`font-display text-lg font-semibold ${
-											direction === "LONG" ? "text-[#22c55e]" : "text-[#ef4444]"
-										}`}
+										className={`font-display text-lg font-semibold ${direction === "LONG" ? "text-[#22c55e]" : "text-[#ef4444]"
+											}`}
 									>
 										{direction}
 									</span>
@@ -299,6 +299,36 @@ export const HoroscopeReveal: FC<HoroscopeRevealProps> = ({
 								<span className="text-xs">Tap for deep insights</span>
 							</div>
 
+							{/* Trade Education */}
+							{!(verified || verifiedToday) && (
+								<div className="mb-4 text-center">
+									{!showEducation ? (
+										<button
+											onClick={(e) => {
+												e.stopPropagation();
+												setShowEducation(true);
+											}}
+											className="text-xs text-white/30 hover:text-white/50 transition-colors underline decoration-dotted underline-offset-4"
+										>
+											What is verify with trade?
+										</button>
+									) : (
+										<motion.div
+											initial={{ opacity: 0, height: 0 }}
+											animate={{ opacity: 1, height: "auto" }}
+											className="text-xs text-white/60 px-4 cursor-pointer leading-relaxed"
+											onClick={(e) => {
+												e.stopPropagation();
+												setShowEducation(false);
+											}}
+										>
+											A quick 30-second leveraged trade on SOL will verify your horoscope.
+											Position auto-closes. Profits are yours.
+										</motion.div>
+									)}
+								</div>
+							)}
+
 							{/* Verify / Trade Again Button */}
 							<button
 								onClick={(e) => {
@@ -306,9 +336,8 @@ export const HoroscopeReveal: FC<HoroscopeRevealProps> = ({
 									if (!(verified || verifiedToday)) onVerifyTrade();
 								}}
 								disabled={verified || verifiedToday}
-								className={`btn-primary w-full text-sm sm:text-base ${
-									verified || verifiedToday ? "opacity-70 cursor-not-allowed" : ""
-								}`}
+								className={`btn-primary w-full text-sm sm:text-base ${verified || verifiedToday ? "opacity-70 cursor-not-allowed" : ""
+									}`}
 							>
 								{verified || verifiedToday ? (
 									<>

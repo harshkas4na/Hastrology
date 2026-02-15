@@ -15,6 +15,7 @@ interface TradeModalProps {
 	onClose: () => void;
 	onComplete: (result: TradeResult) => void;
 	direction: "LONG" | "SHORT";
+	balance: number | null;
 }
 
 type SuccessState = {
@@ -32,6 +33,8 @@ type SuccessState = {
 };
 
 const TRADE_DURATION = 30; // seconds
+const MIN_TRADE_AMOUNT_SOL = 0.04;
+const GAS_BUFFER_SOL = 0.015; // covers open + close tx fees + priority fees
 
 const QUICK_AMOUNTS = [0.1, 0.25, 0.5, 1];
 
@@ -40,6 +43,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 	onClose,
 	direction,
 	onComplete,
+	balance,
 }) => {
 	const [isTrading, setIsTrading] = useState(false);
 	const [isFetchingPrice, setIsFetchingPrice] = useState(false);
@@ -52,6 +56,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 	const [entryPrice, setEntryPrice] = useState(0);
 	const leverage = parseInt(card.back.lucky_assets.number, 10) ?? 1;
 	const [statusMessage, setStatusMessage] = useState("Opening position...");
+	const [showEducation, setShowEducation] = useState(false);
 	const [tradeDetails, setTradeDetails] = useState<{
 		direction: "LONG" | "SHORT";
 		size: number;
@@ -136,7 +141,10 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 			await loadLatestPosition();
 		};
 
-		init();
+		init().catch((err) => {
+			console.error("Flash service init failed:", err);
+			setError("Failed to initialize trading service. Please refresh and try again.");
+		});
 	}, [
 		wallet.publicKey,
 		wallet.signTransaction,
@@ -187,9 +195,17 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 		return () => clearInterval(interval);
 	}, [wallet.publicKey, flashReady, fetchSolPriceAndCalculateDetails]);
 
+	const requiredBalance = amount + GAS_BUFFER_SOL;
+	const insufficientBalance = balance !== null && balance < requiredBalance;
+
 	const executeTrade = async () => {
 		if (!wallet.connected || !flashServiceRef.current || !wallet.publicKey) {
 			setError("Please connect your wallet first");
+			return;
+		}
+
+		if (insufficientBalance) {
+			setError(`Insufficient balance. You need at least ${requiredBalance.toFixed(4)} SOL.`);
 			return;
 		}
 
@@ -220,7 +236,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 
 						return next.filter((p) => now - p.t <= 30_000);
 					});
-				} catch {}
+				} catch (priceErr) { console.warn("Price update failed:", priceErr); }
 			}, 1000);
 			setStatusMessage("Trade is live...");
 			setTimeLeft(TRADE_DURATION);
@@ -270,6 +286,12 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 					setPhase("closing");
 					setStatusMessage("Closing position...");
 
+					// Debug: set window.__FORCE_MANUAL_CLOSE = true in console to test fallback
+					if (typeof window !== "undefined" && (window as any).__FORCE_MANUAL_CLOSE) {
+						console.log("🧪 DEBUG: Forcing manual close fallback");
+						throw new Error("[DEBUG] Forced pre-signed close failure to test fallback");
+					}
+
 					// Try pre-signed transaction first
 					closeTxSig =
 						await flashServiceRef.current!.sendPreSignedCloseTransaction(
@@ -292,6 +314,10 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 						const manualCloseResult = await flashServiceRef.current!.closeTrade(
 							0,
 							"SOL",
+							{
+								signDescription: "Your position needs to close. The auto-close expired — please approve a new close transaction.",
+								sendDescription: "Sending close position transaction",
+							},
 						);
 						closeTxSig = manualCloseResult.txSig;
 						closeMethod = "manual";
@@ -384,7 +410,10 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 			}, delay);
 
 			// Add an additional safety timeout for total failure
-			const safetyDelay = delay + 35000; // 30s + 5s margin
+			// Debug: set window.__FORCE_EMERGENCY_CLOSE = true to trigger this after only 5s
+			const safetyDelay = (typeof window !== "undefined" && (window as any).__FORCE_EMERGENCY_CLOSE)
+				? delay + 5000
+				: delay + 35000;
 			const safetyTimeoutRef = setTimeout(async () => {
 				// Check if position is still open
 				const positions = await flashServiceRef.current!.getUserPositions();
@@ -399,14 +428,56 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 						const emergencyClose = await flashServiceRef.current!.closeTrade(
 							0,
 							"SOL",
+							{
+								signDescription: "Emergency close: Your position is still open. Please approve to close it now.",
+								sendDescription: "Sending emergency close transaction",
+							},
 						);
 						console.log("✅ Emergency close successful:", emergencyClose.txSig);
 
 						setError(null);
 						setStatusMessage("✨ Position closed (emergency fallback)");
 
-						// Reload and complete
-						await loadLatestPosition();
+						// Clean up intervals
+						if (chartIntervalRef.current) {
+							clearInterval(chartIntervalRef.current);
+							chartIntervalRef.current = null;
+						}
+						if (countdownIntervalRef.current) {
+							clearInterval(countdownIntervalRef.current);
+							countdownIntervalRef.current = null;
+						}
+
+						// Calculate final PnL and complete
+						const exitPrice = await flashServiceRef.current!.getSolPrice();
+						const finalPriceDiff =
+							direction === "LONG"
+								? exitPrice - result.estimatedPrice
+								: result.estimatedPrice - exitPrice;
+						const finalPnl = finalPriceDiff * result.size;
+						const finalPercent = (finalPnl / amount) * 100;
+
+						if (finalPercent > 0) {
+							try {
+								await api.addTradeTime({
+									walletAddress: wallet.publicKey ?? "",
+									tradeMadeAt: new Date().toISOString(),
+								});
+							} catch (apiError) {
+								console.error("Failed to record trade time:", apiError);
+							}
+						}
+
+						onComplete({
+							success: finalPercent > 0,
+							pnl: finalPnl,
+							pnlPercent: finalPercent,
+							entryPrice: result.estimatedPrice,
+							exitPrice,
+							direction,
+							leverage,
+							txSig: emergencyClose.txSig,
+						});
 					} catch (emergencyError: any) {
 						console.error("❌ Emergency close failed:", emergencyError);
 						setError(
@@ -438,7 +509,10 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 			setIsTrading(true);
 			setError(null);
 
-			const result = await flashServiceRef.current.closeTrade(0, "USDC");
+			const result = await flashServiceRef.current.closeTrade(0, "USDC", {
+				signDescription: "Close your open SOL position and receive proceeds",
+				sendDescription: "Sending close position transaction",
+			});
 
 			const solPrice = await flashServiceRef.current.getSolPrice();
 
@@ -509,11 +583,10 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 									<span className="font-display text-2xl font-bold">SOL</span>
 									<div>
 										<span
-											className={`text-xs font-semibold ${
-												direction === "LONG"
-													? "text-[#22c55e]"
-													: "text-[#ef4444]"
-											}`}
+											className={`text-xs font-semibold ${direction === "LONG"
+												? "text-[#22c55e]"
+												: "text-[#ef4444]"
+												}`}
 										>
 											{direction === "LONG" ? "↑" : "↓"} {direction}
 										</span>
@@ -547,9 +620,8 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 										{pnl >= 0 ? "+" : ""}${pnl.toFixed(5)}
 									</p>
 									<p
-										className={`pnl-percent ${
-											pnl >= 0 ? "text-[#22c55e]" : "text-[#ef4444]"
-										}`}
+										className={`pnl-percent ${pnl >= 0 ? "text-[#22c55e]" : "text-[#ef4444]"
+											}`}
 									>
 										{pnl >= 0 ? "+" : ""}
 										{pnlPercent.toFixed(2)}%
@@ -582,11 +654,10 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 
 							{/* Status message */}
 							<div
-								className={`text-center p-4 rounded-xl ${
-									error
-										? "bg-red-500/10 border border-red-500/20"
-										: "bg-[#d4a017]/10 border border-[#d4a017]/20"
-								}`}
+								className={`text-center p-4 rounded-xl ${error
+									? "bg-red-500/10 border border-red-500/20"
+									: "bg-[#d4a017]/10 border border-[#d4a017]/20"
+									}`}
 							>
 								<p className="text-sm text-white/70">{statusMessage}</p>
 								{error && <p className="text-xs text-red-300 mt-2">{error}</p>}
@@ -636,11 +707,10 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 							<div className="text-center pb-7 mb-7 border-b border-white/[0.08]">
 								{/* Direction badge */}
 								<div
-									className={`inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold uppercase tracking-wider mb-4 ${
-										direction === "LONG"
-											? "bg-[#22c55e]/15 text-[#22c55e] border border-[#22c55e]/30"
-											: "bg-[#ef4444]/15 text-[#ef4444] border border-[#ef4444]/30"
-									}`}
+									className={`inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold uppercase tracking-wider mb-4 ${direction === "LONG"
+										? "bg-[#22c55e]/15 text-[#22c55e] border border-[#22c55e]/30"
+										: "bg-[#ef4444]/15 text-[#ef4444] border border-[#ef4444]/30"
+										}`}
 								>
 									<svg
 										viewBox="0 0 24 24"
@@ -705,6 +775,33 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 								</div>
 							</div>
 
+							{/* Trade Education */}
+							<div className="mb-6 text-center">
+								{!showEducation ? (
+									<button
+										onClick={(e) => {
+											e.stopPropagation();
+											setShowEducation(true);
+										}}
+										className="text-xs text-white/30 hover:text-white/50 transition-colors underline decoration-dotted underline-offset-4"
+									>
+										Understand what will happen
+									</button>
+								) : (
+									<div
+										className="text-xs text-white/60 px-4 cursor-pointer leading-relaxed"
+										onClick={(e) => {
+											e.stopPropagation();
+											setShowEducation(false);
+										}}
+									>
+										This opens a <strong>{direction.toLowerCase()}</strong> position on SOL at{" "}
+										<strong>{luckyNumber}x</strong> leverage using <strong>{amount} SOL</strong>.
+										It auto-closes in 30 seconds. You'll approve 2 transactions: open and pre-sign auto-close.
+									</div>
+								)}
+							</div>
+
 							{/* Warning Box */}
 							<div className="warning-box mb-6">
 								<svg
@@ -722,9 +819,25 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 									or losses.
 								</p>
 							</div>
+
+							{/* Balance validation warning */}
+							{insufficientBalance && (
+								<div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 mb-4">
+									<p className="text-sm text-red-300">
+										Insufficient balance. You need at least <strong>{requiredBalance.toFixed(4)} SOL</strong> ({amount} SOL + ~{GAS_BUFFER_SOL} SOL for fees).
+										{balance !== null && <> Current balance: <strong>{balance.toFixed(4)} SOL</strong></>}
+									</p>
+								</div>
+							)}
+
+							{/* Minimum amount warning */}
+							{amount > 0 && amount < MIN_TRADE_AMOUNT_SOL && (
+								<p className="text-xs text-red-400 mb-2 text-center">Minimum trade amount is {MIN_TRADE_AMOUNT_SOL} SOL</p>
+							)}
+
 							<button
 								onClick={handleAction}
-								disabled={isTrading || amount < 0.02}
+								disabled={isTrading || amount < MIN_TRADE_AMOUNT_SOL || insufficientBalance}
 								className="btn-primary w-full mb-3 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
 								type="button"
 							>

@@ -56,9 +56,43 @@ export const WalletBalance: FC = () => {
 		}
 	}, [publicKey, setBalance]);
 
+	// Fetch on mount + poll every 10s + subscribe to account changes
 	useEffect(() => {
 		fetchBalance();
-	}, [fetchBalance]);
+
+		// Poll as fallback (covers cases where WebSocket drops)
+		const interval = setInterval(fetchBalance, 10_000);
+
+		// Real-time subscription via Solana WebSocket
+		let subId: number | undefined;
+		let subConnection: Connection | undefined;
+		if (publicKey) {
+			try {
+				const endpoint =
+					process.env.NEXT_PUBLIC_SOLANA_RPC_URL ||
+					"https://solana-rpc.publicnode.com";
+				subConnection = new Connection(endpoint, "confirmed");
+				const pubKey = new PublicKey(publicKey);
+				subId = subConnection.onAccountChange(
+					pubKey,
+					(accountInfo) => {
+						const solBalance = accountInfo.lamports / LAMPORTS_PER_SOL;
+						setBalance(solBalance);
+					},
+					"confirmed",
+				);
+			} catch (err) {
+				console.warn("WebSocket subscription failed, relying on polling:", err);
+			}
+		}
+
+		return () => {
+			clearInterval(interval);
+			if (subId !== undefined && subConnection) {
+				subConnection.removeAccountChangeListener(subId).catch(() => {});
+			}
+		};
+	}, [fetchBalance, publicKey, setBalance]);
 
 	const handleFundWalletClick = () => {
 		if (balance !== null && balance < 0.01) {

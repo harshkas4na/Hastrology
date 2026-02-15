@@ -34,14 +34,14 @@ function extractNumber(numStr: string): number {
 	return match ? parseInt(match[0], 10) : 42;
 }
 
-const QUICK_AMOUNTS = [10, 25, 50, 100];
+const QUICK_AMOUNTS = [0.04, 0.1, 0.25, 0.5];
 
 export const TradeConfirm: FC<TradeConfirmProps> = ({
 	card,
 	onBack,
 	onExecute,
 }) => {
-	const [amount, setAmount] = useState(10);
+	const [amount, setAmount] = useState(0.04);
 
 	const luckyNumber = extractNumber(card.back.lucky_assets.number);
 	const vibeStatus = card.front.vibe_status || "Confident";
@@ -125,18 +125,18 @@ export const TradeConfirm: FC<TradeConfirmProps> = ({
 					{/* Amount Section */}
 					<div className="mb-6">
 						<p className="text-xs text-white/50 uppercase tracking-wider mb-3">
-							Trade Amount (USD)
+							Trade Amount (SOL)
 						</p>
 						<div className="relative">
 							<span className="absolute left-5 top-1/2 -translate-y-1/2 text-2xl text-white/40 font-display">
-								$
+								SOL
 							</span>
 							<input
 								type="number"
 								value={amount}
 								onChange={(e) => setAmount(Number(e.target.value))}
-								min={10}
-								className="w-full py-5 px-6 pl-11 bg-white/5 border border-white/10 rounded-xl text-2xl font-display font-semibold focus:outline-none focus:border-[#d4a017]/50"
+								min={0.04}
+								className="w-full py-5 px-6 pl-17 bg-white/5 border border-white/10 rounded-xl text-2xl font-display font-semibold focus:outline-none focus:border-[#d4a017]/50"
 							/>
 						</div>
 						<div className="flex flex-wrap gap-2 mt-3">
@@ -146,7 +146,7 @@ export const TradeConfirm: FC<TradeConfirmProps> = ({
 									onClick={() => setAmount(qa)}
 									className={`quick-btn flex-1 min-w-[60px] ${amount === qa ? "active" : ""}`}
 								>
-									${qa}
+									{qa} SOL
 								</button>
 							))}
 						</div>
@@ -171,7 +171,8 @@ export const TradeConfirm: FC<TradeConfirmProps> = ({
 					{/* Buttons */}
 					<button
 						onClick={() => onExecute(amount)}
-						className="btn-primary w-full mb-3"
+						disabled={amount < 0.04}
+						className="btn-primary w-full mb-3 disabled:opacity-60 disabled:cursor-not-allowed"
 					>
 						<svg
 							viewBox="0 0 24 24"

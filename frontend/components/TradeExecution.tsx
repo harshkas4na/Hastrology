@@ -83,7 +83,11 @@ export const TradeExecution: FC<TradeExecutionProps> = ({
 			setFlashReady(true);
 		};
 
-		init();
+		init().catch((err) => {
+			console.error("Flash service init failed:", err);
+			setError("Failed to initialize trading service.");
+			setStatusMessage("Initialization failed");
+		});
 	}, [
 		wallet.publicKey,
 		wallet.signTransaction,

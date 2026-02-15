@@ -1201,6 +1201,7 @@ export const AstroCard: React.FC<AstroCardProps> = ({
 						setOpenModal(false);
 					}}
 					direction={card.front.luck_score > 50 ? "LONG" : "SHORT"}
+					balance={null}
 				/>
 			)}
 		</div>

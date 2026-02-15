@@ -462,6 +462,7 @@ const CardsPage: FC = () => {
 					}}
 					direction={card.front.luck_score > 50 ? "LONG" : "SHORT"}
 					onComplete={handleTradeComplete}
+					balance={balance}
 				/>
 			</>
 		);

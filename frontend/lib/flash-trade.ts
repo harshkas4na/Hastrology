@@ -434,11 +434,22 @@ export class FlashPrivyService {
 		try {
 			const walletPubkey = new PublicKey(this.config.wallet.publicKey);
 
-			// Get raw positions from SDK
-			const rawPositions = await this.flashClient.getUserPositions(
-				walletPubkey,
-				this.POOL_CONFIG,
-			);
+			// Search all pool configs for positions (not just Crypto.1)
+			let rawPositions: any[] = [];
+			for (const poolCfg of POOL_CONFIGS) {
+				try {
+					const poolPositions = await this.flashClient.getUserPositions(
+						walletPubkey,
+						poolCfg,
+					);
+					if (poolPositions.length > 0) {
+						rawPositions = poolPositions;
+						break;
+					}
+				} catch {
+					// Pool may not support query; skip
+				}
+			}
 
 			// Get current prices for P&L calculation
 			const priceMap = await this.getPrices();
@@ -467,12 +478,14 @@ export class FlashPrivyService {
 				10 ** Math.abs(solPriceData.price.exponent.toNumber());
 
 			// Filter and transform positions
+			const DEFAULT_KEY = PublicKey.default.toBase58();
 			const humanReadablePositions = rawPositions
 				.filter((position) => {
-					// Filter for SOL market only
-					// We'll assume any position with SOL in its metadata or check the market address
-					// Since we can't easily determine the market from position object,
-					// we'll filter by size amount (non-zero SOL positions)
+					// Filter out stale/empty positions with default market key
+					const marketKey = position.market?.toBase58?.() ?? "";
+					if (marketKey === "" || marketKey === DEFAULT_KEY) return false;
+
+					// Filter for non-zero SOL positions
 					const sizeInSol =
 						Number(position.sizeAmount.toString()) / 10 ** solToken.decimals;
 					return Math.abs(sizeInSol) > 0.01; // Only positions with significant SOL size
@@ -547,6 +560,7 @@ export class FlashPrivyService {
 		instructions: TransactionInstruction[],
 		addressLookupTables: AddressLookupTableAccount[],
 		additionalSigners: Signer[] = [],
+		uiOptions?: { signDescription?: string; sendDescription?: string },
 	): Promise<string> {
 		if (!this.config.connection) {
 			throw new Error("Connection not initialized");
@@ -575,7 +589,7 @@ export class FlashPrivyService {
 
 		// Sign with wallet
 		const signedTransaction =
-			await this.config.wallet.signTransaction(transaction);
+			await this.config.wallet.signTransaction(transaction, uiOptions?.signDescription ? { uiOptions: { description: uiOptions.signDescription } } : undefined);
 
 		if (!(signedTransaction instanceof VersionedTransaction)) {
 			throw new Error("Expected VersionedTransaction after signing");
@@ -583,7 +597,7 @@ export class FlashPrivyService {
 
 		// Serialize and send
 		const serialized = signedTransaction.serialize();
-		const signature = await this.config.wallet.sendTransaction(serialized);
+		const signature = await this.config.wallet.sendTransaction(serialized, uiOptions?.sendDescription ? { uiOptions: { description: uiOptions.sendDescription } } : undefined);
 
 		// Wait for confirmation
 		const confirmation = await this.config.connection.confirmTransaction(
@@ -863,8 +877,9 @@ export class FlashPrivyService {
 	async closeTrade(
 		positionIndex: number = 0,
 		receivingTokenSymbol: string = "USDC",
+		uiOptions?: { signDescription?: string; sendDescription?: string },
 	): Promise<{ txSig: string }> {
-		if (!this.POOL_CONFIG || !this.flashClient) {
+		if (!this.flashClient) {
 			throw new Error("Client not initialized. Call initialize() first.");
 		}
 
@@ -874,56 +889,127 @@ export class FlashPrivyService {
 			const instructions: TransactionInstruction[] = [];
 			let additionalSigners: Signer[] = [];
 
-			// Get all user positions
+			// Search ALL pool configs for user positions (not just Crypto.1)
 			const walletPubkey = new PublicKey(this.config.wallet.publicKey);
-			const positions = await this.flashClient.getUserPositions(
-				walletPubkey,
-				this.POOL_CONFIG,
-			);
+			let positions: any[] = [];
+			let positionPoolConfig: PoolConfig | null = null;
 
-			if (positions.length === 0) {
+			for (const poolCfg of POOL_CONFIGS) {
+				try {
+					const poolPositions = await this.flashClient.getUserPositions(
+						walletPubkey,
+						poolCfg,
+					);
+					if (poolPositions.length > 0) {
+						positions = poolPositions;
+						positionPoolConfig = poolCfg;
+						console.log(`Found ${poolPositions.length} position(s) in pool ${poolCfg.poolName}`);
+						break;
+					}
+				} catch (poolErr) {
+					// This pool may not support the query; skip
+					console.warn(`Pool ${poolCfg.poolName} position query failed:`, poolErr);
+				}
+			}
+
+			if (positions.length === 0 || !positionPoolConfig) {
 				throw new Error("No positions found to close");
 			}
 
-			// Choose the position to close
-			if (positionIndex >= positions.length) {
-				throw new Error(
-					`Position index ${positionIndex} out of range. User has ${positions.length} positions`,
-				);
+			// Filter out stale/empty positions (market = PublicKey.default or zero size)
+			const DEFAULT_KEY = PublicKey.default.toBase58();
+			const validPositions = positions.filter((p: any) => {
+				const marketKey = p.market?.toBase58?.() ?? "";
+				const hasValidMarket = marketKey !== "" && marketKey !== DEFAULT_KEY;
+				const hasSize = p.sizeAmount && !p.sizeAmount.isZero?.();
+				return hasValidMarket && hasSize;
+			});
+
+			console.log(`${positions.length} raw position(s), ${validPositions.length} valid after filtering`);
+
+			if (validPositions.length === 0) {
+				throw new Error("No valid positions found to close (all positions have empty market or zero size)");
 			}
 
-			const positionToClose = positions[positionIndex];
+			// Choose the position to close
+			const effectiveIndex = Math.min(positionIndex, validPositions.length - 1);
+			const positionToClose = validPositions[effectiveIndex];
 
-			// Find market config for this position
-			const marketConfig = this.POOL_CONFIG.markets.find((f) =>
+			console.log(`Closing position ${effectiveIndex} with market ${positionToClose.market.toBase58()}`);
+
+			// Find market config across ALL known markets (not just one pool)
+			let marketConfig = positionPoolConfig.markets.find((f: any) =>
 				f.marketAccount.equals(positionToClose.market),
 			);
 
+			// Fallback: search all market configs across all pools
 			if (!marketConfig) {
-				throw new Error("Market config not found for position");
+				marketConfig = ALL_MARKET_CONFIGS.find((f) =>
+					f.marketAccount.equals(positionToClose.market),
+				);
+
+				// Update positionPoolConfig to match the pool that owns this market
+				if (marketConfig) {
+					const matchingPool = POOL_CONFIGS.find((p) =>
+						p.poolAddress.equals(marketConfig!.pool),
+					);
+					if (matchingPool) {
+						positionPoolConfig = matchingPool;
+						console.log(`Market found in pool ${positionPoolConfig.poolName}`);
+					}
+				}
 			}
 
-			// Get tokens and custody accounts
-			const receivingToken = this.POOL_CONFIG.tokens.find(
+			if (!marketConfig) {
+				throw new Error(
+					`Market config not found for position market ${positionToClose.market.toBase58()}`,
+				);
+			}
+
+			// Determine effective receiving token (fallback to SOL if not in pool)
+			const effectiveReceivingSymbol = positionPoolConfig.tokens.find(
 				(t) => t.symbol === receivingTokenSymbol,
-			);
-			if (!receivingToken) {
-				throw new Error(`Receiving token ${receivingTokenSymbol} not found`);
+			)
+				? receivingTokenSymbol
+				: "SOL";
+
+			if (effectiveReceivingSymbol !== receivingTokenSymbol) {
+				console.warn(`${receivingTokenSymbol} not in pool ${positionPoolConfig.poolName}, falling back to SOL`);
 			}
 
 			const side = marketConfig.side!;
 
-			const targetToken = this.POOL_CONFIG.tokens.find((t) =>
-				t.mintKey.equals(marketConfig.targetMint),
+			const targetToken = positionPoolConfig.tokens.find((t) =>
+				t.mintKey.equals(marketConfig!.targetMint),
 			);
 
-			const collateralToken = this.POOL_CONFIG.tokens.find((t) =>
-				t.mintKey.equals(marketConfig.collateralMint),
+			const collateralToken = positionPoolConfig.tokens.find((t) =>
+				t.mintKey.equals(marketConfig!.collateralMint),
 			);
 
-			if (!targetToken || !collateralToken) {
-				throw new Error("Target or collateral token not found");
+			const receivingToken = positionPoolConfig.tokens.find(
+				(t) => t.symbol === effectiveReceivingSymbol,
+			);
+
+			if (!targetToken || !collateralToken || !receivingToken) {
+				throw new Error("Target, collateral, or receiving token not found");
 			}
+
+			// Use getTradeExecutionDetailsClose to determine if swap is needed
+			// (e.g., JitoSOL collateral → SOL receiving requires closeAndSwap)
+			const closeDetails = getTradeExecutionDetailsClose(
+				receivingToken,
+				targetToken,
+				positionToClose.market,
+			);
+
+			if (closeDetails.isTradeDisabled) {
+				throw new Error("Close not supported: swap required but not available for this pair");
+			}
+
+			const CLOSE_POOL = closeDetails.positionPoolConfig;
+			const SWAP_POOL = closeDetails.swapPoolConfig;
+			const closeCollateralToken = closeDetails.collateralToken;
 
 			const priceMap = await this.getPrices();
 
@@ -936,17 +1022,40 @@ export class FlashPrivyService {
 				side,
 			);
 
-			const closePositionWithSwapData = await this.flashClient.closePosition(
-				targetToken.symbol,
-				"SOL",
-				priceAfterSlippage,
-				side,
-				this.POOL_CONFIG,
-				Privilege.None,
-			);
+			const privilege = Privilege.None;
 
-			instructions.push(...closePositionWithSwapData.instructions);
-			additionalSigners.push(...closePositionWithSwapData.additionalSigners);
+			let closeData: {
+				instructions: TransactionInstruction[];
+				additionalSigners: Signer[];
+			};
+
+			if (closeDetails.isSwapRequired && SWAP_POOL) {
+				// Collateral differs from receiving token — need closeAndSwap
+				console.log(`Close requires swap: ${closeCollateralToken.symbol} → ${effectiveReceivingSymbol}`);
+				closeData = await this.flashClient.closeAndSwap(
+					targetToken.symbol,
+					effectiveReceivingSymbol,
+					closeCollateralToken.symbol,
+					priceAfterSlippage,
+					side,
+					CLOSE_POOL,
+					privilege,
+				);
+			} else {
+				// No swap needed — simple close
+				console.log(`Simple close: receiving ${effectiveReceivingSymbol}`);
+				closeData = await this.flashClient.closePosition(
+					targetToken.symbol,
+					effectiveReceivingSymbol,
+					priceAfterSlippage,
+					side,
+					CLOSE_POOL,
+					privilege,
+				);
+			}
+
+			instructions.push(...closeData.instructions);
+			additionalSigners.push(...closeData.additionalSigners);
 
 			// Add compute budget
 			instructions.unshift(
@@ -957,9 +1066,10 @@ export class FlashPrivyService {
 				ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 100000 }),
 			);
 
-			// Get address lookup tables
+			// Get address lookup tables from the correct pool
+			await this.flashClient.loadAddressLookupTable(CLOSE_POOL);
 			const addressLookupTables: AddressLookupTableAccount[] = (
-				await this.flashClient.getOrLoadAddressLookupTable(this.POOL_CONFIG)
+				await this.flashClient.getOrLoadAddressLookupTable(CLOSE_POOL)
 			).addressLookupTables;
 
 			// Build and send transaction
@@ -967,6 +1077,7 @@ export class FlashPrivyService {
 				instructions,
 				addressLookupTables,
 				additionalSigners,
+				uiOptions,
 			);
 
 			return { txSig: trxId };
@@ -1554,10 +1665,12 @@ export class FlashPrivyService {
 
 			for (let attempt = 1; attempt <= 3; attempt++) {
 				try {
+					// skipPreflight on first attempt to avoid blockhash-not-found simulation failures
+					// when the blockhash is marginally expired but may still land on-chain
 					signature = await this.config.connection.sendRawTransaction(
 						serializedTransaction,
 						{
-							skipPreflight: false,
+							skipPreflight: attempt === 1,
 							preflightCommitment: "confirmed",
 							maxRetries: 3,
 						},
@@ -1573,6 +1686,13 @@ export class FlashPrivyService {
 						);
 						await new Promise((resolve) => setTimeout(resolve, 1200));
 						continue;
+					}
+
+					// On blockhash expiry, don't retry the pre-signed tx — let fallback handle it
+					const errMsg = error instanceof Error ? error.message : String(error);
+					if (errMsg.includes("Blockhash not found") || errMsg.includes("block height exceeded")) {
+						console.warn("⚠️ Pre-signed close blockhash expired, deferring to manual fallback");
+						throw error;
 					}
 
 					throw error;
