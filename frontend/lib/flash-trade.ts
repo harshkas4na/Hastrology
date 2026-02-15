@@ -58,6 +58,7 @@ export interface TradeParams {
 	side: "long" | "short";
 	inputAmount: number;
 	leverage: number;
+	symbol: string;
 }
 
 export interface TradeResult {
@@ -425,6 +426,7 @@ export class FlashPrivyService {
 			unrealizedPnl: number;
 			openTime: string;
 			market: string;
+			symbol: string; // ✅ Add symbol to return type
 		}>
 	> {
 		if (!this.flashClient || !this.POOL_CONFIG) {
@@ -436,6 +438,7 @@ export class FlashPrivyService {
 
 			// Search all pool configs for positions (not just Crypto.1)
 			let rawPositions: any[] = [];
+
 			for (const poolCfg of POOL_CONFIGS) {
 				try {
 					const poolPositions = await this.flashClient.getUserPositions(
@@ -451,71 +454,96 @@ export class FlashPrivyService {
 				}
 			}
 
-			// Get current prices for P&L calculation
+			if (rawPositions.length === 0) {
+				return [];
+			}
+
+			// Get current prices for ALL coins
 			const priceMap = await this.getPrices();
-
-			// Find SOL token info
-			const solToken = this.POOL_CONFIG.tokens.find((t) => t.symbol === "SOL");
-			if (!solToken) {
-				throw new Error("SOL token not found in pool config");
-			}
-
-			const solCustody = this.POOL_CONFIG.custodies.find(
-				(c) => c.symbol === "SOL",
-			);
-			if (!solCustody) {
-				throw new Error("SOL custody not found");
-			}
-
-			// Get SOL price data
-			const solPriceData = priceMap.get("SOL");
-			if (!solPriceData) {
-				throw new Error("Current SOL price not available");
-			}
-
-			const currentSolPrice =
-				Number(solPriceData.price.price.toString()) /
-				10 ** Math.abs(solPriceData.price.exponent.toNumber());
 
 			// Filter and transform positions
 			const DEFAULT_KEY = PublicKey.default.toBase58();
+
 			const humanReadablePositions = rawPositions
 				.filter((position) => {
 					// Filter out stale/empty positions with default market key
 					const marketKey = position.market?.toBase58?.() ?? "";
 					if (marketKey === "" || marketKey === DEFAULT_KEY) return false;
 
-					// Filter for non-zero SOL positions
-					const sizeInSol =
-						Number(position.sizeAmount.toString()) / 10 ** solToken.decimals;
-					return Math.abs(sizeInSol) > 0.01; // Only positions with significant SOL size
+					// Filter for non-zero positions
+					const size = Number(position.sizeAmount.toString());
+					return Math.abs(size) > 0.01;
 				})
 				.map((position, index) => {
+					// ✅ Find which token this position is for
+					const marketKey = position.market;
+
+					// Find the market config across all pools
+					let marketConfig = ALL_MARKET_CONFIGS.find((m) =>
+						m.marketAccount.equals(marketKey),
+					);
+
+					if (!marketConfig) {
+						console.warn(
+							`Market config not found for position ${marketKey.toBase58()}`,
+						);
+						return null;
+					}
+
+					// Find the pool that owns this market
+					const poolConfig = POOL_CONFIGS.find((p) =>
+						p.poolAddress.equals(marketConfig!.pool),
+					);
+
+					if (!poolConfig) {
+						console.warn("Pool config not found for market");
+						return null;
+					}
+
+					// ✅ Find the target token (this is the coin being traded)
+					const targetToken = poolConfig.tokens.find((t) =>
+						t.mintKey.equals(marketConfig!.targetMint),
+					);
+
+					if (!targetToken) {
+						console.warn("Target token not found in pool");
+						return null;
+					}
+
+					// ✅ Get current price for THIS specific token
+					const tokenPriceData = priceMap.get(targetToken.symbol);
+					if (!tokenPriceData) {
+						console.warn(`No price data for ${targetToken.symbol}`);
+						return null;
+					}
+
+					const currentPrice =
+						Number(tokenPriceData.price.price.toString()) /
+						10 ** Math.abs(tokenPriceData.price.exponent.toNumber());
+
 					// Calculate human-readable values
 					const direction: "LONG" | "SHORT" =
 						Number(position.sizeAmount.toString()) >= 0 ? "LONG" : "SHORT";
 
-					// Size in SOL
-					const sizeInSol =
-						Number(position.sizeAmount.toString()) / 10 ** solToken.decimals;
-					const sizeUsd = Number(position.sizeUsd.toString()) / 10 ** 6; // USD with 6 decimals
+					// ✅ Size in the target token's decimals
+					const size =
+						Number(position.sizeAmount.toString()) / 10 ** targetToken.decimals;
+					const sizeUsd = Number(position.sizeUsd.toString()) / 10 ** 6;
 
 					// Entry price
 					const entryPrice =
 						Number(position.entryPrice.price.toString()) /
 						10 ** Math.abs(position.entryPrice.exponent);
 
-					// P&L Calculation
+					// ✅ P&L Calculation using the correct token's price
 					const priceDifference =
 						direction === "LONG"
-							? currentSolPrice - entryPrice
-							: entryPrice - currentSolPrice;
+							? currentPrice - entryPrice
+							: entryPrice - currentPrice;
 
-					const pnl = Math.abs(sizeInSol) * priceDifference;
+					const pnl = Math.abs(size) * priceDifference;
 					const pnlPercent =
-						entryPrice > 0
-							? (pnl / (Math.abs(sizeInSol) * entryPrice)) * 100
-							: 0;
+						entryPrice > 0 ? (pnl / (Math.abs(size) * entryPrice)) * 100 : 0;
 
 					// Collateral in USD
 					const collateral =
@@ -535,22 +563,69 @@ export class FlashPrivyService {
 					return {
 						positionId: `${walletPubkey.toBase58().slice(0, 8)}-${index}`,
 						direction,
-						size: Math.abs(sizeInSol),
+						size: Math.abs(size),
 						sizeUsd: Math.abs(sizeUsd),
 						entryPrice,
-						currentPrice: currentSolPrice,
+						currentPrice,
 						pnl,
 						pnlPercent,
 						collateral,
 						unrealizedPnl: pnl,
 						openTime: formattedOpenTime,
-						market: "SOL/USD",
+						market: `${targetToken.symbol}/USD`,
+						symbol: targetToken.symbol,
 					};
-				});
+				})
+				.filter((p) => p !== null) as Array<{
+				positionId: string;
+				direction: "LONG" | "SHORT";
+				size: number;
+				sizeUsd: number;
+				entryPrice: number;
+				currentPrice: number;
+				pnl: number;
+				pnlPercent: number;
+				collateral: number;
+				unrealizedPnl: number;
+				openTime: string;
+				market: string;
+				symbol: string;
+			}>;
 
 			return humanReadablePositions;
 		} catch (error) {
 			console.error("Failed to fetch user positions:", error);
+			throw error;
+		}
+	}
+
+	async getCoinPrice(symbol: string): Promise<number> {
+		if (!this.POOL_CONFIG || !this.flashClient) {
+			throw new Error("Client not initialized. Call initialize() first.");
+		}
+
+		try {
+			const priceMap = await this.getPrices();
+
+			const token = this.POOL_CONFIG.tokens.find((t) => t.symbol === symbol);
+
+			if (!token) {
+				throw new Error(`${symbol} token not found in pool config`);
+			}
+
+			const priceData = priceMap.get(token.symbol);
+
+			if (!priceData) {
+				throw new Error(`Price data not available for ${symbol}`);
+			}
+
+			const price =
+				Number(priceData.price.price.toString()) /
+				10 ** Math.abs(priceData.price.exponent.toNumber());
+
+			return price;
+		} catch (error) {
+			console.error(`Failed to fetch ${symbol} price:`, error);
 			throw error;
 		}
 	}
@@ -588,8 +663,12 @@ export class FlashPrivyService {
 		}
 
 		// Sign with wallet
-		const signedTransaction =
-			await this.config.wallet.signTransaction(transaction, uiOptions?.signDescription ? { uiOptions: { description: uiOptions.signDescription } } : undefined);
+		const signedTransaction = await this.config.wallet.signTransaction(
+			transaction,
+			uiOptions?.signDescription
+				? { uiOptions: { description: uiOptions.signDescription } }
+				: undefined,
+		);
 
 		if (!(signedTransaction instanceof VersionedTransaction)) {
 			throw new Error("Expected VersionedTransaction after signing");
@@ -597,7 +676,12 @@ export class FlashPrivyService {
 
 		// Serialize and send
 		const serialized = signedTransaction.serialize();
-		const signature = await this.config.wallet.sendTransaction(serialized, uiOptions?.sendDescription ? { uiOptions: { description: uiOptions.sendDescription } } : undefined);
+		const signature = await this.config.wallet.sendTransaction(
+			serialized,
+			uiOptions?.sendDescription
+				? { uiOptions: { description: uiOptions.sendDescription } }
+				: undefined,
+		);
 
 		// Wait for confirmation
 		const confirmation = await this.config.connection.confirmTransaction(
@@ -903,12 +987,17 @@ export class FlashPrivyService {
 					if (poolPositions.length > 0) {
 						positions = poolPositions;
 						positionPoolConfig = poolCfg;
-						console.log(`Found ${poolPositions.length} position(s) in pool ${poolCfg.poolName}`);
+						console.log(
+							`Found ${poolPositions.length} position(s) in pool ${poolCfg.poolName}`,
+						);
 						break;
 					}
 				} catch (poolErr) {
 					// This pool may not support the query; skip
-					console.warn(`Pool ${poolCfg.poolName} position query failed:`, poolErr);
+					console.warn(
+						`Pool ${poolCfg.poolName} position query failed:`,
+						poolErr,
+					);
 				}
 			}
 
@@ -925,17 +1014,23 @@ export class FlashPrivyService {
 				return hasValidMarket && hasSize;
 			});
 
-			console.log(`${positions.length} raw position(s), ${validPositions.length} valid after filtering`);
+			console.log(
+				`${positions.length} raw position(s), ${validPositions.length} valid after filtering`,
+			);
 
 			if (validPositions.length === 0) {
-				throw new Error("No valid positions found to close (all positions have empty market or zero size)");
+				throw new Error(
+					"No valid positions found to close (all positions have empty market or zero size)",
+				);
 			}
 
 			// Choose the position to close
 			const effectiveIndex = Math.min(positionIndex, validPositions.length - 1);
 			const positionToClose = validPositions[effectiveIndex];
 
-			console.log(`Closing position ${effectiveIndex} with market ${positionToClose.market.toBase58()}`);
+			console.log(
+				`Closing position ${effectiveIndex} with market ${positionToClose.market.toBase58()}`,
+			);
 
 			// Find market config across ALL known markets (not just one pool)
 			let marketConfig = positionPoolConfig.markets.find((f: any) =>
@@ -974,7 +1069,9 @@ export class FlashPrivyService {
 				: "SOL";
 
 			if (effectiveReceivingSymbol !== receivingTokenSymbol) {
-				console.warn(`${receivingTokenSymbol} not in pool ${positionPoolConfig.poolName}, falling back to SOL`);
+				console.warn(
+					`${receivingTokenSymbol} not in pool ${positionPoolConfig.poolName}, falling back to SOL`,
+				);
 			}
 
 			const side = marketConfig.side!;
@@ -1004,7 +1101,9 @@ export class FlashPrivyService {
 			);
 
 			if (closeDetails.isTradeDisabled) {
-				throw new Error("Close not supported: swap required but not available for this pair");
+				throw new Error(
+					"Close not supported: swap required but not available for this pair",
+				);
 			}
 
 			const CLOSE_POOL = closeDetails.positionPoolConfig;
@@ -1031,7 +1130,9 @@ export class FlashPrivyService {
 
 			if (closeDetails.isSwapRequired && SWAP_POOL) {
 				// Collateral differs from receiving token — need closeAndSwap
-				console.log(`Close requires swap: ${closeCollateralToken.symbol} → ${effectiveReceivingSymbol}`);
+				console.log(
+					`Close requires swap: ${closeCollateralToken.symbol} → ${effectiveReceivingSymbol}`,
+				);
 				closeData = await this.flashClient.closeAndSwap(
 					targetToken.symbol,
 					effectiveReceivingSymbol,
@@ -1113,21 +1214,24 @@ export class FlashPrivyService {
 		closeAtTimestamp: number;
 		blockhash: string;
 		lastValidBlockHeight: number;
+		targetCoin: string;
 	}> {
 		if (!this.POOL_CONFIG || !this.flashClient) {
 			throw new Error("Client not initialized. Call initialize() first.");
 		}
 
 		try {
-			const { side: normalSide, inputAmount, leverage } = params;
+			const { side: normalSide, inputAmount, leverage, symbol } = params;
 			const side = normalSide === "long" ? Side.Long : Side.Short;
+
+			const targetCoinSymbol = symbol;
 
 			const userInputToken = this.POOL_CONFIG.tokens.find(
 				(t) => t.symbol === "SOL",
 			)!;
 			const targetToken = this.POOL_CONFIG.tokens.find(
-				(t) => t.symbol === "SOL",
-			)!;
+				(t) => t.symbol === targetCoinSymbol,
+			);
 
 			if (!userInputToken || !targetToken) {
 				throw new Error("Token not found in pool config");
@@ -1419,7 +1523,7 @@ export class FlashPrivyService {
 				openTransaction,
 				{
 					uiOptions: {
-						description: `Opening ${params.side.toUpperCase()} position: ${inputAmount} SOL at ${leverage}x leverage`,
+						description: `Opening ${params.side.toUpperCase()} position: ${inputAmount} ${params.symbol} at ${leverage}x leverage`,
 						buttonText: "Sign Open Trade Transaction",
 						transactionInfo: {
 							title: "Open Position",
@@ -1491,6 +1595,7 @@ export class FlashPrivyService {
 				closeAtTimestamp,
 				blockhash,
 				lastValidBlockHeight,
+				targetCoin: targetToken.symbol,
 			};
 		} catch (error) {
 			console.error("❌ Trade with auto-close failed:", error);
@@ -1517,7 +1622,7 @@ export class FlashPrivyService {
 		const instructions: TransactionInstruction[] = [];
 		let additionalSigners: Signer[] = [];
 
-		const targetTokenSymbol = "SOL";
+		const targetTokenSymbol = params.symbol;
 		const side = params.side === "long" ? Side.Long : Side.Short;
 
 		const targetToken = pool.tokens.find((t) => t.symbol === targetTokenSymbol);
@@ -1690,8 +1795,13 @@ export class FlashPrivyService {
 
 					// On blockhash expiry, don't retry the pre-signed tx — let fallback handle it
 					const errMsg = error instanceof Error ? error.message : String(error);
-					if (errMsg.includes("Blockhash not found") || errMsg.includes("block height exceeded")) {
-						console.warn("⚠️ Pre-signed close blockhash expired, deferring to manual fallback");
+					if (
+						errMsg.includes("Blockhash not found") ||
+						errMsg.includes("block height exceeded")
+					) {
+						console.warn(
+							"⚠️ Pre-signed close blockhash expired, deferring to manual fallback",
+						);
 						throw error;
 					}
 

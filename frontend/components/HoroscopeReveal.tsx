@@ -12,6 +12,37 @@ interface HoroscopeRevealProps {
 	onVerifyTrade: () => void;
 }
 
+// Add this interface near the top with other interfaces
+export interface CoinAllocation {
+	symbol: string;
+	minScore: number;
+	maxScore: number;
+	displayName: string;
+}
+
+// Add this constant after POOL_CONFIGS
+export const COIN_ALLOCATIONS: CoinAllocation[] = [
+	{ symbol: "BNB", minScore: 0, maxScore: 20, displayName: "Solana" },
+	{ symbol: "BTC", minScore: 20, maxScore: 40, displayName: "Bitcoin" },
+	{ symbol: "ZEC", minScore: 40, maxScore: 60, displayName: "Ethereum" },
+	{ symbol: "ETH", minScore: 60, maxScore: 80, displayName: "Zcash" },
+	{ symbol: "SOL", minScore: 80, maxScore: 100, displayName: "BNB" },
+];
+
+// Add helper function to get coin from luck score
+export const getCoinFromLuckScore = (luckScore: number): CoinAllocation => {
+	// Normalize luck score to 0-100 range
+	const normalizedScore = Math.max(0, Math.min(100, luckScore));
+
+	const allocation = COIN_ALLOCATIONS.find(
+		(coin) =>
+			normalizedScore >= coin.minScore && normalizedScore < coin.maxScore,
+	);
+
+	// Fallback to last coin if score is exactly 100
+	return allocation || COIN_ALLOCATIONS[COIN_ALLOCATIONS.length - 1];
+};
+
 // Map color names to CSS gradients
 const colorGradients: Record<string, string> = {
 	"fire red": "linear-gradient(135deg, #ef4444, #f97316)",
@@ -106,7 +137,7 @@ export const HoroscopeReveal: FC<HoroscopeRevealProps> = ({
 	const colorGradient =
 		colorGradients[colorKey] ||
 		colorGradients[
-		Object.keys(colorGradients).find((k) => colorKey.includes(k)) || "gold"
+			Object.keys(colorGradients).find((k) => colorKey.includes(k)) || "gold"
 		];
 
 	const handleFlip = () => {
@@ -230,7 +261,9 @@ export const HoroscopeReveal: FC<HoroscopeRevealProps> = ({
 
 									<span className="mb-3 derivation-arrow ">→</span>
 									<div className="derivation-item">
-										<span className="derivation-value">SOL</span>
+										<span className="derivation-value">
+											{getCoinFromLuckScore(card.front.luck_score).symbol}
+										</span>
 										<span className="derivation-label">Ticker</span>
 									</div>
 									<span className="mb-4 derivation-arrow hidden sm:block">
@@ -264,7 +297,7 @@ export const HoroscopeReveal: FC<HoroscopeRevealProps> = ({
 								</div>
 								<div className="flex items-center justify-center gap-3">
 									<span className="font-display text-lg font-semibold">
-										SOL
+										{getCoinFromLuckScore(card.front.luck_score).symbol}
 									</span>
 									<span className="text-white/20">•</span>
 									<span className="font-display text-lg font-semibold">
@@ -273,8 +306,9 @@ export const HoroscopeReveal: FC<HoroscopeRevealProps> = ({
 									<span className="text-xs text-white/50">leverage</span>
 									<span className="text-white/20">•</span>
 									<span
-										className={`font-display text-lg font-semibold ${direction === "LONG" ? "text-[#22c55e]" : "text-[#ef4444]"
-											}`}
+										className={`font-display text-lg font-semibold ${
+											direction === "LONG" ? "text-[#22c55e]" : "text-[#ef4444]"
+										}`}
 									>
 										{direction}
 									</span>
@@ -322,8 +356,8 @@ export const HoroscopeReveal: FC<HoroscopeRevealProps> = ({
 												setShowEducation(false);
 											}}
 										>
-											A quick 30-second leveraged trade on SOL will verify your horoscope.
-											Position auto-closes. Profits are yours.
+											A quick 30-second leveraged trade on SOL will verify your
+											horoscope. Position auto-closes. Profits are yours.
 										</motion.div>
 									)}
 								</div>
@@ -336,8 +370,11 @@ export const HoroscopeReveal: FC<HoroscopeRevealProps> = ({
 									if (!(verified || verifiedToday)) onVerifyTrade();
 								}}
 								disabled={verified || verifiedToday}
-								className={`btn-primary w-full text-sm sm:text-base ${verified || verifiedToday ? "opacity-70 cursor-not-allowed" : ""
-									}`}
+								className={`btn-primary w-full text-sm sm:text-base ${
+									verified || verifiedToday
+										? "opacity-70 cursor-not-allowed"
+										: ""
+								}`}
 							>
 								{verified || verifiedToday ? (
 									<>
