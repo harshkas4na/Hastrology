@@ -63,7 +63,7 @@ export const WalletDropdown: FC<Props> = ({ variant = "desktop" }) => {
 				<button
 					onClick={() => setShowDropdown(!showDropdown)}
 					className="
-          flex items-center gap-2
+          flex items-center gap-2 cursor-pointer
           bg-inherit border border-neutral-700 text-white
           px-4 py-2 rounded-xl font-medium
           hover:bg-[#262626] hover:scale-105
@@ -82,9 +82,8 @@ export const WalletDropdown: FC<Props> = ({ variant = "desktop" }) => {
 					<span>{formatAddress(publicKey)}</span>
 
 					<svg
-						className={`w-4 h-4 transition-transform duration-200 ${
-							showDropdown ? "rotate-180" : ""
-						}`}
+						className={`w-4 h-4 transition-transform duration-200 ${showDropdown ? "rotate-180" : ""
+							}`}
 						fill="none"
 						stroke="currentColor"
 						viewBox="0 0 24 24"

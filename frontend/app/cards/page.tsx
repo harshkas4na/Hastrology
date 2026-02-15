@@ -188,7 +188,6 @@ const CardsPage: FC = () => {
 			try {
 				// Check user profile
 				const profileResponse = await api.getUserProfile(publicKey); // Use publicKey directly
-				console.log("Profile response:", profileResponse);
 
 				if (!profileResponse?.user) {
 					console.warn("User profile not found. Redirecting to home.");
@@ -200,7 +199,6 @@ const CardsPage: FC = () => {
 
 				// Check horoscope status
 				const status = await api.getStatus(publicKey);
-				console.log("Horoscope status:", status);
 
 				if (status.status === "exists" && status.card) {
 					setCard(status.card);

@@ -69,11 +69,11 @@ export const TradeResults: FC<TradeResultsProps> = ({
 	const colorGradient =
 		colorGradients[colorKey] ||
 		colorGradients[
-			Object.keys(colorGradients).find((k) => colorKey.includes(k)) || "gold"
+		Object.keys(colorGradients).find((k) => colorKey.includes(k)) || "gold"
 		];
 
 	const handleShareX = () => {
-		const text = `My ${zodiacSign} horoscope was verified by a trade on Solana! 🔮\n\n${result.pnl >= 0 ? "Profit" : "Loss"}: ${result.pnl >= 0 ? "+" : ""}$${result.pnl.toFixed(2)} (${result.pnlPercent.toFixed(1)}%)\n\nVerify yours at hashtro.fun`;
+		const text = `"${zodiacSign} horoscope" verified on @tryhashtro`;
 		const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
 		window.open(url, "_blank");
 	};
@@ -219,7 +219,6 @@ export const TradeResults: FC<TradeResultsProps> = ({
 						</div>
 					</div>
 
-					{/* Trade Result */}
 					<div
 						className={`${result.pnlPercent >= 0 ? "trade-result" : "trade-result-failed"} mb-6`}
 					>
@@ -228,11 +227,10 @@ export const TradeResults: FC<TradeResultsProps> = ({
 								Verification Trade
 							</span>
 							<span
-								className={`text-[10px] px-2.5 py-1 rounded-full font-semibold ${
-									result.pnl >= 0
+								className={`text-[10px] px-2.5 py-1 rounded-full font-semibold ${result.pnl >= 0
 										? "bg-[#22c55e]/20 text-[#22c55e]"
 										: "bg-[#ef4444]/20 text-[#ef4444]"
-								}`}
+									}`}
 							>
 								{result.pnl >= 0 ? "Profitable" : "Loss"}
 							</span>
@@ -256,11 +254,10 @@ export const TradeResults: FC<TradeResultsProps> = ({
 							<span className="text-white/20">•</span>
 							<div className="text-center">
 								<p
-									className={`font-display text-lg font-semibold ${
-										result.direction === "LONG"
+									className={`font-display text-lg font-semibold ${result.direction === "LONG"
 											? "text-[#22c55e]"
 											: "text-[#ef4444]"
-									}`}
+										}`}
 								>
 									{result.direction}
 								</p>
@@ -271,9 +268,8 @@ export const TradeResults: FC<TradeResultsProps> = ({
 							<span className="text-white/20">•</span>
 							<div className="text-center">
 								<p
-									className={`font-display text-lg font-semibold ${
-										result.pnlPercent >= 0 ? "text-[#22c55e]" : "text-[#ef4444]"
-									}`}
+									className={`font-display text-lg font-semibold ${result.pnlPercent >= 0 ? "text-[#22c55e]" : "text-[#ef4444]"
+										}`}
 								>
 									{result.pnlPercent >= 0 ? "+" : ""}
 									{result.pnlPercent.toFixed(2)}%
@@ -295,7 +291,7 @@ export const TradeResults: FC<TradeResultsProps> = ({
 				</div>
 
 				<button onClick={handleTryAgain} className="btn-copy bg-white/5 py-4 mt-5 w-full justify-center">
-					
+
 					Trade Again
 				</button>
 
@@ -318,7 +314,10 @@ export const TradeResults: FC<TradeResultsProps> = ({
 					<button
 						onClick={handleCopyImage}
 						disabled={isCopying}
-						className={`btn-copy w-full sm:w-auto justify-center transition-all ${copyStatus === "success" ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" : ""}`}
+						className={`btn-copy w-full sm:w-auto justify-center transition-all ${copyStatus === "success"
+								? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
+								: ""
+							}`}
 					>
 						{copyStatus === "copying" ? (
 							<div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
@@ -354,7 +353,7 @@ export const TradeResults: FC<TradeResultsProps> = ({
 					</button>
 				</div>
 
-				
+
 				<button
 					onClick={onReturnHome}
 					className="w-full mt-5 py-3.5 text-sm text-white/50 hover:text-white transition-colors"
