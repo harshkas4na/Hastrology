@@ -263,65 +263,9 @@ const CardsPage: FC = () => {
 		setCurrentScreen("execute");
 	};
 
-	// Flash Trade callbacks
-	const handleOpenPosition = useCallback(async (): Promise<{
-		txSig: string;
-		entryPrice: number;
-	}> => {
-		if (!flashService || !card || !tradeParams) {
-			throw new Error("Flash service not ready");
-		}
 
-		const result = await flashService.executeTrade({
-			card,
-			side: tradeParams.direction.toLowerCase() as "long" | "short",
-			inputAmount: tradeAmount,
-			leverage: tradeParams.leverage,
-		});
 
-		return {
-			txSig: result.txSig,
-			entryPrice: result.estimatedPrice,
-		};
-	}, [flashService, card, tradeParams, tradeAmount]);
 
-	const handleClosePosition = useCallback(async (): Promise<{
-		txSig: string;
-		exitPrice: number;
-		pnl: number;
-	}> => {
-		if (!flashService) {
-			throw new Error("Flash service not ready");
-		}
-
-		const positions = await flashService.getUserPositions();
-		const exitPrice = await flashService.getSolPrice();
-
-		if (positions.length === 0) {
-			// No position to close - return simulated result
-			return {
-				txSig: "",
-				exitPrice,
-				pnl: 0,
-			};
-		}
-
-		const result = await flashService.closeTrade(0, "USDC");
-		const currentPrice = await flashService.getSolPrice();
-
-		return {
-			txSig: result.txSig,
-			exitPrice: currentPrice,
-			pnl: positions[0]?.pnl || 0,
-		};
-	}, [flashService]);
-
-	const handleGetPrice = useCallback(async (): Promise<number> => {
-		if (!flashService) {
-			return 0;
-		}
-		return await flashService.getSolPrice();
-	}, [flashService]);
 
 	// Handle trade completion
 	const handleTradeComplete = (result: TradeResult) => {
