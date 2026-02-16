@@ -136,8 +136,8 @@ export const getTradeExecutionDetails = (
 
 	const marketConfig = requiredCollateralMint
 		? marketConfigs.find((f) =>
-				f.collateralMint.equals(requiredCollateralMint),
-			)!
+			f.collateralMint.equals(requiredCollateralMint),
+		)!
 		: marketConfigs[0];
 
 	const positionPoolConfig = POOL_CONFIGS.find((p) =>
@@ -577,20 +577,20 @@ export class FlashPrivyService {
 					};
 				})
 				.filter((p) => p !== null) as Array<{
-				positionId: string;
-				direction: "LONG" | "SHORT";
-				size: number;
-				sizeUsd: number;
-				entryPrice: number;
-				currentPrice: number;
-				pnl: number;
-				pnlPercent: number;
-				collateral: number;
-				unrealizedPnl: number;
-				openTime: string;
-				market: string;
-				symbol: string;
-			}>;
+					positionId: string;
+					direction: "LONG" | "SHORT";
+					size: number;
+					sizeUsd: number;
+					entryPrice: number;
+					currentPrice: number;
+					pnl: number;
+					pnlPercent: number;
+					collateral: number;
+					unrealizedPnl: number;
+					openTime: string;
+					market: string;
+					symbol: string;
+				}>;
 
 			return humanReadablePositions;
 		} catch (error) {
@@ -676,11 +676,8 @@ export class FlashPrivyService {
 
 		// Serialize and send
 		const serialized = signedTransaction.serialize();
-		const signature = await this.config.wallet.sendTransaction(
+		const signature = await this.config.connection.sendRawTransaction(
 			serialized,
-			uiOptions?.sendDescription
-				? { uiOptions: { description: uiOptions.sendDescription } }
-				: undefined,
 		);
 
 		// Wait for confirmation
@@ -740,7 +737,7 @@ export class FlashPrivyService {
 				if (positions.length > 0) {
 					return;
 				}
-			} catch {}
+			} catch { }
 
 			await new Promise((resolve) => setTimeout(resolve, pollMs));
 		}
@@ -1260,7 +1257,7 @@ export class FlashPrivyService {
 			if (
 				POOL_CONFIG_SWAP &&
 				POOL_CONFIG_SWAP.poolAddress.toBase58() !==
-					POOL_CONFIG_POSITION.poolAddress.toBase58()
+				POOL_CONFIG_POSITION.poolAddress.toBase58()
 			) {
 				throw new Error(
 					"Multipool swap and open not supported. Swap and position pool must be the same.",
@@ -1670,7 +1667,7 @@ export class FlashPrivyService {
 		if (
 			POOL_CONFIG_SWAP &&
 			POOL_CONFIG_SWAP.poolAddress.toBase58() !==
-				POOL_CONFIG_POSITION.poolAddress.toBase58()
+			POOL_CONFIG_POSITION.poolAddress.toBase58()
 		) {
 			throw new Error(
 				"Multipool close and swap not supported. Swap and position pool must be the same.",

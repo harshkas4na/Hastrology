@@ -472,14 +472,22 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 						}
 
 						// Calculate final PnL and complete
-						const exitPrice = await flashServiceRef.current!.getSolPrice();
+						const exitPrice = await flashServiceRef.current!.getCoinPrice(
+							result.targetCoin,
+						);
+
+						// Calculate final PnL
+
+						// Calculate final PnL
 						const finalPriceDiff =
 							direction === "LONG"
 								? exitPrice - result.estimatedPrice
 								: result.estimatedPrice - exitPrice;
 						const finalPnl = finalPriceDiff * result.size;
-						const finalPercent = (finalPnl / amount) * 100;
 
+						const positionValue = result.size * result.estimatedPrice;
+						const finalPercent =
+							positionValue > 0 ? (finalPnl / positionValue) * 100 : 0;
 						if (finalPercent > 0) {
 							try {
 								await api.addTradeTime({
@@ -608,11 +616,10 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 									</span>
 									<div>
 										<span
-											className={`text-xs font-semibold ${
-												direction === "LONG"
+											className={`text-xs font-semibold ${direction === "LONG"
 													? "text-[#22c55e]"
 													: "text-[#ef4444]"
-											}`}
+												}`}
 										>
 											{direction === "LONG" ? "↑" : "↓"} {direction}
 										</span>
@@ -646,9 +653,8 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 										{pnl >= 0 ? "+" : ""}${pnl.toFixed(5)}
 									</p>
 									<p
-										className={`pnl-percent ${
-											pnl >= 0 ? "text-[#22c55e]" : "text-[#ef4444]"
-										}`}
+										className={`pnl-percent ${pnl >= 0 ? "text-[#22c55e]" : "text-[#ef4444]"
+											}`}
 									>
 										{pnl >= 0 ? "+" : ""}
 										({pnlPercent.toFixed(4)}%)
@@ -681,11 +687,10 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 
 							{/* Status message */}
 							<div
-								className={`text-center p-4 rounded-xl ${
-									error
+								className={`text-center p-4 rounded-xl ${error
 										? "bg-red-500/10 border border-red-500/20"
 										: "bg-[#d4a017]/10 border border-[#d4a017]/20"
-								}`}
+									}`}
 							>
 								<p className="text-sm text-white/70">{statusMessage}</p>
 								{error && <p className="text-xs text-red-300 mt-2">{error}</p>}
@@ -735,11 +740,10 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 							<div className="text-center pb-7 mb-7 border-b border-white/[0.08]">
 								{/* Direction badge */}
 								<div
-									className={`inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold uppercase tracking-wider mb-4 ${
-										direction === "LONG"
+									className={`inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold uppercase tracking-wider mb-4 ${direction === "LONG"
 											? "bg-[#22c55e]/15 text-[#22c55e] border border-[#22c55e]/30"
 											: "bg-[#ef4444]/15 text-[#ef4444] border border-[#ef4444]/30"
-									}`}
+										}`}
 								>
 									<svg
 										viewBox="0 0 24 24"

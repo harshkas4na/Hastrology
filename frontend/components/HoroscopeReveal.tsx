@@ -22,24 +22,31 @@ export interface CoinAllocation {
 
 // Add this constant after POOL_CONFIGS
 export const COIN_ALLOCATIONS: CoinAllocation[] = [
-	{ symbol: "BNB", minScore: 0, maxScore: 20, displayName: "Solana" },
-	{ symbol: "BTC", minScore: 20, maxScore: 40, displayName: "Bitcoin" },
-	{ symbol: "ZEC", minScore: 40, maxScore: 60, displayName: "Ethereum" },
-	{ symbol: "ETH", minScore: 60, maxScore: 80, displayName: "Zcash" },
-	{ symbol: "SOL", minScore: 80, maxScore: 100, displayName: "BNB" },
+	// 0-50 range (10 points each)
+	{ symbol: "BNB", minScore: 0, maxScore: 10, displayName: "BNB" },
+	{ symbol: "BTC", minScore: 10, maxScore: 20, displayName: "Bitcoin" },
+	{ symbol: "ZEC", minScore: 20, maxScore: 30, displayName: "Zcash" },
+	{ symbol: "ETH", minScore: 30, maxScore: 40, displayName: "Ethereum" },
+	{ symbol: "SOL", minScore: 40, maxScore: 50, displayName: "Solana" },
+	// 50-200 range (30 points each)
+	{ symbol: "BNB", minScore: 50, maxScore: 60, displayName: "BNB" },
+	{ symbol: "BTC", minScore: 60, maxScore: 70, displayName: "Bitcoin" },
+	{ symbol: "SOL", minScore: 70, maxScore: 80, displayName: "Solana" },
+	{ symbol: "ETH", minScore: 80, maxScore: 90, displayName: "Ethereum" },
+	{ symbol: "ZEC", minScore: 90, maxScore: 100, displayName: "ZCash" },
 ];
 
 // Add helper function to get coin from luck score
 export const getCoinFromLuckScore = (luckScore: number): CoinAllocation => {
-	// Normalize luck score to 0-100 range
-	const normalizedScore = Math.max(0, Math.min(100, luckScore));
+	// Normalize luck score to 0-200 range
+	const normalizedScore = Math.max(0, Math.min(200, luckScore));
 
 	const allocation = COIN_ALLOCATIONS.find(
 		(coin) =>
 			normalizedScore >= coin.minScore && normalizedScore < coin.maxScore,
 	);
 
-	// Fallback to last coin if score is exactly 100
+	// Fallback to last coin if score is exactly 200
 	return allocation || COIN_ALLOCATIONS[COIN_ALLOCATIONS.length - 1];
 };
 
@@ -137,7 +144,7 @@ export const HoroscopeReveal: FC<HoroscopeRevealProps> = ({
 	const colorGradient =
 		colorGradients[colorKey] ||
 		colorGradients[
-			Object.keys(colorGradients).find((k) => colorKey.includes(k)) || "gold"
+		Object.keys(colorGradients).find((k) => colorKey.includes(k)) || "gold"
 		];
 
 	const handleFlip = () => {
@@ -255,8 +262,8 @@ export const HoroscopeReveal: FC<HoroscopeRevealProps> = ({
 									</span>
 
 									<div className="derivation-item mt-2 sm:mt-0">
-										<span className="derivation-value">{luckyColor}</span>
-										<span className="derivation-label">Color</span>
+										<span className="derivation-value">{card.front.luck_score}</span>
+										<span className="derivation-label">Luck Score</span>
 									</div>
 
 									<span className="mb-3 derivation-arrow ">→</span>
@@ -306,9 +313,8 @@ export const HoroscopeReveal: FC<HoroscopeRevealProps> = ({
 									<span className="text-xs text-white/50">leverage</span>
 									<span className="text-white/20">•</span>
 									<span
-										className={`font-display text-lg font-semibold ${
-											direction === "LONG" ? "text-[#22c55e]" : "text-[#ef4444]"
-										}`}
+										className={`font-display text-lg font-semibold ${direction === "LONG" ? "text-[#22c55e]" : "text-[#ef4444]"
+											}`}
 									>
 										{direction}
 									</span>
@@ -370,11 +376,10 @@ export const HoroscopeReveal: FC<HoroscopeRevealProps> = ({
 									if (!(verified || verifiedToday)) onVerifyTrade();
 								}}
 								disabled={verified || verifiedToday}
-								className={`btn-primary w-full text-sm sm:text-base ${
-									verified || verifiedToday
-										? "opacity-70 cursor-not-allowed"
-										: ""
-								}`}
+								className={`btn-primary w-full text-sm sm:text-base ${verified || verifiedToday
+									? "opacity-70 cursor-not-allowed"
+									: ""
+									}`}
 							>
 								{verified || verifiedToday ? (
 									<>
