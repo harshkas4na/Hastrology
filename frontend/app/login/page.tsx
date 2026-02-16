@@ -44,11 +44,7 @@ const LoginPage: FC = () => {
 				if (profileResponse?.user?.username) {
 					setUser(profileResponse.user);
 
-					if (
-						profileResponse.user.dob &&
-						profileResponse.user.birthTime &&
-						profileResponse.user.birthPlace
-					) {
+					if (profileResponse.user.dob) {
 						router.push("/cards");
 					}
 				}
@@ -157,7 +153,7 @@ const LoginPage: FC = () => {
 			{/* Back/Disconnect button */}
 			<button
 				onClick={handleDisconnect}
-				className="absolute top-4 left-4 sm:top-6 sm:left-6 flex items-center gap-2 text-white/60 text-xs sm:text-sm hover:text-white transition-colors z-20"
+				className="absolute cursor-pointer top-4 left-4 sm:top-6 sm:left-6 flex items-center gap-2 text-white/60 text-xs sm:text-sm hover:text-white transition-colors z-20"
 				type="button"
 			>
 				<svg
