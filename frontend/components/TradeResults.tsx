@@ -73,9 +73,37 @@ export const TradeResults: FC<TradeResultsProps> = ({
 		Object.keys(colorGradients).find((k) => colorKey.includes(k)) || "gold"
 		];
 
-	const handleShareX = () => {
+	const handleShareX = async () => {
 		const text = `my daily horoscope verified by a trade on @tryhashtro\n\n“${reading}”\n\nhashtro.fun`;
 		const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+
+		if (cardRef.current && !isCopying) {
+			try {
+				setIsCopying(true);
+				setCopyStatus("copying");
+				const blob = await htmlToImage.toBlob(cardRef.current, {
+					pixelRatio: 2,
+					backgroundColor: "#000",
+					cacheBust: true,
+					style: { borderRadius: "0" },
+				});
+
+				if (blob) {
+					await navigator.clipboard.write([
+						new ClipboardItem({ "image/png": blob }),
+					]);
+					setCopyStatus("success");
+					setTimeout(() => setCopyStatus("idle"), 2000);
+				}
+			} catch (err) {
+				console.error("Failed to copy image for sharing:", err);
+				setCopyStatus("error");
+				setTimeout(() => setCopyStatus("idle"), 2000);
+			} finally {
+				setIsCopying(false);
+			}
+		}
+
 		window.open(url, "_blank");
 	};
 
@@ -230,8 +258,8 @@ export const TradeResults: FC<TradeResultsProps> = ({
 							</span>
 							<span
 								className={`text-[10px] px-2.5 py-1 rounded-full font-semibold ${result.pnl >= 0
-										? "bg-[#22c55e]/20 text-[#22c55e]"
-										: "bg-[#ef4444]/20 text-[#ef4444]"
+									? "bg-[#22c55e]/20 text-[#22c55e]"
+									: "bg-[#ef4444]/20 text-[#ef4444]"
 									}`}
 							>
 								{result.pnl >= 0 ? "Profitable" : "Loss"}
@@ -257,8 +285,8 @@ export const TradeResults: FC<TradeResultsProps> = ({
 							<div className="text-center">
 								<p
 									className={`font-display text-lg font-semibold ${result.direction === "LONG"
-											? "text-[#22c55e]"
-											: "text-[#ef4444]"
+										? "text-[#22c55e]"
+										: "text-[#ef4444]"
 										}`}
 								>
 									{result.direction}
@@ -351,6 +379,10 @@ export const TradeResults: FC<TradeResultsProps> = ({
 									: "Copy Image"}
 					</button>
 				</div>
+				<p className="text-sm uppercase text-white/30 text-center mt-3 font-mono">
+					press <span className="text-white/50">cmd/ctrl + v</span> to
+					paste image in your post draft
+				</p>
 
 
 				<button
