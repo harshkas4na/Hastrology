@@ -89,7 +89,7 @@ export const WalletBalance: FC = () => {
 		return () => {
 			clearInterval(interval);
 			if (subId !== undefined && subConnection) {
-				subConnection.removeAccountChangeListener(subId).catch(() => {});
+				subConnection.removeAccountChangeListener(subId).catch(() => { });
 			}
 		};
 	}, [fetchBalance, publicKey, setBalance]);

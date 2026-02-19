@@ -27,11 +27,11 @@ export const COIN_ALLOCATIONS: CoinAllocation[] = [
 	{ symbol: "BTC", minScore: 10, maxScore: 20, displayName: "Bitcoin" },
 	{ symbol: "ZEC", minScore: 20, maxScore: 30, displayName: "Zcash" },
 	{ symbol: "ETH", minScore: 30, maxScore: 40, displayName: "Ethereum" },
-	{ symbol: "SOL", minScore: 40, maxScore: 50, displayName: "Solana" },
+	{ symbol: "ETH", minScore: 40, maxScore: 50, displayName: "Solana" },
 	// 50-200 range (30 points each)
 	{ symbol: "BNB", minScore: 50, maxScore: 60, displayName: "BNB" },
 	{ symbol: "BTC", minScore: 60, maxScore: 70, displayName: "Bitcoin" },
-	{ symbol: "SOL", minScore: 70, maxScore: 80, displayName: "Solana" },
+	{ symbol: "ETH", minScore: 70, maxScore: 80, displayName: "Solana" },
 	{ symbol: "ETH", minScore: 80, maxScore: 90, displayName: "Ethereum" },
 	{ symbol: "ZEC", minScore: 90, maxScore: 100, displayName: "ZCash" },
 ];
